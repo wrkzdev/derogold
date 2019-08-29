@@ -1,0 +1,30 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/root/derogold-dev/rev-rebase-test/src/logger/Logger.cpp
+logger/Logger.h
+-
+algorithm
+-
+ctime
+-
+iomanip
+-
+iostream
+-
+sstream
+-
+
+logger/Logger.h
+functional
+-
+string
+-
+vector
+-
+

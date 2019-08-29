@@ -10,7 +10,7 @@
 #include <CryptoNoteCore/CachedTransaction.h>
 #include <CryptoNoteCore/TransactionApi.h>
 
-#include <Wallet/WalletErrors.h>
+#include <Utilities/Mixins.h>
 
 namespace CryptoNote
 {
@@ -54,7 +54,7 @@ namespace CryptoNote
          the correct mixin (anonymity) as defined by the current rules */
       static std::tuple<bool, std::string> validate(std::vector<CachedTransaction> transactions, uint64_t height)
       {
-        auto [minMixin, maxMixin, defaultMixin] = getMixinAllowableRange(height);
+        auto [minMixin, maxMixin, defaultMixin] = Utilities::getMixinAllowableRange(height);
 
         for (const auto& transaction : transactions)
         {

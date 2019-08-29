@@ -1,0 +1,16 @@
+/root/derogold-dev/rev-rebase-test/src/rocksdb/CMakeFiles/install.dir
+/root/derogold-dev/rev-rebase-test/src/rocksdb/CMakeFiles/list_install_components.dir
+/root/derogold-dev/rev-rebase-test/src/rocksdb/CMakeFiles/rebuild_cache.dir
+/root/derogold-dev/rev-rebase-test/src/rocksdb/CMakeFiles/edit_cache.dir
+/root/derogold-dev/rev-rebase-test/src/rocksdb/CMakeFiles/rocksdb.dir
+/root/derogold-dev/rev-rebase-test/src/rocksdb/CMakeFiles/install/strip.dir
+/root/derogold-dev/rev-rebase-test/src/rocksdb/CMakeFiles/install/local.dir
+/root/derogold-dev/rev-rebase-test/src/rocksdb/CMakeFiles/rocksdb-shared.dir
+/root/derogold-dev/rev-rebase-test/src/rocksdb/CMakeFiles/build_version.dir
+/root/derogold-dev/rev-rebase-test/src/rocksdb/third-party/gtest-1.7.0/fused-src/gtest/CMakeFiles/install/strip.dir
+/root/derogold-dev/rev-rebase-test/src/rocksdb/third-party/gtest-1.7.0/fused-src/gtest/CMakeFiles/install/local.dir
+/root/derogold-dev/rev-rebase-test/src/rocksdb/third-party/gtest-1.7.0/fused-src/gtest/CMakeFiles/install.dir
+/root/derogold-dev/rev-rebase-test/src/rocksdb/third-party/gtest-1.7.0/fused-src/gtest/CMakeFiles/list_install_components.dir
+/root/derogold-dev/rev-rebase-test/src/rocksdb/third-party/gtest-1.7.0/fused-src/gtest/CMakeFiles/edit_cache.dir
+/root/derogold-dev/rev-rebase-test/src/rocksdb/third-party/gtest-1.7.0/fused-src/gtest/CMakeFiles/rebuild_cache.dir
+/root/derogold-dev/rev-rebase-test/src/rocksdb/third-party/gtest-1.7.0/fused-src/gtest/CMakeFiles/gtest.dir
