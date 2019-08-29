@@ -999,7 +999,9 @@ namespace CryptoNote
 
         uint8_t nextBlockMajorVersion = getBlockMajorVersionForHeight(topBlockIndex);
 
-        size_t blocksCount = std::min(static_cast<size_t>(topBlockIndex), CryptoNote::parameters::DIFFICULTY_BLOCKS_COUNT);
+        size_t blocksCount = std::min(
+            static_cast<size_t>(topBlockIndex),
+            currency.difficultyBlocksCountByBlockVersion(nextBlockMajorVersion, topBlockIndex));
 
         auto timestamps = mainChain->getLastTimestamps(blocksCount);
         auto difficulties = mainChain->getLastCumulativeDifficulties(blocksCount);
@@ -2314,19 +2316,7 @@ namespace CryptoNote
             }
         }
 
-  	uint64_t futureTimeLimit;
-
-  	if (previousBlockIndex + 1 >= CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT)
-  	{	
-      	    futureTimeLimit = CryptoNote::parameters::DIFFICULTY_TARGET * 6;
-  	}
-  	    else
-  	{
-            futureTimeLimit = CryptoNote::parameters::DIFFICULTY_TARGET_V2 * 6;
-  	}	
-
-
-        if (block.timestamp > getAdjustedTime() + futureTimeLimit)
+        if (block.timestamp > getAdjustedTime() + currency.blockFutureTimeLimit(previousBlockIndex + 1))
         {
             return error::BlockValidationError::TIMESTAMP_TOO_FAR_IN_FUTURE;
         }

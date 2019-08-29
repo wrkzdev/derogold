@@ -82,6 +82,21 @@ namespace CryptoNote
             return CryptoNote::parameters::DIFFICULTY_WINDOW;
     }
 
+    size_t Currency::difficultyLagByBlockVersion(uint8_t blockMajorVersion) const
+    {
+        return m_difficultyLag;
+    }
+
+    size_t Currency::difficultyCutByBlockVersion(uint8_t blockMajorVersion) const
+    {
+        return m_difficultyCut;
+    }
+
+    size_t Currency::difficultyBlocksCountByBlockVersion(uint8_t blockMajorVersion, uint32_t height) const
+    {
+        return difficultyWindowByBlockVersion(blockMajorVersion) + difficultyLagByBlockVersion(blockMajorVersion);
+    }
+
     size_t Currency::blockGrantedFullRewardZoneByBlockVersion(uint8_t blockMajorVersion) const
     {
         if (blockMajorVersion >= BLOCK_MAJOR_VERSION_3)
@@ -462,8 +477,9 @@ namespace CryptoNote
         std::vector<uint64_t> cumulativeDifficulties) const
     {
 	    uint64_t nextDiff = 0;
+        nextDiff = nextDifficulty(version, blockIndex, timestamps, cumulativeDifficulties);
 
-            return nextDifficulty(version, blockIndex, timestamps, cumulativeDifficulties);
+        return nextDiff;
     }
 
     uint64_t Currency::nextDifficulty(
@@ -475,7 +491,7 @@ namespace CryptoNote
         std::vector<uint64_t> timestamps_o(timestamps);
         std::vector<uint64_t> cumulativeDifficulties_o(cumulativeDifficulties);
         size_t c_difficultyWindow = difficultyWindowByBlockVersion(version);
-	size_t c_difficultyCut = difficultyCutByBlockVersion(version);
+        size_t c_difficultyCut = difficultyCutByBlockVersion(version);
 
         assert(c_difficultyWindow >= 2);
 
@@ -671,13 +687,13 @@ namespace CryptoNote
         switch (block.getBlock().majorVersion)
         {
             case BLOCK_MAJOR_VERSION_1:
+            {
                 return checkProofOfWorkV1(block, currentDiffic);
-
-            case BLOCK_MAJOR_VERSION_2:
-            case BLOCK_MAJOR_VERSION_3:
-            case BLOCK_MAJOR_VERSION_4:
-            case BLOCK_MAJOR_VERSION_5:
+            }
+            default:
+            {
                 return checkProofOfWorkV2(block, currentDiffic);
+            }
         }
 
         logger(ERROR, BRIGHT_RED) << "Unknown block major version: " << block.getBlock().majorVersion << "."

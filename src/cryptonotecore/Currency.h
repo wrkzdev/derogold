@@ -10,6 +10,7 @@
 #include "CryptoNoteBasic.h"
 #include "crypto/hash.h"
 #include "logging/LoggerRef.h"
+
 #include <boost/utility.hpp>
 #include <config/CryptoNoteConfig.h>
 #include <cstdint>
@@ -157,7 +158,7 @@ namespace CryptoNote
             return m_difficultyCut;
         }
 
-	size_t difficultyCutByBlockVersion(uint8_t blockMajorVersion) const;
+        size_t difficultyCutByBlockVersion(uint8_t blockMajorVersion) const;
 
         size_t difficultyBlocksCount() const
         {
