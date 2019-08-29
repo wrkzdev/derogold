@@ -1,2 +1,0 @@
-/usr/bin/ar qc libLogger.a  CMakeFiles/Logger.dir/logger/Logger.cpp.o
-/usr/bin/ranlib libLogger.a
