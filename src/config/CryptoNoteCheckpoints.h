@@ -20,11 +20,13 @@
 #include <cstddef>
 #include <initializer_list>
 
-namespace CryptoNote {
-struct CheckpointData {
-  uint32_t index;
-  const char* blockId;
-};
+namespace CryptoNote
+{
+    struct CheckpointData
+    {
+        uint32_t index;
+        const char *blockId;
+    };
 
 const std::initializer_list<CheckpointData> CHECKPOINTS = {
     {1,         "fbf224231d84591c157dc04f512ccd4151e75478f447176446c67d99f80b54b5"},
@@ -50,4 +52,4 @@ const std::initializer_list<CheckpointData> CHECKPOINTS = {
     {100000,    "c41849d4a986517af061e0180d29f3a42f26c17b25cd6173cc77707140de14a1"},
     {105000,    "f8f6955dc45a6b910fe7086b34769b405b437c42d0e52dfb99582ceb887daa83"},
 };
-}
+} // namespace CryptoNote
