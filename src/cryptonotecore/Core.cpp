@@ -2315,6 +2315,21 @@ namespace CryptoNote
             }
         }
 
+	uint64_t futureTimeLimit;
+
+	if (previousBlockIndex + 1 >= CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT)
+	{
+		futureTimeLimit = CryptoNote::parameters::DIFFICULTY_TARGET * 6;
+	}
+	else
+	{
+		futureTimeLimit = CryptoNote::parameters::DIFFICULTY_TARGET_V2 * 6;
+	}
+
+	if (block.timestamp > getAdjustedTime() + futureTimeLimit) {
+		return error::BlockValidationError::TIMESTAMP_TOO_FAR_IN_FUTURE;
+	}
+
 	auto timestamps = cache->getLastTimestamps(currency.timestampCheckWindow(previousBlockIndex+1), previousBlockIndex, addGenesisBlock);
 	if (timestamps.size() >= currency.timestampCheckWindow(previousBlockIndex+1)) {
     	    auto median_ts = Common::medianValue(timestamps);
