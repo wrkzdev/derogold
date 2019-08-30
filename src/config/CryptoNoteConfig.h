@@ -127,7 +127,7 @@ namespace CryptoNote
 
         const uint64_t BLOCK_BLOB_SHUFFLE_CHECK_HEIGHT = 1800000;
 
-        const uint64_t TRANSACTION_INPUT_BLOCKTIME_VALIDATION_HEIGHT = 1800000;
+        const uint64_t TRANSACTION_INPUT_BLOCKTIME_VALIDATION_HEIGHT = 1600000;
 
         /* This describes how many blocks of "wiggle" room transactions have regarding
            when the outputs can be spent based on a reasonable belief that the outputs
@@ -168,10 +168,11 @@ namespace CryptoNote
         /* Block heights we are going to have hard forks at */
         const uint64_t FORK_HEIGHTS[] = {
             700000, // 0
+            1600000, // 1
         };
 
         /* MAKE SURE TO UPDATE THIS VALUE WITH EVERY MAJOR RELEASE BEFORE A FORK */
-        const uint64_t SOFTWARE_SUPPORTED_FORK_INDEX = 0;
+        const uint64_t SOFTWARE_SUPPORTED_FORK_INDEX = 1;
 
         const uint64_t FORK_HEIGHTS_SIZE = sizeof(FORK_HEIGHTS) / sizeof(*FORK_HEIGHTS);
 
@@ -242,9 +243,9 @@ namespace CryptoNote
 
     // P2P Network Configuration Section - This defines our current P2P network version
     // and the minimum version for communication between nodes
-    const uint8_t P2P_CURRENT_VERSION = 1;
+    const uint8_t P2P_CURRENT_VERSION = 2;
 
-    const uint8_t P2P_MINIMUM_VERSION = 0;
+    const uint8_t P2P_MINIMUM_VERSION = 1;
 
     // This defines the minimum P2P version required for lite blocks propogation
     const uint8_t P2P_LITE_BLOCKS_PROPOGATION_VERSION = 0;
