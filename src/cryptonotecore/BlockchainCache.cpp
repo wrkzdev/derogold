@@ -1363,17 +1363,11 @@ namespace CryptoNote
     uint64_t BlockchainCache::getDifficultyForNextBlock(uint32_t blockIndex) const
     {
         assert(blockIndex <= getTopBlockIndex());
-        uint8_t nextBlockMajorVersion = getBlockMajorVersionForHeight(blockIndex + 1);
-        auto timestamps = getLastTimestamps(
-            currency.difficultyBlocksCountByBlockVersion(nextBlockMajorVersion, blockIndex),
-            blockIndex,
-            skipGenesisBlock);
-        auto commulativeDifficulties = getLastCumulativeDifficulties(
-            currency.difficultyBlocksCountByBlockVersion(nextBlockMajorVersion, blockIndex),
-            blockIndex,
-            skipGenesisBlock);
-        return currency.getNextDifficulty(
-            nextBlockMajorVersion, blockIndex, std::move(timestamps), std::move(commulativeDifficulties));
+        uint8_t nextBlockMajorVersion = getBlockMajorVersionForHeight(blockIndex+1);
+        auto timestamps = getLastTimestamps(CryptoNote::parameters::DIFFICULTY_BLOCKS_COUNT, blockIndex, skipGenesisBlock);
+        auto commulativeDifficulties =
+            getLastCumulativeDifficulties(CryptoNote::parameters::DIFFICULTY_BLOCKS_COUNT, blockIndex, skipGenesisBlock);
+        return currency.getNextDifficulty(nextBlockMajorVersion, blockIndex, std::move(timestamps), std::move(commulativeDifficulties));
     }
 
     uint64_t BlockchainCache::getCurrentCumulativeDifficulty() const

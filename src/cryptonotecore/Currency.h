@@ -53,11 +53,6 @@ namespace CryptoNote
                 return m_timestampCheckWindow;
         }
 
-        uint64_t blockFutureTimeLimit(uint32_t blockHeight) const
-        {
-                return m_blockFutureTimeLimit;
-        }
-
         uint64_t moneySupply() const
         {
             return m_moneySupply;
@@ -76,21 +71,6 @@ namespace CryptoNote
         size_t rewardBlocksWindow() const
         {
             return m_rewardBlocksWindow;
-        }
-
-        uint32_t zawyDifficultyBlockIndex() const
-        {
-            return m_zawyDifficultyBlockIndex;
-        }
-
-        size_t zawyDifficultyV2() const
-        {
-            return m_zawyDifficultyV2;
-        }
-
-        uint8_t zawyDifficultyBlockVersion() const
-        {
-            return m_zawyDifficultyBlockVersion;
         }
 
         size_t blockGrantedFullRewardZone() const
@@ -144,28 +124,10 @@ namespace CryptoNote
             return m_difficultyWindow;
         }
 
-        size_t difficultyWindowByBlockVersion(uint8_t blockMajorVersion) const;
-
-        size_t difficultyLag() const
-        {
-            return m_difficultyLag;
-        }
-
-        size_t difficultyLagByBlockVersion(uint8_t blockMajorVersion) const;
-
         size_t difficultyCut() const
         {
             return m_difficultyCut;
         }
-
-        size_t difficultyCutByBlockVersion(uint8_t blockMajorVersion) const;
-
-        size_t difficultyBlocksCount() const
-        {
-            return m_difficultyWindow + m_difficultyLag;
-        }
-
-        size_t difficultyBlocksCountByBlockVersion(uint8_t blockMajorVersion, uint32_t height) const;
 
         size_t maxBlockSizeInitial() const
         {
@@ -290,6 +252,7 @@ namespace CryptoNote
             size_t currentBlockSize,
             uint64_t alreadyGeneratedCoins,
             uint64_t fee,
+            uint64_t blockHeight,
             uint64_t &reward,
             int64_t &emissionChange) const;
 
@@ -341,12 +304,6 @@ namespace CryptoNote
             std::vector<uint64_t> timestamps,
             std::vector<uint64_t> cumulativeDifficulties) const;
 
-        uint64_t nextDifficulty(
-            uint8_t version,
-            uint32_t blockIndex,
-            std::vector<uint64_t> timestamps,
-            std::vector<uint64_t> cumulativeDifficulties) const;
-
         bool checkProofOfWorkV1(const CachedBlock &block, uint64_t currentDifficulty) const;
 
         bool checkProofOfWorkV2(const CachedBlock &block, uint64_t currentDifficulty) const;
@@ -375,8 +332,6 @@ namespace CryptoNote
 
         size_t m_timestampCheckWindow;
 
-        uint64_t m_blockFutureTimeLimit;
-
         uint64_t m_moneySupply;
 
         unsigned int m_emissionSpeedFactor;
@@ -384,12 +339,6 @@ namespace CryptoNote
         uint64_t m_genesisBlockReward;
 
         size_t m_rewardBlocksWindow;
-
-        uint32_t m_zawyDifficultyBlockIndex;
-
-        size_t m_zawyDifficultyV2;
-
-        uint8_t m_zawyDifficultyBlockVersion;
 
         size_t m_blockGrantedFullRewardZone;
 
@@ -406,8 +355,6 @@ namespace CryptoNote
         uint64_t m_difficultyTarget;
 
         size_t m_difficultyWindow;
-
-        size_t m_difficultyLag;
 
         size_t m_difficultyCut;
 
@@ -517,12 +464,6 @@ namespace CryptoNote
             return *this;
         }
 
-        CurrencyBuilder &blockFutureTimeLimit(uint64_t val)
-        {
-            m_currency.m_blockFutureTimeLimit = val;
-            return *this;
-        }
-
         CurrencyBuilder &moneySupply(uint64_t val)
         {
             m_currency.m_moneySupply = val;
@@ -540,24 +481,6 @@ namespace CryptoNote
         CurrencyBuilder &rewardBlocksWindow(size_t val)
         {
             m_currency.m_rewardBlocksWindow = val;
-            return *this;
-        }
-
-        CurrencyBuilder &zawyDifficultyBlockIndex(uint32_t val)
-        {
-            m_currency.m_zawyDifficultyBlockIndex = val;
-            return *this;
-        }
-
-        CurrencyBuilder &zawyDifficultyV2(size_t val)
-        {
-            m_currency.m_zawyDifficultyV2 = val;
-            return *this;
-        }
-
-        CurrencyBuilder &zawyDifficultyBlockVersion(uint8_t val)
-        {
-            m_currency.m_zawyDifficultyBlockVersion = val;
             return *this;
         }
 
@@ -594,12 +517,6 @@ namespace CryptoNote
         }
 
         CurrencyBuilder &difficultyWindow(size_t val);
-
-        CurrencyBuilder &difficultyLag(size_t val)
-        {
-            m_currency.m_difficultyLag = val;
-            return *this;
-        }
 
         CurrencyBuilder &difficultyCut(size_t val)
         {
