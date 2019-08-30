@@ -189,6 +189,7 @@ namespace CryptoNote
                     cumulativeSize,
                     alreadyGeneratedCoins,
                     cumulativeFee,
+                    previousBlockIndex+1,
                     reward,
                     emissionChange))
             {
@@ -990,18 +991,15 @@ namespace CryptoNote
     }
 
     // TODO: just use mainChain->getDifficultyForNextBlock() ?
-    uint64_t Core::getDifficultyForNextBlock() const
-    {
+    uint64_t Core::getDifficultyForNextBlock() const {
         throwIfNotInitialized();
-        IBlockchainCache *mainChain = chainsLeaves[0];
+        IBlockchainCache* mainChain = chainsLeaves[0];
 
         uint32_t topBlockIndex = mainChain->getTopBlockIndex();
 
         uint8_t nextBlockMajorVersion = getBlockMajorVersionForHeight(topBlockIndex);
 
-        size_t blocksCount = std::min(
-            static_cast<size_t>(topBlockIndex),
-            currency.difficultyBlocksCountByBlockVersion(nextBlockMajorVersion, topBlockIndex));
+        size_t blocksCount = std::min(static_cast<size_t>(topBlockIndex), CryptoNote::parameters::DIFFICULTY_BLOCKS_COUNT);
 
         auto timestamps = mainChain->getLastTimestamps(blocksCount);
         auto difficulties = mainChain->getLastCumulativeDifficulties(blocksCount);
@@ -1189,6 +1187,7 @@ namespace CryptoNote
                 cumulativeBlockSize,
                 alreadyGeneratedCoins,
                 cumulativeFee,
+                cachedBlock.getBlockIndex(),
                 reward,
                 emissionChange))
         {
@@ -2316,11 +2315,6 @@ namespace CryptoNote
             }
         }
 
-        if (block.timestamp > getAdjustedTime() + currency.blockFutureTimeLimit(previousBlockIndex + 1))
-        {
-            return error::BlockValidationError::TIMESTAMP_TOO_FAR_IN_FUTURE;
-        }
-
 	auto timestamps = cache->getLastTimestamps(currency.timestampCheckWindow(previousBlockIndex+1), previousBlockIndex, addGenesisBlock);
 	if (timestamps.size() >= currency.timestampCheckWindow(previousBlockIndex+1)) {
     	    auto median_ts = Common::medianValue(timestamps);
@@ -3187,6 +3181,7 @@ namespace CryptoNote
             0,
             prevBlockGeneratedCoins,
             0,
+			blockIndex,
             blockDetails.baseReward,
             emissionChange);
         if (result)
@@ -3201,6 +3196,7 @@ namespace CryptoNote
             blockDetails.transactionsCumulativeSize,
             prevBlockGeneratedCoins,
             0,
+            blockIndex,
             currentReward,
             emissionChange);
         assert(result);
