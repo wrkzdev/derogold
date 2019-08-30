@@ -11,6 +11,7 @@ include_directories(${CMAKE_SOURCE_DIR}/external/cxxopts)
 include_directories(${CMAKE_SOURCE_DIR}/external/cryptopp)
 include_directories(${CMAKE_SOURCE_DIR}/external/sqlite3)
 include_directories(${CMAKE_SOURCE_DIR}/external/lz4)
+include_directories(${CMAKE_SOURCE_DIR}/external/zstd)
 
 # Show cmake where the source files are
 # Note, if you add remove a source file, you will need to re-run cmake so it
@@ -36,7 +37,7 @@ file(GLOB_RECURSE Rpc rpc/*)
 file(GLOB_RECURSE Serialization serialization/*)
 file(GLOB_RECURSE SubWallets subwallets/*)
 file(GLOB_RECURSE Transfers transfers/*)
-file(GLOB_RECURSE TurtleCoind daemon/*)
+file(GLOB_RECURSE DeroGoldd daemon/*)
 file(GLOB_RECURSE Utilities utilities/*)
 file(GLOB_RECURSE Wallet wallet/*)
 file(GLOB_RECURSE WalletApi walletapi/*)
@@ -54,7 +55,7 @@ else ()
 endif ()
 
 # Group the files together in IDEs
-source_group("" FILES $${Common} ${Config} ${Crypto} ${CryptoNoteCore} ${CryptoNoteProtocol} ${TurtleCoind} ${JsonRpcServer} ${Http} ${Logging} ${Logger} ${miner} ${Mnemonics} ${Nigel} ${NodeRpcProxy} ${P2p} ${Rpc} ${Serialization} ${System} ${Transfers} ${Wallet} ${WalletApi} ${WalletBackend} ${WalletService} ${zedwallet} ${zedwallet++} ${CryptoTest} ${Errors} ${Utilities} ${SubWallets})
+source_group("" FILES $${Common} ${Config} ${Crypto} ${CryptoNoteCore} ${CryptoNoteProtocol} ${DeroGoldd} ${JsonRpcServer} ${Http} ${Logging} ${Logger} ${miner} ${Mnemonics} ${Nigel} ${NodeRpcProxy} ${P2p} ${Rpc} ${Serialization} ${System} ${Transfers} ${Wallet} ${WalletApi} ${WalletBackend} ${WalletService} ${zedwallet} ${zedwallet++} ${CryptoTest} ${Errors} ${Utilities} ${SubWallets})
 
 # Define a group of files as a library to link against
 add_library(BlockchainExplorer STATIC ${BlockchainExplorer})
@@ -104,14 +105,14 @@ endif ()
 add_executable(cryptotest ${CryptoTest} ${CT_SOURCES_OS})
 add_executable(miner ${miner} ${MINER_SOURCES_OS})
 add_executable(WalletService ${WalletService} ${PG_SOURCES_OS})
-add_executable(TurtleCoind ${TurtleCoind} ${DAEMON_SOURCES_OS})
+add_executable(DeroGoldd ${DeroGoldd} ${DAEMON_SOURCES_OS})
 add_executable(WalletApi ${WalletApi} ${WALLET_API_SOURCES_OS})
 add_executable(zedwallet ${zedwallet} ${ZED_WALLET_SOURCES_OS})
 add_executable(zedwallet++ ${zedwallet++} ${ZED_WALLET_SOURCES_OS})
 
 if (MSVC)
     target_link_libraries(System ws2_32)
-    target_link_libraries(TurtleCoind Rpcrt4)
+    target_link_libraries(DeroGoldd Rpcrt4)
     target_link_libraries(WalletService Rpcrt4 ws2_32 advapi32 crypt32 gdi32 user32)
     target_link_libraries(zedwallet++ ws2_32 advapi32 crypt32 gdi32 user32)
     target_link_libraries(WalletApi ws2_32 advapi32 crypt32 gdi32 user32)
@@ -131,9 +132,9 @@ elseif (UNIX)
 endif ()
 
 if (MSVC)
-    target_link_libraries(TurtleCoind System CryptoNoteCore rocksdb lz4 sqlite3 Errors ${Boost_LIBRARIES})
+    target_link_libraries(DeroGoldd System CryptoNoteCore rocksdb lz4 zstd sqlite3 Errors ${Boost_LIBRARIES})
 else ()
-    target_link_libraries(TurtleCoind System CryptoNoteCore rocksdblib lz4 sqlite3 Errors ${Boost_LIBRARIES})
+    target_link_libraries(DeroGoldd System CryptoNoteCore rocksdblib lz4 zstd sqlite3 Errors ${Boost_LIBRARIES})
 endif ()
 
 # Add the dependencies we need
@@ -174,13 +175,13 @@ add_dependencies(miner version)
 add_dependencies(JsonRpcServer version)
 add_dependencies(P2P version)
 add_dependencies(Rpc version)
-add_dependencies(TurtleCoind version)
+add_dependencies(DeroGoldd version)
 add_dependencies(WalletApi version)
 add_dependencies(WalletService version)
 add_dependencies(zedwallet version)
 
 # Finally build the binaries
-set_property(TARGET TurtleCoind PROPERTY OUTPUT_NAME "DeroGoldd")
+set_property(TARGET DeroGoldd PROPERTY OUTPUT_NAME "DeroGoldd")
 set_property(TARGET zedwallet PROPERTY OUTPUT_NAME "zedwallet")
 set_property(TARGET zedwallet++ PROPERTY OUTPUT_NAME "zedwallet-beta")
 #set_property(TARGET service PROPERTY OUTPUT_NAME "DeroGold-service")
@@ -189,7 +190,7 @@ set_property(TARGET cryptotest PROPERTY OUTPUT_NAME "cryptotest")
 set_property(TARGET WalletApi PROPERTY OUTPUT_NAME "wallet-api")
 
 # Additional make targets, can be used to build a subset of the targets
-# e.g. make pool will build only TurtleCoind and service
-add_custom_target(pool DEPENDS TurtleCoind WalletService)
-add_custom_target(solominer DEPENDS TurtleCoind zedwallet miner)
-add_custom_target(cli DEPENDS TurtleCoind zedwallet)
+# e.g. make pool will build only DeroGoldd and service
+add_custom_target(pool DEPENDS DeroGoldd WalletService)
+add_custom_target(solominer DEPENDS DeroGoldd zedwallet miner)
+add_custom_target(cli DEPENDS DeroGoldd zedwallet)
