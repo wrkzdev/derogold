@@ -36,7 +36,7 @@ namespace CryptoNote
 
         const uint32_t CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW = 120;
 
-        const uint64_t CRYPTONOTE_BLOCK_FUTURE_TIME_LIMIT = 6 * DIFFICULTY_TARGET;
+        const uint64_t CRYPTONOTE_BLOCK_FUTURE_TIME_LIMIT = 6 * DIFFICULTY_TARGET_V2;
 
         const size_t BLOCKCHAIN_TIMESTAMP_CHECK_WINDOW = 11;
 
@@ -102,7 +102,7 @@ namespace CryptoNote
 
         const uint64_t DEFAULT_DUST_THRESHOLD = UINT64_C(0);
 
-        const uint64_t EXPECTED_NUMBER_OF_BLOCKS_PER_DAY = 24 * 60 * 60 / DIFFICULTY_TARGET;
+        const uint64_t EXPECTED_NUMBER_OF_BLOCKS_PER_DAY = 24 * 60 * 60 / DIFFICULTY_TARGET_V2;
 
         const size_t DIFFICULTY_WINDOW = 60;
 
@@ -112,7 +112,7 @@ namespace CryptoNote
 
         const uint64_t MAX_BLOCK_SIZE_GROWTH_SPEED_NUMERATOR = 100 * 1024;
 
-        const uint64_t MAX_BLOCK_SIZE_GROWTH_SPEED_DENOMINATOR = 365 * 24 * 60 * 60 / DIFFICULTY_TARGET;
+        const uint64_t MAX_BLOCK_SIZE_GROWTH_SPEED_DENOMINATOR = 365 * 24 * 60 * 60 / DIFFICULTY_TARGET_V2;
 
         const uint64_t MAX_EXTRA_SIZE = 140000;
 
@@ -135,7 +135,7 @@ namespace CryptoNote
         const uint64_t CRYPTONOTE_LOCKED_TX_ALLOWED_DELTA_BLOCKS = 1;
 
         const uint64_t CRYPTONOTE_LOCKED_TX_ALLOWED_DELTA_SECONDS =
-            DIFFICULTY_TARGET * CRYPTONOTE_LOCKED_TX_ALLOWED_DELTA_BLOCKS;
+            DIFFICULTY_TARGET_V2 * CRYPTONOTE_LOCKED_TX_ALLOWED_DELTA_BLOCKS;
 
         const uint64_t CRYPTONOTE_MEMPOOL_TX_LIVETIME = 60 * 60 * 24; // seconds, one day
         const uint64_t CRYPTONOTE_MEMPOOL_TX_FROM_ALT_BLOCK_LIVETIME = 60 * 60 * 24 * 7; // seconds, one week
