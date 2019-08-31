@@ -6,8 +6,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#ifndef STORAGE_ROCKSDB_INCLUDE_COMPARATOR_H_
-#define STORAGE_ROCKSDB_INCLUDE_COMPARATOR_H_
+#pragma once
 
 #include <string>
 
@@ -56,9 +55,8 @@ class Comparator {
   // If *start < limit, changes *start to a short string in [start,limit).
   // Simple comparator implementations may return with *start unchanged,
   // i.e., an implementation of this method that does nothing is correct.
-  virtual void FindShortestSeparator(
-      std::string* start,
-      const Slice& limit) const = 0;
+  virtual void FindShortestSeparator(std::string* start,
+                                     const Slice& limit) const = 0;
 
   // Changes *key to a short string >= *key.
   // Simple comparator implementations may return with *key unchanged,
@@ -74,6 +72,12 @@ class Comparator {
                                               const Slice& /*t*/) const {
     return false;
   }
+
+  // return true if two keys with different byte sequences can be regarded
+  // as equal by this comparator.
+  // The major use case is to determine if DataBlockHashIndex is compatible
+  // with the customized comparator.
+  virtual bool CanKeysWithDifferentByteContentsBeEqual() const { return true; }
 };
 
 // Return a builtin comparator that uses lexicographic byte-wise
@@ -86,5 +90,3 @@ extern const Comparator* BytewiseComparator();
 extern const Comparator* ReverseBytewiseComparator();
 
 }  // namespace rocksdb
-
-#endif  // STORAGE_ROCKSDB_INCLUDE_COMPARATOR_H_

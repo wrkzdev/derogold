@@ -17,12 +17,13 @@
 #include <thread>
 #include <utility>
 #include "db/db_impl.h"
-#include "port/stack_trace.h"
 #include "port/port.h"
+#include "port/stack_trace.h"
 #include "rocksdb/db.h"
 #include "rocksdb/env.h"
 #include "rocksdb/utilities/checkpoint.h"
 #include "rocksdb/utilities/transaction_db.h"
+#include "util/fault_injection_test_env.h"
 #include "util/sync_point.h"
 #include "util/testharness.h"
 
@@ -65,7 +66,7 @@ class CheckpointTest : public testing::Test {
     Reopen(options);
   }
 
-  ~CheckpointTest() {
+  ~CheckpointTest() override {
     rocksdb::SyncPoint::GetInstance()->DisableProcessing();
     rocksdb::SyncPoint::GetInstance()->LoadDependency({});
     rocksdb::SyncPoint::GetInstance()->ClearAllCallBacks();
@@ -161,6 +162,16 @@ class CheckpointTest : public testing::Test {
 
   Status ReadOnlyReopen(const Options& options) {
     return DB::OpenForReadOnly(options, dbname_, &db_);
+  }
+
+  Status ReadOnlyReopenWithColumnFamilies(const std::vector<std::string>& cfs,
+                                          const Options& options) {
+    std::vector<ColumnFamilyDescriptor> column_families;
+    for (const auto& cf : cfs) {
+      column_families.emplace_back(cf, options);
+    }
+    return DB::OpenForReadOnly(options, dbname_, column_families, &handles_,
+                               &db_);
   }
 
   Status TryReopen(const Options& options) {
@@ -583,6 +594,95 @@ TEST_F(CheckpointTest, CheckpointWithParallelWrites) {
   ASSERT_OK(checkpoint->CreateCheckpoint(snapshot_name_));
   delete checkpoint;
   thread.join();
+}
+
+TEST_F(CheckpointTest, CheckpointWithUnsyncedDataDropped) {
+  Options options = CurrentOptions();
+  std::unique_ptr<FaultInjectionTestEnv> env(new FaultInjectionTestEnv(env_));
+  options.env = env.get();
+  Reopen(options);
+  ASSERT_OK(Put("key1", "val1"));
+  Checkpoint* checkpoint;
+  ASSERT_OK(Checkpoint::Create(db_, &checkpoint));
+  ASSERT_OK(checkpoint->CreateCheckpoint(snapshot_name_));
+  delete checkpoint;
+  env->DropUnsyncedFileData();
+
+  // make sure it's openable even though whatever data that wasn't synced got
+  // dropped.
+  options.env = env_;
+  DB* snapshot_db;
+  ASSERT_OK(DB::Open(options, snapshot_name_, &snapshot_db));
+  ReadOptions read_opts;
+  std::string get_result;
+  ASSERT_OK(snapshot_db->Get(read_opts, "key1", &get_result));
+  ASSERT_EQ("val1", get_result);
+  delete snapshot_db;
+  delete db_;
+  db_ = nullptr;
+}
+
+TEST_F(CheckpointTest, CheckpointReadOnlyDB) {
+  ASSERT_OK(Put("foo", "foo_value"));
+  ASSERT_OK(Flush());
+  Close();
+  Options options = CurrentOptions();
+  ASSERT_OK(ReadOnlyReopen(options));
+  Checkpoint* checkpoint = nullptr;
+  ASSERT_OK(Checkpoint::Create(db_, &checkpoint));
+  ASSERT_OK(checkpoint->CreateCheckpoint(snapshot_name_));
+  delete checkpoint;
+  checkpoint = nullptr;
+  Close();
+  DB* snapshot_db = nullptr;
+  ASSERT_OK(DB::Open(options, snapshot_name_, &snapshot_db));
+  ReadOptions read_opts;
+  std::string get_result;
+  ASSERT_OK(snapshot_db->Get(read_opts, "foo", &get_result));
+  ASSERT_EQ("foo_value", get_result);
+  delete snapshot_db;
+}
+
+TEST_F(CheckpointTest, CheckpointReadOnlyDBWithMultipleColumnFamilies) {
+  Options options = CurrentOptions();
+  CreateAndReopenWithCF({"pikachu", "eevee"}, options);
+  for (int i = 0; i != 3; ++i) {
+    ASSERT_OK(Put(i, "foo", "foo_value"));
+    ASSERT_OK(Flush(i));
+  }
+  Close();
+  Status s = ReadOnlyReopenWithColumnFamilies(
+      {kDefaultColumnFamilyName, "pikachu", "eevee"}, options);
+  ASSERT_OK(s);
+  Checkpoint* checkpoint = nullptr;
+  ASSERT_OK(Checkpoint::Create(db_, &checkpoint));
+  ASSERT_OK(checkpoint->CreateCheckpoint(snapshot_name_));
+  delete checkpoint;
+  checkpoint = nullptr;
+  Close();
+
+  std::vector<ColumnFamilyDescriptor> column_families{
+      {kDefaultColumnFamilyName, options},
+      {"pikachu", options},
+      {"eevee", options}};
+  DB* snapshot_db = nullptr;
+  std::vector<ColumnFamilyHandle*> snapshot_handles;
+  s = DB::Open(options, snapshot_name_, column_families, &snapshot_handles,
+               &snapshot_db);
+  ASSERT_OK(s);
+  ReadOptions read_opts;
+  for (int i = 0; i != 3; ++i) {
+    std::string get_result;
+    s = snapshot_db->Get(read_opts, snapshot_handles[i], "foo", &get_result);
+    ASSERT_OK(s);
+    ASSERT_EQ("foo_value", get_result);
+  }
+
+  for (auto snapshot_h : snapshot_handles) {
+    delete snapshot_h;
+  }
+  snapshot_handles.clear();
+  delete snapshot_db;
 }
 
 }  // namespace rocksdb

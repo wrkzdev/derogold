@@ -16,7 +16,7 @@
 #include "db/dbformat.h"
 #include "db/log_reader.h"
 #include "db/write_batch_internal.h"
-#include "port/dirent.h"
+#include "port/port_dirent.h"
 #include "rocksdb/cache.h"
 #include "rocksdb/table_properties.h"
 #include "rocksdb/utilities/backupable_db.h"
@@ -81,10 +81,12 @@ const char* LDBCommand::DELIM = " ==> ";
 
 namespace {
 
-void DumpWalFile(std::string wal_file, bool print_header, bool print_values,
-                 bool is_write_committed, LDBCommandExecuteResult* exec_state);
+void DumpWalFile(Options options, std::string wal_file, bool print_header,
+                 bool print_values, bool is_write_committed,
+                 LDBCommandExecuteResult* exec_state);
 
-void DumpSstFile(std::string filename, bool output_hex, bool show_properties);
+void DumpSstFile(Options options, std::string filename, bool output_hex,
+                 bool show_properties);
 };
 
 LDBCommand* LDBCommand::InitFromCmdLineArgs(
@@ -130,12 +132,19 @@ LDBCommand* LDBCommand::InitFromCmdLineArgs(
   for (const auto& arg : args) {
     if (arg[0] == '-' && arg[1] == '-'){
       std::vector<std::string> splits = StringSplit(arg, '=');
+      // --option_name=option_value
       if (splits.size() == 2) {
         std::string optionKey = splits[0].substr(OPTION_PREFIX.size());
         parsed_params.option_map[optionKey] = splits[1];
-      } else {
+      } else if (splits.size() == 1) {
+        // --flag_name
         std::string optionKey = splits[0].substr(OPTION_PREFIX.size());
         parsed_params.flags.push_back(optionKey);
+      } else {
+        // --option_name=option_value, option_value contains '='
+        std::string optionKey = splits[0].substr(OPTION_PREFIX.size());
+        parsed_params.option_map[optionKey] =
+            arg.substr(splits[0].length() + 1);
       }
     } else {
       cmdTokens.push_back(arg);
@@ -329,6 +338,12 @@ void LDBCommand::OpenDB() {
       exec_state_ = LDBCommandExecuteResult::Failed(msg);
       db_ = nullptr;
       return;
+    }
+    if (options_.env->FileExists(options_.wal_dir).IsNotFound()) {
+      options_.wal_dir = db_path_;
+      fprintf(
+          stderr,
+          "wal_dir loaded from the option file doesn't exist. Ignore it.\n");
     }
   }
   options_ = PrepareOptionsForOpenDB();
@@ -834,7 +849,7 @@ void CompactorCommand::DoCommand() {
   }
 
   CompactRangeOptions cro;
-  cro.bottommost_level_compaction = BottommostLevelCompaction::kForce;
+  cro.bottommost_level_compaction = BottommostLevelCompaction::kForceOptimized;
 
   db_->CompactRange(cro, GetCfHandle(), begin, end);
   exec_state_ = LDBCommandExecuteResult::Succeed("");
@@ -928,8 +943,8 @@ void DBLoaderCommand::DoCommand() {
 
 namespace {
 
-void DumpManifestFile(std::string file, bool verbose, bool hex, bool json) {
-  Options options;
+void DumpManifestFile(Options options, std::string file, bool verbose, bool hex,
+                      bool json) {
   EnvOptions sopt;
   std::string dbname("dummy");
   std::shared_ptr<Cache> tc(NewLRUCache(options.max_open_files - 10,
@@ -1030,7 +1045,7 @@ void ManifestDumpCommand::DoCommand() {
     printf("Processing Manifest file %s\n", manifestfile.c_str());
   }
 
-  DumpManifestFile(manifestfile, verbose_, is_key_hex_, json_);
+  DumpManifestFile(options_, manifestfile, verbose_, is_key_hex_, json_);
 
   if (verbose_) {
     printf("Processing Manifest file %s done\n", manifestfile.c_str());
@@ -1237,7 +1252,7 @@ void InternalDumpCommand::DoCommand() {
 
   // Cast as DBImpl to get internal iterator
   std::vector<KeyVersion> key_versions;
-  Status st = GetAllKeyVersions(db_, from_, to_, &key_versions);
+  Status st = GetAllKeyVersions(db_, from_, to_, max_keys_, &key_versions);
   if (!st.ok()) {
     exec_state_ = LDBCommandExecuteResult::Failed(st.ToString());
     return;
@@ -1425,14 +1440,15 @@ void DBDumperCommand::DoCommand() {
     switch (type) {
       case kLogFile:
         // TODO(myabandeh): allow configuring is_write_commited
-        DumpWalFile(path_, /* print_header_ */ true, /* print_values_ */ true,
-                    true /* is_write_commited */, &exec_state_);
+        DumpWalFile(options_, path_, /* print_header_ */ true,
+                    /* print_values_ */ true, true /* is_write_commited */,
+                    &exec_state_);
         break;
       case kTableFile:
-        DumpSstFile(path_, is_key_hex_, /* show_properties */ true);
+        DumpSstFile(options_, path_, is_key_hex_, /* show_properties */ true);
         break;
       case kDescriptorFile:
-        DumpManifestFile(path_, /* verbose_ */ false, is_key_hex_,
+        DumpManifestFile(options_, path_, /* verbose_ */ false, is_key_hex_,
                          /*  json_ */ false);
         break;
       default:
@@ -1460,7 +1476,9 @@ void DBDumperCommand::DoDumpCommand() {
   }
 
   // Setup key iterator
-  Iterator* iter = db_->NewIterator(ReadOptions(), GetCfHandle());
+  ReadOptions scan_read_opts;
+  scan_read_opts.total_order_seek = true;
+  Iterator* iter = db_->NewIterator(scan_read_opts, GetCfHandle());
   Status st = iter->status();
   if (!st.ok()) {
     exec_state_ =
@@ -1860,7 +1878,7 @@ void ChangeCompactionStyleCommand::DoCommand() {
 namespace {
 
 struct StdErrReporter : public log::Reader::Reporter {
-  virtual void Corruption(size_t /*bytes*/, const Status& s) override {
+  void Corruption(size_t /*bytes*/, const Status& s) override {
     std::cerr << "Corruption detected in log file " << s.ToString() << "\n";
   }
 };
@@ -1885,74 +1903,71 @@ class InMemoryHandler : public WriteBatch::Handler {
     }
   }
 
-  virtual Status PutCF(uint32_t cf, const Slice& key,
-                       const Slice& value) override {
+  Status PutCF(uint32_t cf, const Slice& key, const Slice& value) override {
     row_ << "PUT(" << cf << ") : ";
     commonPutMerge(key, value);
     return Status::OK();
   }
 
-  virtual Status MergeCF(uint32_t cf, const Slice& key,
-                         const Slice& value) override {
+  Status MergeCF(uint32_t cf, const Slice& key, const Slice& value) override {
     row_ << "MERGE(" << cf << ") : ";
     commonPutMerge(key, value);
     return Status::OK();
   }
 
-  virtual Status MarkNoop(bool)
-                          override {
+  Status MarkNoop(bool) override {
     row_ << "NOOP ";
     return Status::OK();
   }
 
-  virtual Status DeleteCF(uint32_t cf, const Slice& key) override {
+  Status DeleteCF(uint32_t cf, const Slice& key) override {
     row_ << "DELETE(" << cf << ") : ";
     row_ << LDBCommand::StringToHex(key.ToString()) << " ";
     return Status::OK();
   }
 
-  virtual Status SingleDeleteCF(uint32_t cf, const Slice& key) override {
+  Status SingleDeleteCF(uint32_t cf, const Slice& key) override {
     row_ << "SINGLE_DELETE(" << cf << ") : ";
     row_ << LDBCommand::StringToHex(key.ToString()) << " ";
     return Status::OK();
   }
 
-  virtual Status DeleteRangeCF(uint32_t cf, const Slice& begin_key,
-                               const Slice& end_key) override {
+  Status DeleteRangeCF(uint32_t cf, const Slice& begin_key,
+                       const Slice& end_key) override {
     row_ << "DELETE_RANGE(" << cf << ") : ";
     row_ << LDBCommand::StringToHex(begin_key.ToString()) << " ";
     row_ << LDBCommand::StringToHex(end_key.ToString()) << " ";
     return Status::OK();
   }
 
-  virtual Status MarkBeginPrepare(bool unprepare) override {
+  Status MarkBeginPrepare(bool unprepare) override {
     row_ << "BEGIN_PREPARE(";
     row_ << (unprepare ? "true" : "false") << ") ";
     return Status::OK();
   }
 
-  virtual Status MarkEndPrepare(const Slice& xid) override {
+  Status MarkEndPrepare(const Slice& xid) override {
     row_ << "END_PREPARE(";
     row_ << LDBCommand::StringToHex(xid.ToString()) << ") ";
     return Status::OK();
   }
 
-  virtual Status MarkRollback(const Slice& xid) override {
+  Status MarkRollback(const Slice& xid) override {
     row_ << "ROLLBACK(";
     row_ << LDBCommand::StringToHex(xid.ToString()) << ") ";
     return Status::OK();
   }
 
-  virtual Status MarkCommit(const Slice& xid) override {
+  Status MarkCommit(const Slice& xid) override {
     row_ << "COMMIT(";
     row_ << LDBCommand::StringToHex(xid.ToString()) << ") ";
     return Status::OK();
   }
 
-  virtual ~InMemoryHandler() {}
+  ~InMemoryHandler() override {}
 
  protected:
-  virtual bool WriteAfterCommit() const override { return write_after_commit_; }
+  bool WriteAfterCommit() const override { return write_after_commit_; }
 
  private:
   std::stringstream& row_;
@@ -1960,16 +1975,17 @@ class InMemoryHandler : public WriteBatch::Handler {
   bool write_after_commit_;
 };
 
-void DumpWalFile(std::string wal_file, bool print_header, bool print_values,
-                 bool is_write_committed, LDBCommandExecuteResult* exec_state) {
-  Env* env_ = Env::Default();
-  EnvOptions soptions;
-  unique_ptr<SequentialFileReader> wal_file_reader;
+void DumpWalFile(Options options, std::string wal_file, bool print_header,
+                 bool print_values, bool is_write_committed,
+                 LDBCommandExecuteResult* exec_state) {
+  Env* env = options.env;
+  EnvOptions soptions(options);
+  std::unique_ptr<SequentialFileReader> wal_file_reader;
 
   Status status;
   {
-    unique_ptr<SequentialFile> file;
-    status = env_->NewSequentialFile(wal_file, &file, soptions);
+    std::unique_ptr<SequentialFile> file;
+    status = env->NewSequentialFile(wal_file, &file, soptions);
     if (status.ok()) {
       wal_file_reader.reset(
           new SequentialFileReader(std::move(file), wal_file));
@@ -1997,9 +2013,8 @@ void DumpWalFile(std::string wal_file, bool print_header, bool print_values,
       // bogus input, carry on as best we can
       log_number = 0;
     }
-    DBOptions db_options;
-    log::Reader reader(db_options.info_log, std::move(wal_file_reader),
-                       &reporter, true, 0, log_number);
+    log::Reader reader(options.info_log, std::move(wal_file_reader), &reporter,
+                       true /* checksum */, log_number);
     std::string scratch;
     WriteBatch batch;
     Slice record;
@@ -2078,8 +2093,8 @@ void WALDumperCommand::Help(std::string& ret) {
 }
 
 void WALDumperCommand::DoCommand() {
-  DumpWalFile(wal_file_, print_header_, print_values_, is_write_committed_,
-              &exec_state_);
+  DumpWalFile(options_, wal_file_, print_header_, print_values_,
+              is_write_committed_, &exec_state_);
 }
 
 // ----------------------------------------------------------------------------
@@ -2318,7 +2333,9 @@ void ScanCommand::DoCommand() {
   }
 
   int num_keys_scanned = 0;
-  Iterator* it = db_->NewIterator(ReadOptions(), GetCfHandle());
+  ReadOptions scan_read_opts;
+  scan_read_opts.total_order_seek = true;
+  Iterator* it = db_->NewIterator(scan_read_opts, GetCfHandle());
   if (start_key_specified_) {
     it->Seek(start_key_);
   } else {
@@ -2835,7 +2852,8 @@ void RestoreCommand::DoCommand() {
 
 namespace {
 
-void DumpSstFile(std::string filename, bool output_hex, bool show_properties) {
+void DumpSstFile(Options options, std::string filename, bool output_hex,
+                 bool show_properties) {
   std::string from_key;
   std::string to_key;
   if (filename.length() <= 4 ||
@@ -2844,8 +2862,9 @@ void DumpSstFile(std::string filename, bool output_hex, bool show_properties) {
     return;
   }
   // no verification
-  rocksdb::SstFileReader reader(filename, false, output_hex);
-  Status st = reader.ReadSequential(true, std::numeric_limits<uint64_t>::max(), false,  // has_from
+  rocksdb::SstFileDumper dumper(options, filename, false, output_hex);
+  Status st = dumper.ReadSequential(true, std::numeric_limits<uint64_t>::max(),
+                                    false,            // has_from
                                     from_key, false,  // has_to
                                     to_key);
   if (!st.ok()) {
@@ -2859,21 +2878,17 @@ void DumpSstFile(std::string filename, bool output_hex, bool show_properties) {
 
     std::shared_ptr<const rocksdb::TableProperties>
         table_properties_from_reader;
-    st = reader.ReadTableProperties(&table_properties_from_reader);
+    st = dumper.ReadTableProperties(&table_properties_from_reader);
     if (!st.ok()) {
       std::cerr << filename << ": " << st.ToString()
                 << ". Try to use initial table properties" << std::endl;
-      table_properties = reader.GetInitTableProperties();
+      table_properties = dumper.GetInitTableProperties();
     } else {
       table_properties = table_properties_from_reader.get();
     }
     if (table_properties != nullptr) {
       std::cout << std::endl << "Table Properties:" << std::endl;
       std::cout << table_properties->ToString("\n") << std::endl;
-      std::cout << "# deleted keys: "
-                << rocksdb::GetDeletedKeys(
-                       table_properties->user_collected_properties)
-                << std::endl;
     }
   }
 }
@@ -2913,7 +2928,7 @@ void DBFileDumperCommand::DoCommand() {
   manifest_filename.resize(manifest_filename.size() - 1);
   std::string manifest_filepath = db_->GetName() + "/" + manifest_filename;
   std::cout << manifest_filepath << std::endl;
-  DumpManifestFile(manifest_filepath, false, false, false);
+  DumpManifestFile(options_, manifest_filepath, false, false, false);
   std::cout << std::endl;
 
   std::cout << "SST Files" << std::endl;
@@ -2924,7 +2939,7 @@ void DBFileDumperCommand::DoCommand() {
     std::string filename = fileMetadata.db_path + fileMetadata.name;
     std::cout << filename << " level:" << fileMetadata.level << std::endl;
     std::cout << "------------------------------" << std::endl;
-    DumpSstFile(filename, false, true);
+    DumpSstFile(options_, filename, false, true);
     std::cout << std::endl;
   }
   std::cout << std::endl;
@@ -2941,7 +2956,7 @@ void DBFileDumperCommand::DoCommand() {
       std::string filename = db_->GetOptions().wal_dir + wal->PathName();
       std::cout << filename << std::endl;
       // TODO(myabandeh): allow configuring is_write_commited
-      DumpWalFile(filename, true, true, true /* is_write_commited */,
+      DumpWalFile(options_, filename, true, true, true /* is_write_commited */,
                   &exec_state_);
     }
   }
@@ -3039,6 +3054,8 @@ const std::string IngestExternalSstFilesCommand::ARG_ALLOW_BLOCKING_FLUSH =
     "allow_blocking_flush";
 const std::string IngestExternalSstFilesCommand::ARG_INGEST_BEHIND =
     "ingest_behind";
+const std::string IngestExternalSstFilesCommand::ARG_WRITE_GLOBAL_SEQNO =
+    "write_global_seqno";
 
 void IngestExternalSstFilesCommand::Help(std::string& ret) {
   ret.append("  ");
@@ -3049,6 +3066,7 @@ void IngestExternalSstFilesCommand::Help(std::string& ret) {
   ret.append(" [--" + ARG_ALLOW_GLOBAL_SEQNO + "] ");
   ret.append(" [--" + ARG_ALLOW_BLOCKING_FLUSH + "] ");
   ret.append(" [--" + ARG_INGEST_BEHIND + "] ");
+  ret.append(" [--" + ARG_WRITE_GLOBAL_SEQNO + "] ");
   ret.append("\n");
 }
 
@@ -3060,12 +3078,14 @@ IngestExternalSstFilesCommand::IngestExternalSstFilesCommand(
           options, flags, false /* is_read_only */,
           BuildCmdLineOptions({ARG_MOVE_FILES, ARG_SNAPSHOT_CONSISTENCY,
                                ARG_ALLOW_GLOBAL_SEQNO, ARG_CREATE_IF_MISSING,
-                               ARG_ALLOW_BLOCKING_FLUSH, ARG_INGEST_BEHIND})),
+                               ARG_ALLOW_BLOCKING_FLUSH, ARG_INGEST_BEHIND,
+                               ARG_WRITE_GLOBAL_SEQNO})),
       move_files_(false),
       snapshot_consistency_(true),
       allow_global_seqno_(true),
       allow_blocking_flush_(true),
-      ingest_behind_(false) {
+      ingest_behind_(false),
+      write_global_seqno_(true) {
   create_if_missing_ =
       IsFlagPresent(flags, ARG_CREATE_IF_MISSING) ||
       ParseBooleanOption(options, ARG_CREATE_IF_MISSING, false);
@@ -3082,6 +3102,23 @@ IngestExternalSstFilesCommand::IngestExternalSstFilesCommand(
       ParseBooleanOption(options, ARG_ALLOW_BLOCKING_FLUSH, true);
   ingest_behind_ = IsFlagPresent(flags, ARG_INGEST_BEHIND) ||
                    ParseBooleanOption(options, ARG_INGEST_BEHIND, false);
+  write_global_seqno_ =
+      IsFlagPresent(flags, ARG_WRITE_GLOBAL_SEQNO) ||
+      ParseBooleanOption(options, ARG_WRITE_GLOBAL_SEQNO, true);
+
+  if (allow_global_seqno_) {
+    if (!write_global_seqno_) {
+      fprintf(stderr,
+              "Warning: not writing global_seqno to the ingested SST can\n"
+              "prevent older versions of RocksDB from being able to open it\n");
+    }
+  } else {
+    if (write_global_seqno_) {
+      exec_state_ = LDBCommandExecuteResult::Failed(
+          "ldb cannot write global_seqno to the ingested SST when global_seqno "
+          "is not allowed");
+    }
+  }
 
   if (params.size() != 1) {
     exec_state_ =
@@ -3106,6 +3143,7 @@ void IngestExternalSstFilesCommand::DoCommand() {
   ifo.allow_global_seqno = allow_global_seqno_;
   ifo.allow_blocking_flush = allow_blocking_flush_;
   ifo.ingest_behind = ingest_behind_;
+  ifo.write_global_seqno = write_global_seqno_;
   Status status = db_->IngestExternalFile(cfh, {input_sst_path_}, ifo);
   if (!status.ok()) {
     exec_state_ = LDBCommandExecuteResult::Failed(
