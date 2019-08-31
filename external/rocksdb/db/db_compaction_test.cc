@@ -13,9 +13,9 @@
 #include "rocksdb/concurrent_task_limiter.h"
 #include "rocksdb/experimental.h"
 #include "rocksdb/utilities/convenience.h"
+#include "test_util/fault_injection_test_env.h"
+#include "test_util/sync_point.h"
 #include "util/concurrent_task_limiter_impl.h"
-#include "util/fault_injection_test_env.h"
-#include "util/sync_point.h"
 
 namespace rocksdb {
 
@@ -141,7 +141,7 @@ Options DeletionTriggerOptions(Options options) {
   options.compression = kNoCompression;
   options.write_buffer_size = kCDTKeysPerBuffer * (kCDTValueSize + 24);
   options.min_write_buffer_number_to_merge = 1;
-  options.max_write_buffer_number_to_maintain = 0;
+  options.max_write_buffer_size_to_maintain = 0;
   options.num_levels = kCDTNumLevels;
   options.level0_file_num_compaction_trigger = 1;
   options.target_file_size_base = options.write_buffer_size * 2;
@@ -497,14 +497,14 @@ TEST_F(DBCompactionTest, TestTableReaderForCompaction) {
 
   // Create new iterator for:
   // (1) 1 for verifying flush results
-  // (2) 3 for compaction input files
-  // (3) 1 for verifying compaction results.
-  ASSERT_EQ(num_new_table_reader, 5);
+  // (2) 1 for verifying compaction results.
+  // (3) New TableReaders will not be created for compaction inputs
+  ASSERT_EQ(num_new_table_reader, 2);
 
   num_table_cache_lookup = 0;
   num_new_table_reader = 0;
   ASSERT_EQ(Key(1), Get(Key(1)));
-  ASSERT_EQ(num_table_cache_lookup + old_num_table_cache_lookup2, 3);
+  ASSERT_EQ(num_table_cache_lookup + old_num_table_cache_lookup2, 5);
   ASSERT_EQ(num_new_table_reader, 0);
 
   num_table_cache_lookup = 0;
@@ -519,13 +519,14 @@ TEST_F(DBCompactionTest, TestTableReaderForCompaction) {
   // May preload table cache too.
   ASSERT_GE(num_table_cache_lookup, 1);
   old_num_table_cache_lookup2 = num_table_cache_lookup;
-  // One for compaction input, one for verifying compaction results.
-  ASSERT_EQ(num_new_table_reader, 2);
+  // One for verifying compaction results.
+  // No new iterator created for compaction.
+  ASSERT_EQ(num_new_table_reader, 1);
 
   num_table_cache_lookup = 0;
   num_new_table_reader = 0;
   ASSERT_EQ(Key(1), Get(Key(1)));
-  ASSERT_EQ(num_table_cache_lookup + old_num_table_cache_lookup2, 2);
+  ASSERT_EQ(num_table_cache_lookup + old_num_table_cache_lookup2, 3);
   ASSERT_EQ(num_new_table_reader, 0);
 
   rocksdb::SyncPoint::GetInstance()->ClearAllCallBacks();
@@ -3890,11 +3891,17 @@ TEST_F(DBCompactionTest, CompactRangeShutdownWhileDelayed) {
       }
       Flush(1);
     }
-    auto manual_compaction_thread = port::Thread([this]() {
+    auto manual_compaction_thread = port::Thread([this, i]() {
       CompactRangeOptions cro;
       cro.allow_write_stall = false;
-      ASSERT_TRUE(db_->CompactRange(cro, handles_[1], nullptr, nullptr)
-                      .IsShutdownInProgress());
+      Status s = db_->CompactRange(cro, handles_[1], nullptr, nullptr);
+      if (i == 0) {
+        ASSERT_TRUE(db_->CompactRange(cro, handles_[1], nullptr, nullptr)
+                        .IsColumnFamilyDropped());
+      } else {
+        ASSERT_TRUE(db_->CompactRange(cro, handles_[1], nullptr, nullptr)
+                        .IsShutdownInProgress());
+      }
     });
 
     TEST_SYNC_POINT(
@@ -4334,12 +4341,6 @@ TEST_P(DBCompactionDirectIOTest, DirectIO) {
   Reopen(options);
   bool readahead = false;
   SyncPoint::GetInstance()->SetCallBack(
-      "TableCache::NewIterator:for_compaction", [&](void* arg) {
-        bool* use_direct_reads = static_cast<bool*>(arg);
-        ASSERT_EQ(*use_direct_reads,
-                  options.use_direct_reads);
-      });
-  SyncPoint::GetInstance()->SetCallBack(
       "CompactionJob::OpenCompactionOutputFile", [&](void* arg) {
         bool* use_direct_writes = static_cast<bool*>(arg);
         ASSERT_EQ(*use_direct_writes,
@@ -4551,6 +4552,36 @@ TEST_F(DBCompactionTest, ManualCompactionBottomLevelOptimized) {
   ASSERT_EQ(num, 0);
 }
 
+TEST_F(DBCompactionTest, CompactionDuringShutdown) {
+  Options opts = CurrentOptions();
+  opts.level0_file_num_compaction_trigger = 2;
+  opts.disable_auto_compactions = true;
+  DestroyAndReopen(opts);
+  ColumnFamilyHandleImpl* cfh =
+      static_cast<ColumnFamilyHandleImpl*>(dbfull()->DefaultColumnFamily());
+  ColumnFamilyData* cfd = cfh->cfd();
+  InternalStats* internal_stats_ptr = cfd->internal_stats();
+  ASSERT_NE(internal_stats_ptr, nullptr);
+
+  Random rnd(301);
+  for (auto i = 0; i < 2; ++i) {
+    for (auto j = 0; j < 10; ++j) {
+      ASSERT_OK(
+          Put("foo" + std::to_string(i * 10 + j), RandomString(&rnd, 1024)));
+    }
+    Flush();
+  }
+
+  rocksdb::SyncPoint::GetInstance()->SetCallBack(
+      "DBImpl::BackgroundCompaction:NonTrivial:BeforeRun",
+      [&](void* /*arg*/) {
+    dbfull()->shutting_down_.store(true);
+  });
+  rocksdb::SyncPoint::GetInstance()->EnableProcessing();
+  dbfull()->CompactRange(CompactRangeOptions(), nullptr, nullptr);
+  ASSERT_OK(dbfull()->error_handler_.GetBGError());
+}
+
 // FixFileIngestionCompactionDeadlock tests and verifies that compaction and
 // file ingestion do not cause deadlock in the event of write stall triggered
 // by number of L0 files reaching level0_stop_writes_trigger.
@@ -4627,7 +4658,31 @@ TEST_P(DBCompactionTestWithParam, FixFileIngestionCompactionDeadlock) {
   ASSERT_OK(dbfull()->TEST_WaitForCompact());
   Close();
 }
+TEST_F(DBCompactionTest, ConsistencyFailTest) {
+  Options options = CurrentOptions();
+  DestroyAndReopen(options);
 
+  rocksdb::SyncPoint::GetInstance()->SetCallBack(
+      "VersionBuilder::CheckConsistency", [&](void* arg) {
+      auto p =
+            reinterpret_cast<std::pair<FileMetaData**, FileMetaData**>*>(arg);
+        // just swap the two FileMetaData so that we hit error
+        // in CheckConsistency funcion
+        FileMetaData* temp = *(p->first);
+        *(p->first) = *(p->second);
+        *(p->second) = temp;
+      });
+
+  rocksdb::SyncPoint::GetInstance()->EnableProcessing();
+
+  for (int k = 0; k < 2; ++k) {
+    ASSERT_OK(Put("foo", "bar"));
+    Flush();
+  }
+
+  ASSERT_NOK(Put("foo", "bar"));
+  rocksdb::SyncPoint::GetInstance()->DisableProcessing();
+}
 #endif // !defined(ROCKSDB_LITE)
 }  // namespace rocksdb
 
