@@ -239,8 +239,8 @@ rocksdb::Options RocksDBWrapper::getDBOptions(const DataBaseConfig &config)
     const auto compressionLevel = config.getCompressionEnabled() ? rocksdb::kZSTD : rocksdb::kNoCompression;
     for (int i = 0; i < fOptions.num_levels; ++i)
     {
-        // don't compress l0 & l1 to L8
-        fOptions.compression_per_level[i] = (i < 9 ? rocksdb::kNoCompression : compressionLevel);
+        // don't compress l0 & l1
+        fOptions.compression_per_level[i] = (i < 2 ? rocksdb::kNoCompression : compressionLevel);
     }
     // bottom most use kZSTD
     fOptions.bottommost_compression =
