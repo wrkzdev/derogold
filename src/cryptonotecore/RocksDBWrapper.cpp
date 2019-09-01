@@ -42,13 +42,6 @@ void RocksDBWrapper::init(const DataBaseConfig &config)
 
     rocksdb::Options dbOptions = getDBOptions(config);
 
-    if (config.getCompressionEnabled()) {
-        dbOptions.compression_opts.level = 17; // level 17 LeoCuvée#1481
-        dbOptions.compression_opts.max_dict_bytes = 16 * 1024; // 16KB
-        dbOptions.compression_opts.zstd_max_train_bytes = 256 * 1024; // 256KB
-        dbOptions.compression_opts.enabled = true;
-    }
-
     rocksdb::Status status = rocksdb::DB::Open(dbOptions, dataDir, &dbPtr);
     if (status.ok())
     {
@@ -245,6 +238,13 @@ rocksdb::Options RocksDBWrapper::getDBOptions(const DataBaseConfig &config)
     // bottom most use kZSTD
     fOptions.bottommost_compression =
         config.getCompressionEnabled() ? rocksdb::kZSTD : rocksdb::kNoCompression;
+
+    if (config.getCompressionEnabled()) {
+        fOptions.bottommost_compression_opts.level = 17; // level 17 LeoCuvée#1481
+        fOptions.bottommost_compression_opts.max_dict_bytes = 16 * 1024; // 16KB
+        fOptions.bottommost_compression_opts.zstd_max_train_bytes = 256 * 1024; // 256KB
+        fOptions.bottommost_compression_opts.enabled = true;
+    }
 
     rocksdb::BlockBasedTableOptions tableOptions;
     tableOptions.block_cache = rocksdb::NewLRUCache(config.getReadCacheSize());
