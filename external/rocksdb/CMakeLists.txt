@@ -42,7 +42,7 @@ if(CCACHE_PROGRAM)
   set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_PROGRAM}")
 endif()
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/modules/")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/")
 include(ReadVersion)
 get_rocksdb_version(rocksdb_VERSION)
 project(rocksdb
@@ -52,8 +52,6 @@ project(rocksdb
 if(POLICY CMP0042)
   cmake_policy(SET CMP0042 NEW)
 endif()
-
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/modules/")
 
 set(ARCH native CACHE STRING "CPU to build for: -march value or native")
 option(WITH_JEMALLOC "build with JeMalloc" OFF)
@@ -367,6 +365,10 @@ if(DISABLE_STALL_NOTIF)
   add_definitions(-DROCKSDB_DISABLE_STALL_NOTIFICATION)
 endif()
 
+option(WITH_DYNAMIC_EXTENSION "build with dynamic extension support" OFF)
+if(NOT WITH_DYNAMIC_EXTENSION)
+  add_definitions(-DROCKSDB_NO_DYNAMIC_EXTENSION)
+endif()
 
 if(DEFINED USE_RTTI)
   if(USE_RTTI)

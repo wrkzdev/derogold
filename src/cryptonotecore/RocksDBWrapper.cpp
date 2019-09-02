@@ -41,6 +41,7 @@ void RocksDBWrapper::init(const DataBaseConfig &config)
     rocksdb::DB *dbPtr;
 
     rocksdb::Options dbOptions = getDBOptions(config);
+
     rocksdb::Status status = rocksdb::DB::Open(dbOptions, dataDir, &dbPtr);
     if (status.ok())
     {
@@ -194,9 +195,12 @@ rocksdb::Options RocksDBWrapper::getDBOptions(const DataBaseConfig &config)
     dbOptions.IncreaseParallelism(config.getBackgroundThreadsCount());
     dbOptions.info_log_level = rocksdb::InfoLogLevel::WARN_LEVEL;
     dbOptions.max_open_files = config.getMaxOpenFiles();
+	// Testing
+    dbOptions.skip_stats_update_on_db_open = true;
 
     rocksdb::ColumnFamilyOptions fOptions;
     fOptions.write_buffer_size = static_cast<size_t>(config.getWriteBufferSize());
+    // fOptions.write_buffer_size = 1024 * 1024 * 1024; // 1GB
     // merge two memtables when flushing to L0
     fOptions.min_write_buffer_number_to_merge = 2;
     // this means we'll use 50% extra memory in the worst case, but will reduce
@@ -213,9 +217,13 @@ rocksdb::Options RocksDBWrapper::getDBOptions(const DataBaseConfig &config)
     // doesn't really matter much, but we don't want to create too many files
     fOptions.target_file_size_base = config.getWriteBufferSize() / 10;
     // make Level1 size equal to Level0 size, so that L0->L1 compactions are fast
-    fOptions.max_bytes_for_level_base = config.getWriteBufferSize();
+    // fOptions.max_bytes_for_level_base = config.getWriteBufferSize();
     fOptions.num_levels = 10;
     fOptions.target_file_size_multiplier = 2;
+    // Testing
+    fOptions.level_compaction_dynamic_level_bytes = true;
+    fOptions.max_bytes_for_level_base = 1024 * 1024 * 1024; // 1GB
+
     // level style compaction
     fOptions.compaction_style = rocksdb::kCompactionStyleLevel;
 
@@ -227,7 +235,7 @@ rocksdb::Options RocksDBWrapper::getDBOptions(const DataBaseConfig &config)
         // don't compress l0 & l1
         fOptions.compression_per_level[i] = (i < 2 ? rocksdb::kNoCompression : compressionLevel);
     }
-    // bottom most use lz4hc
+    // bottom most use kZSTD
     fOptions.bottommost_compression =
         config.getCompressionEnabled() ? rocksdb::kZSTD : rocksdb::kNoCompression;
 
