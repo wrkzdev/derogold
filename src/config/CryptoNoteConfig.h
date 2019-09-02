@@ -82,6 +82,16 @@ namespace CryptoNote
 
         const uint64_t MINIMUM_FEE = UINT64_C(10);
 
+        /* Fee adjusting V1 */
+        const uint64_t DEFAULT_FEE = UINT64_C(15000);
+
+        const uint64_t DEFAULT_FEE_V1 = UINT64_C(15000);
+
+        const uint64_t MINIMUM_FEE_V1 = UINT64_C(10000);
+
+        const uint64_t MINIMUM_FEE_V1_HEIGHT = 1550000;
+
+
         /* This section defines our minimum and maximum mixin counts required for transactions */
         const uint64_t MINIMUM_MIXIN_V0 = 0;
 
@@ -168,7 +178,8 @@ namespace CryptoNote
         /* Block heights we are going to have hard forks at */
         const uint64_t FORK_HEIGHTS[] = {
             700000, // 0
-            1600000, // 1
+            1550000, // 1
+            2068400, // 2
         };
 
         /* MAKE SURE TO UPDATE THIS VALUE WITH EVERY MAJOR RELEASE BEFORE A FORK */
