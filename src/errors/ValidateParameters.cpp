@@ -234,7 +234,7 @@ Error validateAmount(
     const std::shared_ptr<SubWallets> subWallets,
     const uint64_t currentHeight)
 {
-    const auto [minFee, defaultFee] = Utilities::getFeeAllowableRange(currentHeight);
+    const uint64_t minFee = Utilities::getMinimumFee(currentHeight);
 
     /* Verify the fee is valid */
     if (fee < minFee)

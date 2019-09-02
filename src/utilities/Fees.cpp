@@ -9,22 +9,18 @@
 
 #include <config/CryptoNoteConfig.h>
 #include <sstream>
-#include <tuple>
 
 namespace Utilities
 {
-    /* Returns {minFee, defaultFee} */
-    std::tuple<uint64_t, uint64_t> getFeeAllowableRange(const uint64_t height)
+    /* Returns minFee */
+    uint64_t getMinimumFee(const uint64_t height)
     {
         uint64_t minFee = CryptoNote::parameters::MINIMUM_FEE;
-        uint64_t defaultFee = CryptoNote::parameters::MINIMUM_FEE;
 
         if (height >= CryptoNote::parameters::MINIMUM_FEE_V1_HEIGHT)
         {
             minFee = CryptoNote::parameters::MINIMUM_FEE_V1;
-            defaultFee = CryptoNote::parameters::DEFAULT_FEE_V1;
         }
-
-        return {minFee, defaultFee};
+        return minFee;
     }
 } // namespace Utilities

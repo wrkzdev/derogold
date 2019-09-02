@@ -10,6 +10,6 @@
 
 namespace Utilities
 {
-    /* Returns {minFee, defaultFee} */
-    std::tuple<uint64_t, uint64_t> getFeeAllowableRange(const uint64_t height);
+    /* Returns minFee */
+    uint64_t getMinimumFee(const uint64_t height);
 } // namespace Utilities

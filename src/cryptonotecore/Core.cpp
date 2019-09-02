@@ -1706,7 +1706,7 @@ namespace CryptoNote
                             cachedTransaction.getTransactionBinaryArray().size(),
                             getTopBlockIndex());
 
-        const auto [minFee, defaultFee] = Utilities::getFeeAllowableRange(getTopBlockIndex());
+        const uint64_t minFee = Utilities::getMinimumFee(getTopBlockIndex());
 
         if (!isFusion && fee < minFee)
         {

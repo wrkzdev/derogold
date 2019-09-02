@@ -2007,7 +2007,7 @@ namespace CryptoNote
 
         uint32_t currentHeight = m_node.getLastKnownBlockHeight();
 
-        const auto [minFee, defaultFee] = Utilities::getFeeAllowableRange(currentHeight);
+        const uint64_t minFee = Utilities::getMinimumFee(currentHeight);
 
         if (transactionParameters.fee < minFee)
         {
