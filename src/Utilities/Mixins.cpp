@@ -5,7 +5,7 @@
 // Please see the included LICENSE file for more information.
 
 /////////////////////////////
-#include <utilities/Mixins.h>
+#include <Utilities/Mixins.h>
 /////////////////////////////
 
 #include <config/CryptoNoteConfig.h>
@@ -31,14 +31,8 @@ namespace Utilities
 
         if (height >= CryptoNote::parameters::MIXIN_LIMITS_V1_HEIGHT)
         {
-            minMixin = CryptoNote::parameters::MINIMUM_MIXIN_V1;
-            maxMixin = CryptoNote::parameters::MAXIMUM_MIXIN_V1;
-            defaultMixin = CryptoNote::parameters::DEFAULT_MIXIN_V0;
-        }
-        else if (height >= CryptoNote::parameters::MIXIN_LIMITS_V0_HEIGHT)
-        {
             minMixin = CryptoNote::parameters::MINIMUM_MIXIN_V0;
-            maxMixin = CryptoNote::parameters::MAXIMUM_MIXIN_V0;
+            maxMixin = CryptoNote::parameters::MAXIMUM_MIXIN_V1;
             defaultMixin = CryptoNote::parameters::DEFAULT_MIXIN_V0;
         }
 
