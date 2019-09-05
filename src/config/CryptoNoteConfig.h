@@ -86,9 +86,18 @@ const size_t   CRYPTONOTE_DISPLAY_DECIMAL_POINT              = 2;
 
 const uint64_t MINIMUM_FEE                                   = UINT64_C(10);
 
+/* Let's increase the fee and activate at block 1472147 */
+const uint64_t MINIMUM_FEE_V1                                = UINT64_C(1000000);
+const uint64_t MINIMUM_FEE_V1_HEIGHT                         = 1472147;
+
 /* This section defines our minimum and maximum mixin counts required for transactions */
 const uint64_t MINIMUM_MIXIN_V0                              = 0;
 const uint64_t MAXIMUM_MIXIN_V0                              = 7;
+
+/* This section activates new minimum and maximum mixin at block 1472147 */
+const uint64_t MAXIMUM_MIXIN_V1                              = 3;
+const uint32_t MIXIN_LIMITS_V1_HEIGHT                        = 1472147;
+
 
 /* The mixin to use by default with zedwallet and turtle-service */
 const uint64_t DEFAULT_MIXIN_V0                              = 3;
@@ -106,6 +115,8 @@ const uint64_t MAX_BLOCK_SIZE_GROWTH_SPEED_DENOMINATOR       = 365 * 24 * 60 * 6
 const uint64_t MAX_EXTRA_SIZE                                = 140000;
 const uint64_t MAX_EXTRA_SIZE_V2                             = 1024;
 const uint64_t MAX_EXTRA_SIZE_V2_HEIGHT                      = 700000;
+const uint64_t MAX_EXTRA_SIZE_V3                             = 512;
+const uint64_t MAX_EXTRA_SIZE_V3_HEIGHT                      = 1472147;
 
 /* For new projects forked from this code base, this value should be
    changed to 0 to prevent a possible transaction bloat exploit */
@@ -137,7 +148,9 @@ static_assert(UPGRADE_VOTING_WINDOW > 1, "Bad UPGRADE_VOTING_WINDOW");
 /* Block heights we are going to have hard forks at */
 const uint64_t FORK_HEIGHTS[] =
 {
-    700000,
+    700000,   // 0
+    1472147,  // 1
+    2000000,  // 2
 };
 
 /* MAKE SURE TO UPDATE THIS VALUE WITH EVERY MAJOR RELEASE BEFORE A FORK */
