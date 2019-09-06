@@ -1442,7 +1442,7 @@ bool Core::isTransactionValidForPool(const CachedTransaction& cachedTransaction,
       return false;
   }
 
-  if (cachedTransaction.getTransaction().extra.size() >= CryptoNote::parameters::MAX_EXTRA_SIZE_V2)
+  if (cachedTransaction.getTransaction().extra.size() >= CryptoNote::parameters::MAX_EXTRA_SIZE_V3)
   {
       logger(Logging::TRACE) << "Not adding transaction "
                              << cachedTransaction.getTransactionHash()
@@ -1820,12 +1820,19 @@ std::error_code Core::validateSemantic(const Transaction& transaction, uint64_t&
 
   /* Small buffer until enforcing - helps clear out tx pool with old, previously
      valid transactions */
-  if (blockIndex >= CryptoNote::parameters::MAX_EXTRA_SIZE_V2_HEIGHT + CryptoNote::parameters::CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW)
+  if (blockIndex >= CryptoNote::parameters::MAX_EXTRA_SIZE_V3_HEIGHT + CryptoNote::parameters::CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW)
   {
-      if (transaction.extra.size() >= CryptoNote::parameters::MAX_EXTRA_SIZE_V2)
+      if (transaction.extra.size() >= CryptoNote::parameters::MAX_EXTRA_SIZE_V3)
       {
           return error::TransactionValidationError::EXTRA_TOO_LARGE;
       }
+  else if (blockIndex >= CryptoNote::parameters::MAX_EXTRA_SIZE_V2_HEIGHT + CryptoNote::parameters::CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW)
+  {
+      if (transaction.extra.size() >= CryptoNote::parameters::MAX_EXTRA_SIZE_V2)
+      {
+	  return error::TransactionValidationError::EXTRA_TOO_LARGE;
+      }
+  }
   }
 
   uint64_t summaryOutputAmount = 0;
@@ -2408,7 +2415,14 @@ bool Core::validateBlockTemplateTransaction(
 {
     const auto &transaction = cachedTransaction.getTransaction();
 
-    if (transaction.extra.size() >= CryptoNote::parameters::MAX_EXTRA_SIZE_V2)
+    if (transaction.extra.size() >= CryptoNote::parameters::MAX_EXTRA_SIZE_V3)
+    {
+        logger(Logging::TRACE) << "Not adding transaction "
+                               << cachedTransaction.getTransactionHash()
+                               << " to block template, extra too large.";
+        return false;
+    }
+    else if (transaction.extra.size() >= CryptoNote::parameters::MAX_EXTRA_SIZE_V2)
     {
         logger(Logging::TRACE) << "Not adding transaction "
                                << cachedTransaction.getTransactionHash()
