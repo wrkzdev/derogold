@@ -43,7 +43,7 @@
 #include "WalletSerializationV2.h"
 #include "WalletErrors.h"
 #include "WalletUtils.h"
-
+#include <Utilities/Fees.h>
 #include <Utilities/Utilities.h>
 
 using namespace Common;
@@ -1636,9 +1636,13 @@ void WalletGreen::validateTransactionParameters(const TransactionParameters& tra
     throw std::system_error(make_error_code(error::ZERO_DESTINATION));
   }
 
-  if (transactionParameters.fee < m_currency.minimumFee()) {
+  uint32_t currentHeight = m_node.getLastKnownBlockHeight();
+
+  const uint64_t minFee = Utilities::getMinimumFee(currentHeight);
+
+  if (transactionParameters.fee < minFee) {
     std::string message = "Fee is too small. Fee " + m_currency.formatAmount(transactionParameters.fee) +
-      ", minimum fee " + m_currency.formatAmount(m_currency.minimumFee());
+      ", minimum fee " + m_currency.formatAmount(minFee);
     m_logger(ERROR, BRIGHT_RED) << message;
     throw std::system_error(make_error_code(error::FEE_TOO_SMALL), message);
   }
@@ -2261,10 +2265,10 @@ size_t WalletGreen::validateSaveAndSendTransaction(const ITransactionReader& tra
     throw std::system_error(make_error_code(error::INTERNAL_WALLET_ERROR), "Failed to deserialize created transaction");
   }
 
-  if (cryptoNoteTransaction.extra.size() >= CryptoNote::parameters::MAX_EXTRA_SIZE_V2)
+  if (cryptoNoteTransaction.extra.size() >= CryptoNote::parameters::MAX_EXTRA_SIZE_V3)
   {
       m_logger(ERROR, BRIGHT_RED) << "Transaction extra is too large. Allowed: "
-                                  << CryptoNote::parameters::MAX_EXTRA_SIZE_V2
+                                  << CryptoNote::parameters::MAX_EXTRA_SIZE_V3
                                   << ", actual: " << cryptoNoteTransaction.extra.size()
                                   << ".";
 
