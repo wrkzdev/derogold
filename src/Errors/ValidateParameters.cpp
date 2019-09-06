@@ -17,7 +17,7 @@
 #include <CryptoNoteCore/TransactionExtra.h>
 
 #include <regex>
-
+#include <Utilities/Mixins.h>
 #include <Utilities/Addresses.h>
 #include <Utilities/Utilities.h>
 
@@ -177,7 +177,7 @@ Error validatePaymentID(const std::string paymentID)
 
 Error validateMixin(const uint64_t mixin, const uint64_t height)
 {
-    const auto [minMixin, maxMixin, defaultMixin] = CryptoNote::Mixins::getMixinAllowableRange(height);
+    const auto [minMixin, maxMixin, defaultMixin] = Utilities::getMixinAllowableRange(height);
 
     if (mixin < minMixin)
     {

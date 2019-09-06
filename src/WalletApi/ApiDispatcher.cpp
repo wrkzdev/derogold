@@ -7,25 +7,16 @@
 ////////////////////////////////////
 
 #include <config/CryptoNoteConfig.h>
-
 #include <CryptoNoteCore/Mixins.h>
-
 #include <crypto/random.h>
-
 #include <cryptopp/modes.h>
 #include <cryptopp/sha.h>
 #include <cryptopp/pwdbased.h>
-
 #include <Errors/ValidateParameters.h>
-
 #include <iomanip>
-
 #include <iostream>
-
 #include "json.hpp"
-
 #include <WalletApi/Constants.h>
-
 #include <WalletBackend/JsonSerialization.h>
 
 using namespace httplib;
@@ -632,7 +623,7 @@ std::tuple<Error, uint16_t> ApiDispatcher::sendAdvancedTransaction(
     else
     {
         /* Get the default mixin */
-        std::tie(std::ignore, std::ignore, mixin) = CryptoNote::Mixins::getMixinAllowableRange(
+        std::tie(std::ignore, std::ignore, mixin) = Utilities::getMixinAllowableRange(
             m_walletBackend->getStatus().networkBlockCount
         );
     }
@@ -728,7 +719,7 @@ std::tuple<Error, uint16_t> ApiDispatcher::sendAdvancedFusionTransaction(
     else
     {
         /* Get the default mixin */
-        std::tie(std::ignore, std::ignore, mixin) = CryptoNote::Mixins::getMixinAllowableRange(
+        std::tie(std::ignore, std::ignore, mixin) = Utilities::getMixinAllowableRange(
             m_walletBackend->getStatus().networkBlockCount
         );
     }

@@ -7,18 +7,15 @@
 ///////////////////////////////////
 
 #include <config/WalletConfig.h>
-
 #include <CryptoNoteCore/CryptoNoteTools.h>
 #include <CryptoNoteCore/Currency.h>
 #include <CryptoNoteCore/Mixins.h>
 #include <CryptoNoteCore/TransactionExtra.h>
-
 #include <Errors/ValidateParameters.h>
-
 #include <Utilities/Addresses.h>
 #include <Utilities/FormatTools.h>
 #include <Utilities/Utilities.h>
-
+#include <Utilities/Mixins.h>
 #include <WalletBackend/WalletBackend.h>
 
 namespace SendTransaction
@@ -28,7 +25,7 @@ std::tuple<Error, Crypto::Hash> sendFusionTransactionBasic(
     const std::shared_ptr<Nigel> daemon,
     const std::shared_ptr<SubWallets> subWallets)
 {
-    const auto [minMixin, maxMixin, defaultMixin] = CryptoNote::Mixins::getMixinAllowableRange(
+    const auto [minMixin, maxMixin, defaultMixin] = Utilities::getMixinAllowableRange(
         daemon->networkBlockCount()
     );
 
@@ -234,7 +231,7 @@ std::tuple<Error, Crypto::Hash> sendTransactionBasic(
         {destination, amount}
     };
 
-    const auto [minMixin, maxMixin, defaultMixin] = CryptoNote::Mixins::getMixinAllowableRange(
+    const auto [minMixin, maxMixin, defaultMixin] = Utilities::getMixinAllowableRange(
         daemon->networkBlockCount()
     );
 
