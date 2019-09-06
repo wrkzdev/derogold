@@ -6,13 +6,10 @@
 // Please see the included LICENSE file for more information.
 
 #include <algorithm>
-
 #include <numeric>
-
 #include <Common/ShuffleGenerator.h>
 #include <Common/Math.h>
 #include <Common/MemoryInputStream.h>
-
 #include <CryptoNoteCore/BlockchainCache.h>
 #include <CryptoNoteCore/BlockchainStorage.h>
 #include <CryptoNoteCore/BlockchainUtils.h>
@@ -28,18 +25,13 @@
 #include <CryptoNoteCore/TransactionPool.h>
 #include <CryptoNoteCore/TransactionPoolCleaner.h>
 #include <CryptoNoteCore/UpgradeManager.h>
-
 #include <CryptoNoteProtocol/CryptoNoteProtocolHandlerCommon.h>
-
 #include <set>
-
 #include <System/Timer.h>
-
+#include <Utilities/Fees.h>
 #include <Utilities/FormatTools.h>
 #include <Utilities/LicenseCanary.h>
-
 #include <unordered_set>
-
 #include <WalletTypes.h>
 
 using namespace Crypto;
@@ -1477,7 +1469,9 @@ bool Core::isTransactionValidForPool(const CachedTransaction& cachedTransaction,
 
   bool isFusion = fee == 0 && currency.isFusionTransaction(cachedTransaction.getTransaction(), cachedTransaction.getTransactionBinaryArray().size(), getTopBlockIndex());
 
-  if (!isFusion && fee < currency.minimumFee()) {
+  const uint64_t minFee = Utilities::getMinimumFee(getTopBlockIndex());
+
+  if (!isFusion && fee < minFee) {
     logger(Logging::WARNING) << "Transaction " << cachedTransaction.getTransactionHash()
       << " is not valid. Reason: fee is too small and it's not a fusion transaction";
     return false;

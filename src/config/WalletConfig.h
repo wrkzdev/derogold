@@ -55,10 +55,10 @@ namespace WalletConfig
                                            + ((64 * 11) / 8);
 
     /* The default fee value to use with transactions (in ATOMIC units!) */
-    const uint64_t defaultFee = CryptoNote::parameters::MINIMUM_FEE; 
+    const uint64_t defaultFee = CryptoNote::parameters::MINIMUM_FEE_V1; 
 
     /* The minimum fee value to allow with transactions (in ATOMIC units!) */
-    const uint64_t minimumFee = CryptoNote::parameters::MINIMUM_FEE;
+    const uint64_t minimumFee = CryptoNote::parameters::MINIMUM_FEE_V1;
 
     /* The minimum amount allowed to be sent - usually 1 (in ATOMIC units!) */
     const uint64_t minimumSend = 1;

@@ -7,18 +7,16 @@
 //////////////////////////////////////
 
 #include <Common/Base58.h>
-
 #include <config/CryptoNoteConfig.h>
 #include <config/WalletConfig.h>
-
 #include <CryptoNoteCore/CryptoNoteBasicImpl.h>
 #include <CryptoNoteCore/CryptoNoteTools.h>
 #include <CryptoNoteCore/Mixins.h>
 #include <CryptoNoteCore/TransactionExtra.h>
-
 #include <regex>
 #include <Utilities/Mixins.h>
 #include <Utilities/Addresses.h>
+#include <Utilities/Fees.h>
 #include <Utilities/Utilities.h>
 
 Error validateFusionTransaction(
@@ -208,7 +206,9 @@ Error validateAmount(
     const uint64_t currentHeight)
 {
     /* Verify the fee is valid */
-    if (fee < CryptoNote::parameters::MINIMUM_FEE)
+    const uint64_t minFee = Utilities::getMinimumFee(currentHeight);
+
+    if (fee < minFee)
     {
         return FEE_TOO_SMALL;
     }
