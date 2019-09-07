@@ -86,17 +86,17 @@ const size_t   CRYPTONOTE_DISPLAY_DECIMAL_POINT              = 2;
 
 const uint64_t MINIMUM_FEE                                   = UINT64_C(10);
 
-/* Let's increase the fee and activate at block 1472147 */
+/* Let's increase the fee and activate at block 1470000 */
 const uint64_t MINIMUM_FEE_V1                                = UINT64_C(1000000);
-const uint64_t MINIMUM_FEE_V1_HEIGHT                         = 1472147;
+const uint64_t MINIMUM_FEE_V1_HEIGHT                         = 1470000;
 
 /* This section defines our minimum and maximum mixin counts required for transactions */
 const uint64_t MINIMUM_MIXIN_V0                              = 0;
 const uint64_t MAXIMUM_MIXIN_V0                              = 7;
 
-/* This section activates new minimum and maximum mixin at block 1472147 */
+/* This section activates new minimum and maximum mixin at block 1470000 */
 const uint64_t MAXIMUM_MIXIN_V1                              = 3;
-const uint32_t MIXIN_LIMITS_V1_HEIGHT                        = 1472147;
+const uint32_t MIXIN_LIMITS_V1_HEIGHT                        = 1470000;
 
 
 /* The mixin to use by default with zedwallet and turtle-service */
@@ -116,7 +116,7 @@ const uint64_t MAX_EXTRA_SIZE                                = 140000;
 const uint64_t MAX_EXTRA_SIZE_V2                             = 1024;
 const uint64_t MAX_EXTRA_SIZE_V2_HEIGHT                      = 700000;
 const uint64_t MAX_EXTRA_SIZE_V3                             = 512;
-const uint64_t MAX_EXTRA_SIZE_V3_HEIGHT                      = 1472147;
+const uint64_t MAX_EXTRA_SIZE_V3_HEIGHT                      = 1470000;
 
 /* For new projects forked from this code base, this value should be
    changed to 0 to prevent a possible transaction bloat exploit */
