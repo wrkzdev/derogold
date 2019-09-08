@@ -82,10 +82,10 @@ namespace CryptoNote
 
         const uint64_t MINIMUM_FEE = UINT64_C(10);
 
-        /* Fee adjusting V1 */
+        /* Fee adjusting V1 1470000 */
         const uint64_t MINIMUM_FEE_V1 = UINT64_C(1000000);
 
-        const uint64_t MINIMUM_FEE_V1_HEIGHT = 1550000;
+        const uint64_t MINIMUM_FEE_V1_HEIGHT = 1470000;
 
 
         /* This section defines our minimum and maximum mixin counts required for transactions */
@@ -93,12 +93,12 @@ namespace CryptoNote
 
         const uint64_t MAXIMUM_MIXIN_V0 = 7;
 
-        const uint64_t MINIMUM_MIXIN_V1 = 1;
+        const uint64_t MINIMUM_MIXIN_V1 = 0;
 
         const uint64_t MAXIMUM_MIXIN_V1 = 3;
 
         /* The heights to activate the mixin limits at */
-        const uint32_t MIXIN_LIMITS_V1_HEIGHT = 1550000;
+        const uint32_t MIXIN_LIMITS_V1_HEIGHT = 1470000;
 
         /* The mixin to use by default with zedwallet and turtle-service */
         /* DEFAULT_MIXIN_V0 is the mixin used before MIXIN_LIMITS_V1_HEIGHT is started */
@@ -125,6 +125,10 @@ namespace CryptoNote
         const uint64_t MAX_EXTRA_SIZE_V2 = 1024;
 
         const uint64_t MAX_EXTRA_SIZE_V2_HEIGHT = 700000;
+
+        const uint64_t MAX_EXTRA_SIZE_V3 = 512;
+
+		const uint64_t MAX_EXTRA_SIZE_V3_HEIGHT = 1470000;
 
         /* For new projects forked from this code base, the values immediately below
            should be changed to 0 to prevent issues with transaction processing
@@ -174,8 +178,8 @@ namespace CryptoNote
         /* Block heights we are going to have hard forks at */
         const uint64_t FORK_HEIGHTS[] = {
             700000, // 0
-            1550000, // 1
-            2068400, // 2
+            1470000, // 1
+            2000000, // 2
         };
 
         /* MAKE SURE TO UPDATE THIS VALUE WITH EVERY MAJOR RELEASE BEFORE A FORK */
@@ -235,7 +239,9 @@ namespace CryptoNote
     };
 
     const size_t BLOCKS_IDS_SYNCHRONIZING_DEFAULT_COUNT = 10000; // by default, blocks ids count in synchronizing
+
     const uint64_t BLOCKS_SYNCHRONIZING_DEFAULT_COUNT = 100; // by default, blocks count in blocks downloading
+
     const size_t COMMAND_RPC_GET_BLOCKS_FAST_MAX_COUNT = 1000;
 
     const int P2P_DEFAULT_PORT = 42069;
@@ -262,7 +268,7 @@ namespace CryptoNote
     const uint8_t P2P_UPGRADE_WINDOW = 2;
 
     const size_t P2P_CONNECTION_MAX_WRITE_BUFFER_SIZE = 32 * 1024 * 1024; // 32 MB
-    const uint32_t P2P_DEFAULT_CONNECTIONS_COUNT = 8;
+    const uint32_t P2P_DEFAULT_CONNECTIONS_COUNT = 12;
 
     const size_t P2P_DEFAULT_WHITELIST_CONNECTIONS_PERCENT = 70;
 
@@ -278,8 +284,8 @@ namespace CryptoNote
 
     const uint64_t DATABASE_WRITE_BUFFER_MB_DEFAULT_SIZE = 1024; // 1 GB
     const uint64_t DATABASE_READ_BUFFER_MB_DEFAULT_SIZE = 1024; // 1 GB
-    const uint32_t DATABASE_DEFAULT_MAX_OPEN_FILES = 500; // 500 files
-    const uint16_t DATABASE_DEFAULT_BACKGROUND_THREADS_COUNT = 10; // 10 DB threads
+    const uint32_t DATABASE_DEFAULT_MAX_OPEN_FILES = 128; // 128 files
+    const uint16_t DATABASE_DEFAULT_BACKGROUND_THREADS_COUNT = 8; // 8 DB threads
 
     const char LATEST_VERSION_URL[] = "https://github.com/derogold/derogold/releases";
 
