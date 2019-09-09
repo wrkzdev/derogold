@@ -1672,7 +1672,7 @@ namespace CryptoNote
             return {false, "Transaction does not contain the proper number of ring signatures"};
         }
 
-        if (cachedTransaction.getTransaction().extra.size() >= CryptoNote::parameters::MAX_EXTRA_SIZE_V2)
+        if (cachedTransaction.getTransaction().extra.size() >= CryptoNote::parameters::MAX_EXTRA_SIZE_V3)
         {
             logger(Logging::TRACE) << "Not adding transaction " << cachedTransaction.getTransactionHash()
                                    << " to pool, extra too large.";
@@ -2153,10 +2153,10 @@ namespace CryptoNote
 
         /* Small buffer until enforcing - helps clear out tx pool with old, previously
      valid transactions */
-        if (blockIndex >= CryptoNote::parameters::MAX_EXTRA_SIZE_V2_HEIGHT
+        if (blockIndex >= CryptoNote::parameters::MAX_EXTRA_SIZE_V3_HEIGHT
                               + CryptoNote::parameters::CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW)
         {
-            if (transaction.extra.size() >= CryptoNote::parameters::MAX_EXTRA_SIZE_V2)
+            if (transaction.extra.size() >= CryptoNote::parameters::MAX_EXTRA_SIZE_V3)
             {
                 return error::TransactionValidationError::EXTRA_TOO_LARGE;
             }
@@ -2894,7 +2894,7 @@ namespace CryptoNote
     {
         const auto &transaction = cachedTransaction.getTransaction();
 
-        if (transaction.extra.size() >= CryptoNote::parameters::MAX_EXTRA_SIZE_V2)
+        if (transaction.extra.size() >= CryptoNote::parameters::MAX_EXTRA_SIZE_V3)
         {
             logger(Logging::TRACE) << "Not adding transaction " << cachedTransaction.getTransactionHash()
                                    << " to block template, extra too large.";

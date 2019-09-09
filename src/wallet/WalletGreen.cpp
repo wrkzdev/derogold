@@ -2825,10 +2825,10 @@ namespace CryptoNote
                 make_error_code(error::INTERNAL_WALLET_ERROR), "Failed to deserialize created transaction");
         }
 
-        if (cryptoNoteTransaction.extra.size() >= CryptoNote::parameters::MAX_EXTRA_SIZE_V2)
+        if (cryptoNoteTransaction.extra.size() >= CryptoNote::parameters::MAX_EXTRA_SIZE_V3)
         {
             m_logger(ERROR, BRIGHT_RED) << "Transaction extra is too large. Allowed: "
-                                        << CryptoNote::parameters::MAX_EXTRA_SIZE_V2
+                                        << CryptoNote::parameters::MAX_EXTRA_SIZE_V3
                                         << ", actual: " << cryptoNoteTransaction.extra.size() << ".";
 
             throw std::system_error(make_error_code(error::EXTRA_TOO_LARGE), "Transaction extra too large");
