@@ -284,7 +284,7 @@ namespace CryptoNote
 
     const uint64_t DATABASE_WRITE_BUFFER_MB_DEFAULT_SIZE = 1024; // 1024 MB
     const uint64_t DATABASE_READ_BUFFER_MB_DEFAULT_SIZE = 1024; // 1024 MB
-    const uint32_t DATABASE_DEFAULT_MAX_OPEN_FILES = 64; // 64 max. files
+    const uint32_t DATABASE_DEFAULT_MAX_OPEN_FILES = 128; // 128 max. files. Highend server just use -1 for no limit
     const uint16_t DATABASE_DEFAULT_BACKGROUND_THREADS_COUNT = 8; // 8 DB IncreaseParallelism
     const uint64_t DATABASE_MAX_BYTES_FOR_LEVEL_BASE = 20 * DATABASE_WRITE_BUFFER_MB_DEFAULT_SIZE; // Additional tweak testing
 
