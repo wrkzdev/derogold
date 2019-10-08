@@ -1771,11 +1771,11 @@ inline socket_t Server::create_server_socket(const char* host, int port, int soc
 {
     return detail::create_socket(host, port,
         [](socket_t sock, struct addrinfo& ai) -> bool {
-            const char yes = 1;
+          /*  const char yes = 1;
             if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1) {
                 return false;
             }
-
+          */
             if (::bind(sock, ai.ai_addr, ai.ai_addrlen)) {
                 return false;
             }
