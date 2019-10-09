@@ -196,11 +196,13 @@ namespace CryptoNote
         std::shared_ptr<Logging::ILogger> log,
         Core &c,
         NodeServer &p2p,
-        ICryptoNoteProtocolHandler &protocol):
+	ICryptoNoteProtocolHandler &protocol,
+	const bool BlockExplorerDetailed):
         logger(log, "RpcServer"),
         m_core(c),
         m_p2p(p2p),
-        m_protocol(protocol)
+        m_protocol(protocol),
+	m_blockExplorerDetailed(BlockExplorerDetailed)
     {
         m_server.Get(".*", [this](const httplib::Request &req, httplib::Response &res) {
             handleRequest(req, res);
@@ -443,6 +445,12 @@ namespace CryptoNote
         const COMMAND_RPC_QUERY_BLOCKS_DETAILED::request &req,
         COMMAND_RPC_QUERY_BLOCKS_DETAILED::response &res)
     {
+	/* Check if enable-blockexplorer-detailed is enabled */
+	if (!m_blockExplorerDetailed)
+	{
+	     return false;
+	}
+
         uint64_t startIndex;
         uint64_t currentIndex;
         uint64_t fullOffset;
