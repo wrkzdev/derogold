@@ -9,7 +9,6 @@
 #include "CoreRpcServerCommandsDefinitions.h"
 #include "JsonRpc.h"
 #include "common/Math.h"
-#include "httplib.h"
 #include "HttpServer.h"
 
 #include <functional>
@@ -24,27 +23,18 @@ namespace CryptoNote
 
     struct ICryptoNoteProtocolHandler;
 
-    class RpcServer
+    class RpcServer : public HttpServer
     {
       public:
         RpcServer(
+	    System::Dispatcher &dispatcher,
             std::shared_ptr<Logging::ILogger> log,
             Core &c,
             NodeServer &p2p,
             ICryptoNoteProtocolHandler &protocol,
 	    const bool BlockExplorerDetailed);
 
-        ~RpcServer();
-
-        void start(const std::string address, const uint16_t port);
-
-        void stop();
-
-        void listen(const std::string address, const uint16_t port);
-
-        void handleRequest(const httplib::Request &request, httplib::Response &response);
-
-        typedef std::function<bool(RpcServer *, const httplib::Request &req, httplib::Response &res)> HandlerFunction;
+	typedef std::function<bool(RpcServer *, const HttpRequest &request, HttpResponse &response)> HandlerFunction;
 
         bool enableCors(const std::vector<std::string> domains);
 
@@ -68,11 +58,13 @@ namespace CryptoNote
             const bool allowBusyCore;
         };
 
-        typedef void (RpcServer::*HandlerPtr)(const httplib::Request &request, httplib::Response &response);
+	typedef void (RpcServer::*HandlerPtr)(const HttpRequest &request, HttpResponse &response);
 
         static std::unordered_map<std::string, RpcHandler<HandlerFunction>> s_handlers;
 
-        bool processJsonRpcRequest(const httplib::Request &request, httplib::Response &response);
+	virtual void processRequest(const HttpRequest &request, HttpResponse &response) override;
+
+	bool processJsonRpcRequest(const HttpRequest &request, HttpResponse &response);
 
         bool isCoreReady();
 
@@ -225,9 +217,6 @@ namespace CryptoNote
 
 	bool m_blockExplorerDetailed;
 
-        httplib::Server m_server;
-
-        std::thread m_serverThread;
     };
 
 } // namespace CryptoNote

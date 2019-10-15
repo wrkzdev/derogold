@@ -110,11 +110,11 @@ namespace CryptoNote
         RpcServer::HandlerFunction
             jsonMethod(bool (RpcServer::*handler)(typename Command::request const &, typename Command::response &))
         {
-            return [handler](RpcServer *obj, const httplib::Request &request, httplib::Response &response) {
+            return [handler](RpcServer *obj, const HttpRequest &request, HttpResponse &response) {
                 boost::value_initialized<typename Command::request> req;
                 boost::value_initialized<typename Command::response> res;
 
-                if (!loadFromJson(static_cast<typename Command::request &>(req), request.body)) 
+                if (!loadFromJson(static_cast<typename Command::request &>(req), request.getBody()))
                 {
                     return false;
                 }
@@ -123,11 +123,12 @@ namespace CryptoNote
 
                 for (const auto &cors_domain : obj->getCorsDomains())
                 {
-                    /* TODO: This only allows one domain */
-                    response.set_header("Access-Control-Allow-Origin", cors_domain);
+                    response.addHeader("Access-Control-Allow-Origin", cors_domain);
                 }
 
-                response.set_content(storeToJson(res.data()), "application/json");
+                response.addHeader("Content-Type", "application/json");
+
+		response.setBody(storeToJson(res.data()));
 
                 return result;
             };
@@ -193,106 +194,76 @@ namespace CryptoNote
           true}}};
 
     RpcServer::RpcServer(
+	System::Dispatcher &dispatcher,
         std::shared_ptr<Logging::ILogger> log,
         Core &c,
         NodeServer &p2p,
 	ICryptoNoteProtocolHandler &protocol,
 	const bool BlockExplorerDetailed):
+	HttpServer(dispatcher, log),
         logger(log, "RpcServer"),
         m_core(c),
         m_p2p(p2p),
         m_protocol(protocol),
 	m_blockExplorerDetailed(BlockExplorerDetailed)
     {
-        m_server.Get(".*", [this](const httplib::Request &req, httplib::Response &res) {
-            handleRequest(req, res);
-        });
-
-        m_server.Post(".*", [this](const httplib::Request &req, httplib::Response &res) {
-            handleRequest(req, res);
-        });
     }
 
-    RpcServer::~RpcServer()
+    void RpcServer::processRequest(const HttpRequest &request, HttpResponse &response)
     {
-        stop();
+        auto url = request.getUrl();
+	if (url.find(".bin") == std::string::npos)
+	{
+	     logger(TRACE) << "RPC request came: \n" << request << std::endl;
+	}
+
+	else
+	{
+	     logger(TRACE) << "RPC request came: " << url << std::endl;
+	}
+
+	auto it = s_handlers.find(url);
+
+	if (it == s_handlers.end())
+
+	{
+
+	response.setStatus(HttpResponse::STATUS_404);
+		return;
+	}
+
+	if (!it->second.allowBusyCore && !isCoreReady())
+	
+	{
+
+	response.setStatus(HttpResponse::STATUS_500);
+		response.setBody("Core is busy");
+		return;
+	}
+
+	it->second.handler(this, request, response);
+
     }
 
-    void RpcServer::start(const std::string address, const uint16_t port)
-    {
-        m_serverThread = std::thread(&RpcServer::listen, this, address, port);
-    }
+    bool RpcServer::processJsonRpcRequest(const HttpRequest &request, HttpResponse &response)
 
-    void RpcServer::stop()
-    {
-        m_server.stop();
-
-        if (m_serverThread.joinable())
-        {
-            m_serverThread.join();
-        }
-    }
-
-    void RpcServer::listen(const std::string address, const uint16_t port)
-    {
-        if (!m_server.listen(address, port))
-        {
-            std::cout << "Could not bind service to " << address << ":" << port
-                      << "\nIs another service using this address and port?\n";
-
-            exit(1);
-        }
-    }
-
-    void RpcServer::handleRequest(const httplib::Request &req, httplib::Response &res)
-    {
-        logger(TRACE) << "Incoming RPC request to endpoint " << req.path;
-
-        const auto requestHandler = s_handlers.find(req.path);
-
-        if (requestHandler == s_handlers.end())
-        {
-            res.status = 404;
-            return;
-        }
-
-        if (!requestHandler->second.allowBusyCore && !isCoreReady())
-        {
-            res.status = 500;
-            res.body = "Core is busy";
-            return;
-        }
-
-        try
-        {
-            requestHandler->second.handler(this, req, res);
-        }
-        catch (const std::exception &e)
-        {
-            logger(ERROR) << "Caught exception processing RPC request: " << e.what();
-            res.status = 500;
-            res.body = e.what();
-            return;
-        }
-    }
-
-    bool RpcServer::processJsonRpcRequest(const httplib::Request &request, httplib::Response &response)
     {
         using namespace JsonRpc;
 
         for (const auto &cors_domain : m_cors_domains)
         {
-            /* TODO: This only allows one domain */
-            response.set_header("Access-Control-Allow-Origin", cors_domain);
+            response.addHeader("Access-Control-Allow-Origin", cors_domain);
         }
+
+	    response.addHeader("Content-Type", "application/json");
 
         JsonRpcRequest jsonRequest;
         JsonRpcResponse jsonResponse;
 
         try
         {
-            logger(TRACE) << "JSON-RPC request: " << request.body;
-            jsonRequest.parseRequest(request.body);
+            logger(TRACE) << "JSON-RPC request: " << request.getBody();
+            jsonRequest.parseRequest(request.getBody());
             jsonResponse.setId(jsonRequest.getId()); // copy id
 
             static std::unordered_map<std::string, RpcServer::RpcHandler<JsonMemberMethod>> jsonRpcHandlers = {
@@ -331,7 +302,7 @@ namespace CryptoNote
             jsonResponse.setError(JsonRpcError(JsonRpc::errInternalError, e.what()));
         }
 
-        response.set_content(jsonResponse.getBody(), "application/json");
+        response.setBody(jsonResponse.getBody());
 
         logger(TRACE) << "JSON-RPC response: " << jsonResponse.getBody();
 
