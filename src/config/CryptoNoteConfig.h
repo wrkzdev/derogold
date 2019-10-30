@@ -297,7 +297,7 @@ namespace CryptoNote
 
     const char *const SEED_NODES[] = {
         "97.64.253.98:42069",   // morpheus
-        "5.189.134.215:42069", // Pluto
+        "5.9.65.105:42069", // Pluto
         "5.172.219.174:42069",  //sniperviperman // Edited as requested by sniperviperman.
         "149.129.97.195:42069", // netmebtc
         "91.239.237.54:42069",  // Leo Cuvée
