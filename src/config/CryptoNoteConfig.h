@@ -295,7 +295,8 @@ namespace CryptoNote
     const static boost::uuids::uuid CRYPTONOTE_NETWORK = {
         {0x20, 0x69, 0x6e, 0x73, 0x74, 0x61, 0x6c, 0x6c, 0x20, 0x67, 0x65, 0x6e, 0x74, 0x6f, 0x6f, 0x20}};
 
-    const char *const SEED_NODES[] = {
+    const char* const SEED_NODES[] = {
+	"195.154.81.135:12169", // bob bie
         "97.64.253.98:42069",   // morpheus
         "207.180.227.16:42069", // explorer.dego.gq
         "5.172.219.174:42069",  //sniperviperman // Edited as requested by sniperviperman.
