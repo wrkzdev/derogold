@@ -301,5 +301,6 @@ namespace CryptoNote
         "5.172.219.174:42069",  // sniperviperman 
         "91.239.237.54:42069",  // Leo Cuvée CZ
 	"46.214.70.196:42069",  // derogold4ever.online
+	"130.185.202.159:42069",// SolFly
     };
 } // namespace CryptoNote
