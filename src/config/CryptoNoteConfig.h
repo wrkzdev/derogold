@@ -298,7 +298,8 @@ namespace CryptoNote
     const char* const SEED_NODES[] = {
 	"195.154.81.135:12169", // bob bie
         "207.180.227.16:42069", // explorer.dego.gq
-        "5.172.219.174:42069",  //sniperviperman // Edited as requested by sniperviperman.
-        "91.239.237.54:42069",  // Leo Cuvée
+        "5.172.219.174:42069",  // sniperviperman 
+        "91.239.237.54:42069",  // Leo Cuvée CZ
+	"46.214.70.196:42069",  // derogold4ever.online
     };
 } // namespace CryptoNote
