@@ -2390,7 +2390,7 @@ namespace CryptoNote
 
 	if (previousBlockIndex + 1 >= CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT)
 	{
-		futureTimeLimit = CryptoNote::parameters::DIFFICULTY_TARGET_V * 6;
+		futureTimeLimit = CryptoNote::parameters::DIFFICULTY_TARGET * 6;
 	}
 	else
 	{
