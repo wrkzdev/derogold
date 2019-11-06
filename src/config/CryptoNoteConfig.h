@@ -296,11 +296,11 @@ namespace CryptoNote
         {0x20, 0x69, 0x6e, 0x73, 0x74, 0x61, 0x6c, 0x6c, 0x20, 0x67, 0x65, 0x6e, 0x74, 0x6f, 0x6f, 0x20}};
 
     const char* const SEED_NODES[] = {
-	"195.154.81.135:12169", // bob bie
-        "207.180.227.16:42069", // explorer.dego.gq
-        "5.172.219.174:42069",  // sniperviperman 
-        "91.239.237.54:42069",  // Leo Cuvée CZ
-	"46.214.70.196:42069",  // derogold4ever.online
-	"130.185.202.159:42069",// SolFly
+        "195.154.81.135:12169", // bob bie
+        "5.9.65.105:42069", // Pluto
+        "5.172.219.174:42069", // sniperviperman 
+        "91.239.237.54:42069", // Leo Cuvée CZ
+        "46.214.70.196:42069", // derogold4ever.online
+        "130.185.202.159:42069" // SolFly
     };
 } // namespace CryptoNote
