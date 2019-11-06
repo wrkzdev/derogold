@@ -332,8 +332,21 @@ namespace CryptoNote
             /* Find the difference between the remote and the local height */
             int64_t diff = static_cast<int64_t>(remoteHeight) - static_cast<int64_t>(currentHeight);
 
-            /* Find out how many days behind/ahead we are from the remote height */
-            uint64_t days = std::abs(diff) / (24 * 60 * 60 / m_currency.difficultyTarget());
+
+	    uint64_t days;
+
+	    if (currentHeight >= CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT || remoteHeight < CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT)
+         {   
+                 days = std::abs(diff) / (24 * 60 * 60 / CryptoNote::parameters::DIFFICULTY_TARGET_V2);
+         }   
+               else
+         {
+           uint64_t blocksBefore = CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT - currentHeight;
+           uint64_t blocksAfter = remoteHeight - CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT;
+
+           days = blocksBefore / (24 * 60 * 60 / CryptoNote::parameters::DIFFICULTY_TARGET);
+           days += blocksAfter / (24 * 60 * 60 / CryptoNote::parameters::DIFFICULTY_TARGET_V2);
+         }
 
             std::stringstream ss;
 
