@@ -47,7 +47,6 @@ namespace CryptoNote
             return m_minedMoneyUnlockWindow;
         }
 
-	
         size_t timestampCheckWindow(uint32_t blockHeight) const
         {
                 return m_timestampCheckWindow;
@@ -56,11 +55,6 @@ namespace CryptoNote
         uint64_t moneySupply() const
         {
             return m_moneySupply;
-        }
-
-        unsigned int emissionSpeedFactor() const
-        {
-            return m_emissionSpeedFactor;
         }
 
         uint64_t genesisBlockReward() const
@@ -100,10 +94,8 @@ namespace CryptoNote
             return m_mininumFee;
         }
 
-	
         uint64_t defaultDustThreshold(uint32_t height) const
         {
-
             return m_defaultDustThreshold;
         }
 
@@ -112,11 +104,6 @@ namespace CryptoNote
                 return CryptoNote::parameters::DEFAULT_DUST_THRESHOLD;
 
             return m_defaultDustThreshold;
-        }
-
-        uint64_t difficultyTarget() const
-        {
-            return m_difficultyTarget;
         }
 
         size_t difficultyWindow() const
@@ -334,8 +321,6 @@ namespace CryptoNote
 
         uint64_t m_moneySupply;
 
-        unsigned int m_emissionSpeedFactor;
-
         uint64_t m_genesisBlockReward;
 
         size_t m_rewardBlocksWindow;
@@ -351,8 +336,6 @@ namespace CryptoNote
         uint64_t m_mininumFee;
 
         uint64_t m_defaultDustThreshold;
-
-        uint64_t m_difficultyTarget;
 
         size_t m_difficultyWindow;
 
@@ -470,8 +453,6 @@ namespace CryptoNote
             return *this;
         }
 
-        CurrencyBuilder &emissionSpeedFactor(unsigned int val);
-
         CurrencyBuilder &genesisBlockReward(uint64_t val)
         {
             m_currency.m_genesisBlockReward = val;
@@ -507,12 +488,6 @@ namespace CryptoNote
         CurrencyBuilder &defaultDustThreshold(uint64_t val)
         {
             m_currency.m_defaultDustThreshold = val;
-            return *this;
-        }
-
-        CurrencyBuilder &difficultyTarget(uint64_t val)
-        {
-            m_currency.m_difficultyTarget = val;
             return *this;
         }
 

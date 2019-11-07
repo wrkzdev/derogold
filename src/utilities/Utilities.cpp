@@ -132,7 +132,20 @@ namespace Utilities
         }
 
         /* Get the amount of seconds since the blockchain launched */
-        uint64_t secondsSinceLaunch = scanHeight * CryptoNote::parameters::DIFFICULTY_TARGET;
+	uint64_t secondsSinceLaunch;
+
+	if (scanHeight < CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT)
+	{
+	     secondsSinceLaunch = scanHeight * CryptoNote::parameters::DIFFICULTY_TARGET;
+	}
+	else
+	{
+	     uint64_t blocksBefore = CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT;
+	     uint64_t blocksAfter = scanHeight - CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT;
+
+	     secondsSinceLaunch = (blocksBefore * CryptoNote::parameters::DIFFICULTY_TARGET) +
+		                  (blocksAfter  * CryptoNote::parameters::DIFFICULTY_TARGET_V2);
+	}
 
         /* Get the genesis block timestamp and add the time since launch */
         uint64_t timestamp = CryptoNote::parameters::GENESIS_BLOCK_TIMESTAMP + secondsSinceLaunch;
@@ -149,22 +162,23 @@ namespace Utilities
     uint64_t timestampToScanHeight(const uint64_t timestamp)
     {
         if (timestamp == 0)
-        {
-            return 0;
-        }
+	{
+	    return 0;
+	}
 
-        /* Timestamp is before the chain launched! */
-        if (timestamp <= CryptoNote::parameters::GENESIS_BLOCK_TIMESTAMP)
-        {
-            return 0;
-        }
+	/* Timestamp is before the chain launched! */
+	if (timestamp <= CryptoNote::parameters::GENESIS_BLOCK_TIMESTAMP)
+	{
+	    return 0;
+	}
 
-        /* Find the amount of seconds between launch and the timestamp */
-        uint64_t launchTimestampDelta = timestamp - CryptoNote::parameters::GENESIS_BLOCK_TIMESTAMP;
+	/* Find the amount of seconds between launch and the timestamp */
+	uint64_t launchTimestampDelta = timestamp - CryptoNote::parameters::GENESIS_BLOCK_TIMESTAMP;
 
-        /* Get an estimation of the amount of blocks that have passed before the
-           timestamp */
-        return std::max<uint64_t>(0, (launchTimestampDelta / CryptoNote::parameters::DIFFICULTY_TARGET) - 10000);
+	/* Get an estimation of the amount of blocks that have passed before the
+	 timestamp */
+
+	return launchTimestampDelta / CryptoNote::parameters::DIFFICULTY_TARGET;
     }
 
     uint64_t getCurrentTimestampAdjusted()

@@ -182,7 +182,6 @@ namespace CryptoNote
         IP2pEndpoint *p_net_layout,
         std::shared_ptr<Logging::ILogger> log):
         m_dispatcher(dispatcher),
-        m_currency(currency),
         m_core(rcore),
         m_p2p(p_net_layout),
         m_synchronized(false),

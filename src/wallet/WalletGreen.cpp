@@ -410,7 +410,7 @@ namespace CryptoNote
         }
         else
         {
-            creationTimestamp = scanHeightToTimestamp(scanHeight);
+            creationTimestamp = Utilities::scanHeightToTimestamp(scanHeight);
         }
 
         prefix->encryptedViewKeys =
@@ -1215,7 +1215,7 @@ namespace CryptoNote
      lower height to get the blocks we need. */
         if (!walletsIndex.empty() && !newAddress)
         {
-            uint64_t timestamp = scanHeightToTimestamp(scanHeight);
+            uint64_t timestamp = Utilities::scanHeightToTimestamp(scanHeight);
 
             time_t minTimestamp = std::numeric_limits<time_t>::max();
 
@@ -1327,7 +1327,7 @@ namespace CryptoNote
             }
             else
             {
-                sub.syncStart.timestamp = scanHeightToTimestamp(scanHeight);
+                sub.syncStart.timestamp = Utilities::scanHeightToTimestamp(scanHeight);
             }
 
             m_containerStorage.push_back(encryptKeyPair(spendPublicKey, spendSecretKey, sub.syncStart.timestamp));
@@ -1395,40 +1395,6 @@ namespace CryptoNote
         return block;
     }
 
-    uint64_t WalletGreen::scanHeightToTimestamp(const uint64_t scanHeight)
-    {
-        if (scanHeight == 0)
-        {
-            return 0;
-        }
-
-        /* Get the block timestamp from the node if the node has it */
-        uint64_t timestamp = static_cast<uint64_t>(getBlock(scanHeight).timestamp);
-
-        if (timestamp != 0)
-        {
-            return timestamp;
-        }
-
-        /* Get the amount of seconds since the blockchain launched */
-        uint64_t secondsSinceLaunch = scanHeight * CryptoNote::parameters::DIFFICULTY_TARGET;
-
-        /* Add a bit of a buffer in case of difficulty weirdness, blocks coming
-       out too fast */
-        secondsSinceLaunch *= 0.95;
-
-        /* Get the genesis block timestamp and add the time since launch */
-        timestamp = CryptoNote::parameters::GENESIS_BLOCK_TIMESTAMP + secondsSinceLaunch;
-
-        /* Timestamp in the future */
-        if (timestamp >= static_cast<uint64_t>(std::time(nullptr)))
-        {
-            return getCurrentTimestampAdjusted();
-        }
-
-        return timestamp;
-    }
-
     uint64_t WalletGreen::getCurrentTimestampAdjusted()
     {
         /* Get the current time as a unix timestamp */
@@ -1455,7 +1421,7 @@ namespace CryptoNote
         /* Grab the wallet encrypted prefix */
         auto *prefix = reinterpret_cast<ContainerStoragePrefix *>(m_containerStorage.prefix());
 
-        uint64_t newTimestamp = scanHeightToTimestamp(scanHeight);
+        uint64_t newTimestamp = Utilities::scanHeightToTimestamp(scanHeight);
 
         /* Reencrypt with the new creation timestamp so we rescan from here when we relaunch */
         prefix->encryptedViewKeys = encryptKeyPair(m_viewPublicKey, m_viewSecretKey, newTimestamp);

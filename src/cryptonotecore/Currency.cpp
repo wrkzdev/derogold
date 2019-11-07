@@ -547,7 +547,6 @@ namespace CryptoNote
         m_minedMoneyUnlockWindow(currency.m_minedMoneyUnlockWindow),
         m_timestampCheckWindow(currency.m_timestampCheckWindow),
         m_moneySupply(currency.m_moneySupply),
-        m_emissionSpeedFactor(currency.m_emissionSpeedFactor),
         m_rewardBlocksWindow(currency.m_rewardBlocksWindow),
         m_blockGrantedFullRewardZone(currency.m_blockGrantedFullRewardZone),
         m_isBlockexplorer(currency.m_isBlockexplorer),
@@ -556,7 +555,6 @@ namespace CryptoNote
         m_coin(currency.m_coin),
         m_mininumFee(currency.m_mininumFee),
         m_defaultDustThreshold(currency.m_defaultDustThreshold),
-        m_difficultyTarget(currency.m_difficultyTarget),
         m_difficultyWindow(currency.m_difficultyWindow),
         m_difficultyCut(currency.m_difficultyCut),
         m_maxBlockSizeInitial(currency.m_maxBlockSizeInitial),
@@ -596,7 +594,6 @@ namespace CryptoNote
         timestampCheckWindow(parameters::BLOCKCHAIN_TIMESTAMP_CHECK_WINDOW);
 
         moneySupply(parameters::MONEY_SUPPLY);
-        emissionSpeedFactor(parameters::EMISSION_SPEED_FACTOR);
 
         rewardBlocksWindow(parameters::CRYPTONOTE_REWARD_BLOCKS_WINDOW);
         blockGrantedFullRewardZone(parameters::CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE);
@@ -607,7 +604,6 @@ namespace CryptoNote
         mininumFee(parameters::MINIMUM_FEE);
         defaultDustThreshold(parameters::DEFAULT_DUST_THRESHOLD);
 
-        difficultyTarget(parameters::DIFFICULTY_TARGET);
         difficultyWindow(parameters::DIFFICULTY_WINDOW);
 
         maxBlockSizeInitial(parameters::MAX_BLOCK_SIZE_INITIAL);
@@ -647,17 +643,6 @@ namespace CryptoNote
         CryptoNote::AccountPublicAddress ac;
         m_currency.constructMinerTx(1, 0, 0, 0, 0, 0, ac, tx); // zero fee in genesis
         return tx;
-    }
-
-    CurrencyBuilder &CurrencyBuilder::emissionSpeedFactor(unsigned int val)
-    {
-        if (val <= 0 || val > 8 * sizeof(uint64_t))
-        {
-            throw std::invalid_argument("val at emissionSpeedFactor()");
-        }
-
-        m_currency.m_emissionSpeedFactor = val;
-        return *this;
     }
 
     CurrencyBuilder &CurrencyBuilder::numberOfDecimalPlaces(size_t val)
