@@ -7,9 +7,9 @@
 #pragma once
 
 #include "CoreRpcServerCommandsDefinitions.h"
+#include "HttpServer.h"
 #include "JsonRpc.h"
 #include "common/Math.h"
-#include "HttpServer.h"
 
 #include <functional>
 #include <logging/LoggerRef.h>
@@ -27,14 +27,14 @@ namespace CryptoNote
     {
       public:
         RpcServer(
-	    System::Dispatcher &dispatcher,
+            System::Dispatcher &dispatcher,
             std::shared_ptr<Logging::ILogger> log,
             Core &c,
             NodeServer &p2p,
             ICryptoNoteProtocolHandler &protocol,
-	    const bool BlockExplorerDetailed);
+            const bool BlockExplorerDetailed);
 
-	typedef std::function<bool(RpcServer *, const HttpRequest &request, HttpResponse &response)> HandlerFunction;
+        typedef std::function<bool(RpcServer *, const HttpRequest &request, HttpResponse &response)> HandlerFunction;
 
         bool enableCors(const std::vector<std::string> domains);
 
@@ -58,13 +58,13 @@ namespace CryptoNote
             const bool allowBusyCore;
         };
 
-	typedef void (RpcServer::*HandlerPtr)(const HttpRequest &request, HttpResponse &response);
+        typedef void (RpcServer::*HandlerPtr)(const HttpRequest &request, HttpResponse &response);
 
         static std::unordered_map<std::string, RpcHandler<HandlerFunction>> s_handlers;
 
-	virtual void processRequest(const HttpRequest &request, HttpResponse &response) override;
+        virtual void processRequest(const HttpRequest &request, HttpResponse &response) override;
 
-	bool processJsonRpcRequest(const HttpRequest &request, HttpResponse &response);
+        bool processJsonRpcRequest(const HttpRequest &request, HttpResponse &response);
 
         bool isCoreReady();
 
@@ -214,9 +214,8 @@ namespace CryptoNote
         std::string m_fee_address;
 
         uint32_t m_fee_amount;
-
-	bool m_blockExplorerDetailed;
-
+        
+        bool m_blockExplorerDetailed;
     };
 
 } // namespace CryptoNote

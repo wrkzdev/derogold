@@ -48,6 +48,7 @@
 #include <wallet/WalletSerializationV2.h>
 #include <wallet/WalletUtils.h>
 #include <walletbackend/Constants.h>
+#include <walletbackend/Transfer.h>
 #include <walletbackend/WalletBackend.h>
 
 #undef ERROR
@@ -478,12 +479,14 @@ namespace CryptoNote
                 // Don't delete file if it has existed
                 if (storageCreated)
                 {
-                    boost::system::error_code ignore;
-                    boost::filesystem::remove(path, ignore);
+                    std::error_code ignore;
+                    fs::remove(path, ignore);
                 }
             });
 
-            ContainerStorage newStorage(path, FileMappedVectorOpenMode::CREATE, m_containerStorage.prefixSize());
+            ContainerStorage newStorage(path, FileMappedVectorOpenMode::OPEN_OR_CREATE, m_containerStorage.prefixSize());
+            newStorage.clear();
+
             storageCreated = true;
 
             chacha8_key newStorageKey;
