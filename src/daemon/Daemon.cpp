@@ -36,7 +36,6 @@
 
 #if defined(WIN32)
 
-#undef ERROR
 #include <crtdbg.h>
 #include <io.h>
 
@@ -254,9 +253,8 @@ int main(int argc, char *argv[])
         if (config.rewindToHeight > 0)
         {
             logger(INFO) << "Rewinding blockchain to: " << config.rewindToHeight << std::endl;
-            std::unique_ptr<IMainChainStorage> mainChainStorage;
 
-            mainChainStorage = createSwappedMainChainStorage(config.dataDirectory, currency);
+            std::unique_ptr<IMainChainStorage> mainChainStorage = createSwappedMainChainStorage(config.dataDirectory, currency);
 
             mainChainStorage->rewindTo(config.rewindToHeight);
 
@@ -324,8 +322,7 @@ int main(int argc, char *argv[])
         System::Dispatcher dispatcher;
         logger(INFO) << "Initializing core...";
 
-        std::unique_ptr<IMainChainStorage> tmainChainStorage;
-        tmainChainStorage = createSwappedMainChainStorage(config.dataDirectory, currency);
+        std::unique_ptr<IMainChainStorage> tmainChainStorage = createSwappedMainChainStorage(config.dataDirectory, currency);
 
         CryptoNote::Core ccore(
             currency,
@@ -360,12 +357,10 @@ int main(int argc, char *argv[])
 
         // Fire up the RPC Server
         logger(INFO) << "Starting core rpc server on address " << config.rpcInterface << ":" << config.rpcPort;
-
         rpcServer.setFeeAddress(config.feeAddress);
         rpcServer.setFeeAmount(config.feeAmount);
         rpcServer.enableCors(config.enableCors);
         rpcServer.start(config.rpcInterface, config.rpcPort);
-
         logger(INFO) << "Core rpc server started ok";
 
         Tools::SignalHandler::install([&dch] {
