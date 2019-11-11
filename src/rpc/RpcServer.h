@@ -214,9 +214,8 @@ namespace CryptoNote
         std::string m_fee_address;
 
         uint32_t m_fee_amount;
-
-	bool m_blockExplorerDetailed;
-
+        
+        bool m_blockExplorerDetailed;
     };
 
 } // namespace CryptoNote
