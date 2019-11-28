@@ -1871,14 +1871,13 @@ namespace CryptoNote
         const auto transactionHash = cachedTransaction.getTransactionHash();
 
 	if (cachedTransaction.getTransaction().outputs.size() >
-	    cachedTransaction.getTransaction().inputs.size() * 
-CryptoNote::parameters::NORMAL_TX_MAX_OUTPUT_RATIO_V1)
-	  {
-	      logger(Logging::TRACE) << "Not adding transaction " << transactionHash
-		                     << " to block template, excessive input deconstruction.";
+	    cachedTransaction.getTransaction().inputs.size() * CryptoNote::parameters::NORMAL_TX_MAX_OUTPUT_RATIO_V1) 
+	{
+	    logger(Logging::TRACE) << "Not adding transaction " << transactionHash
+	                           << " to block template, excessive input deconstruction.";
 
-	      return {false, "Transaction has an excessive number of outputs for the input count"};
-	   }
+	    return {false, "Transaction has an excessive number of outputs for the input count"};
+	}
 
         auto [success, err] = Mixins::validate({cachedTransaction}, getTopBlockIndex());
 
