@@ -104,7 +104,7 @@ namespace CryptoNote
         /* DEFAULT_MIXIN_V0 is the mixin used before MIXIN_LIMITS_V1_HEIGHT is started */
         const uint64_t DEFAULT_MIXIN_V0 = 3;
 
-        const uint64_t DEFAULT_MIXIN_V1 = MAXIMUM_MIXIN_V1;
+        const uint64_t DEFAULT_MIXIN_V1 = 1;
 
         const uint64_t DEFAULT_DUST_THRESHOLD = UINT64_C(0);
 
@@ -128,7 +128,7 @@ namespace CryptoNote
 
         const uint64_t MAX_EXTRA_SIZE_V3 = 512;
 
-	const uint64_t MAX_EXTRA_SIZE_V3_HEIGHT = 1470000;
+        const uint64_t MAX_EXTRA_SIZE_V3_HEIGHT = 1470000;
 
         /* For new projects forked from this code base, the values immediately below
            should be changed to 0 to prevent issues with transaction processing
@@ -163,11 +163,16 @@ namespace CryptoNote
             at any given time. Incoming fusion transactions that attempt to exceed this limit
             will be rejected from the pool and will not be added. This mechanism is in place
             to help curtail fusion transaction spam. */
-        const size_t FUSION_TX_MAX_POOL_COUNT = 20;
+        const size_t FUSION_TX_MAX_POOL_COUNT = 40;
 
-	const size_t NORMAL_TX_MAX_OUTPUT_RATIO_V1 = 10;
+        const size_t NORMAL_TX_MAX_OUTPUT_RATIO_V1 = 10;
 
-	const size_t NORMAL_TX_MAX_OUTPUT_RATIO_V1_HEIGHT = 2100000;
+        /* Similar to above. This is for the dust fusion to limit in the pool. */
+        const size_t FUSION_TX_MAX_POOL_COUNT_FOR_AMOUNT_V1 = 5;
+
+        const size_t FUSION_TX_MAX_POOL_AMOUNT_V1 = UINT64_C(1000000);
+
+        const size_t NORMAL_TX_MAX_OUTPUT_RATIO_V1_HEIGHT = 2100000;
 
         const uint32_t UPGRADE_HEIGHT_V2 = 1;
 
