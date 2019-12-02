@@ -1376,6 +1376,28 @@ namespace CryptoNote
         }
     }
 
+    CryptoNote::BlockDetails WalletGreen::getBlock(const uint64_t blockHeight)
+    {
+        CryptoNote::BlockDetails block;
+
+        if (m_node.getLastKnownBlockHeight() == 0)
+        {
+            return block;
+        }
+
+        std::promise<std::error_code> errorPromise;
+
+        auto e = errorPromise.get_future();
+
+        auto callback = [&errorPromise](std::error_code e) { errorPromise.set_value(e); };
+
+        m_node.getBlock(blockHeight, block, callback);
+
+        e.get();
+
+        return block;
+    }
+
     uint64_t WalletGreen::getCurrentTimestampAdjusted()
     {
         /* Get the current time as a unix timestamp */
