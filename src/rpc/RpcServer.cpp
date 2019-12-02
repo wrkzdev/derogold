@@ -120,14 +120,16 @@ namespace CryptoNote
                 }
 
                 bool result = (obj->*handler)(req, res);
+
                 for (const auto &cors_domain : obj->getCorsDomains())
                 {
                     response.addHeader("Access-Control-Allow-Origin", cors_domain);
-                    response.addHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-                    response.addHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
                 }
+
                 response.addHeader("Content-Type", "application/json");
-                response.setBody(storeToJson(res.data()));
+
+		response.setBody(storeToJson(res.data()));
+
                 return result;
             };
         }
@@ -192,61 +194,68 @@ namespace CryptoNote
           true}}};
 
     RpcServer::RpcServer(
-        System::Dispatcher &dispatcher,
+	System::Dispatcher &dispatcher,
         std::shared_ptr<Logging::ILogger> log,
         Core &c,
         NodeServer &p2p,
-        ICryptoNoteProtocolHandler &protocol,
-        const bool BlockExplorerDetailed):
-        HttpServer(dispatcher, log),
+	ICryptoNoteProtocolHandler &protocol,
+	const bool BlockExplorerDetailed):
+	HttpServer(dispatcher, log),
         logger(log, "RpcServer"),
         m_core(c),
         m_p2p(p2p),
         m_protocol(protocol),
-        m_blockExplorerDetailed(BlockExplorerDetailed)
+	m_blockExplorerDetailed(BlockExplorerDetailed)
     {
     }
 
     void RpcServer::processRequest(const HttpRequest &request, HttpResponse &response)
     {
         auto url = request.getUrl();
-        if (url.find(".bin") == std::string::npos)
-        {
-            logger(TRACE) << "RPC request came: \n" << request << std::endl;
-        }
-        else
-        {
-            logger(TRACE) << "RPC request came: " << url << std::endl;
-        }
+	if (url.find(".bin") == std::string::npos)
+	{
+	     logger(TRACE) << "RPC request came: \n" << request << std::endl;
+	}
 
-        auto it = s_handlers.find(url);
-        if (it == s_handlers.end())
-        {
-            response.setStatus(HttpResponse::STATUS_404);
-            return;
-        }
+	else
+	{
+	     logger(TRACE) << "RPC request came: " << url << std::endl;
+	}
 
-        if (!it->second.allowBusyCore && !isCoreReady())
-        {
-            response.setStatus(HttpResponse::STATUS_500);
-            response.setBody("Core is busy");
-            return;
-        }
+	auto it = s_handlers.find(url);
 
-        it->second.handler(this, request, response);
+	if (it == s_handlers.end())
+
+	{
+
+	response.setStatus(HttpResponse::STATUS_404);
+		return;
+	}
+
+	if (!it->second.allowBusyCore && !isCoreReady())
+	
+	{
+
+	response.setStatus(HttpResponse::STATUS_500);
+		response.setBody("Core is busy");
+		return;
+	}
+
+	it->second.handler(this, request, response);
+
     }
 
     bool RpcServer::processJsonRpcRequest(const HttpRequest &request, HttpResponse &response)
+
     {
         using namespace JsonRpc;
 
         for (const auto &cors_domain : m_cors_domains)
         {
             response.addHeader("Access-Control-Allow-Origin", cors_domain);
-            response.addHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-            response.addHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
         }
-        response.addHeader("Content-Type", "application/json");
+
+	    response.addHeader("Content-Type", "application/json");
 
         JsonRpcRequest jsonRequest;
         JsonRpcResponse jsonResponse;
@@ -294,7 +303,9 @@ namespace CryptoNote
         }
 
         response.setBody(jsonResponse.getBody());
+
         logger(TRACE) << "JSON-RPC response: " << jsonResponse.getBody();
+
         return true;
     }
 
@@ -336,30 +347,6 @@ namespace CryptoNote
             res.status = "Failed";
             return false;
         }
-<<<<<<< HEAD
-    }
-    writer.EndArray();
-
-    writer.Key("supported_height");
-    writer.Uint64(CryptoNote::parameters::FORK_HEIGHTS_SIZE == 0
-        ? 0
-        : CryptoNote::parameters::FORK_HEIGHTS[CryptoNote::parameters::CURRENT_FORK_INDEX]);
-
-    writer.Key("hashrate");
-    writer.Uint64(round(difficulty / (networkHeight >= CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT
-				      ? CryptoNote::parameters::DIFFICULTY_TARGET_V2
-				      : CryptoNote::parameters::DIFFICULTY_TARGET)));
-
-    writer.Key("synced");
-    writer.Bool(height == networkHeight);
-
-    writer.Key("major_version");
-    writer.Uint64(blockDetails.majorVersion);
-
-    writer.Key("minor_version");
-    writer.Uint64(blockDetails.minorVersion);
-=======
->>>>>>> parent of 2b89b086... Adds full rewrite RPC Threaded TRTL #903
 
         if (req.block_ids.back() != m_core.getBlockHashByIndex(0))
         {
@@ -367,20 +354,10 @@ namespace CryptoNote
             return false;
         }
 
-        uint32_t blockCount = COMMAND_RPC_GET_BLOCKS_FAST_MAX_COUNT;
-
-        /* Allow the requested block count to be specified in the
-           request if it's greater than 0 and less than the configured
-           maximum */
-        if (req.blockCount > 0 && req.blockCount < blockCount)
-        {
-            blockCount = req.blockCount;
-        }
-
         uint32_t totalBlockCount;
         uint32_t startBlockIndex;
         std::vector<Crypto::Hash> supplement = m_core.findBlockchainSupplement(
-            req.block_ids, blockCount, totalBlockCount, startBlockIndex);
+            req.block_ids, COMMAND_RPC_GET_BLOCKS_FAST_MAX_COUNT, totalBlockCount, startBlockIndex);
 
         res.current_height = totalBlockCount;
         res.start_height = startBlockIndex;
@@ -439,11 +416,11 @@ namespace CryptoNote
         const COMMAND_RPC_QUERY_BLOCKS_DETAILED::request &req,
         COMMAND_RPC_QUERY_BLOCKS_DETAILED::response &res)
     {
-        /* Check if enable-blockexplorer-detailed is enabled */
-        if (!m_blockExplorerDetailed)
-        {
-            return false;
-        }
+	/* Check if enable-blockexplorer-detailed is enabled */
+	if (!m_blockExplorerDetailed)
+	{
+	     return false;
+	}
 
         uint64_t startIndex;
         uint64_t currentIndex;
