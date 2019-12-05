@@ -2206,12 +2206,11 @@ namespace CryptoNote
             return error;
         }
 
-	if (blockIndex >= CryptoNote::parameters::NORMAL_TX_MAX_OUTPUT_RATIO_V1_HEIGHT &&
-	    transaction.outputs.size() > transaction.inputs.size() * 
-CryptoNote::parameters::NORMAL_TX_MAX_OUTPUT_RATIO_V1)
-	  {
+        if (blockIndex >= CryptoNote::parameters::NORMAL_TX_MAX_OUTPUT_RATIO_V1_HEIGHT &&
+            transaction.outputs.size() > transaction.inputs.size() * CryptoNote::parameters::NORMAL_TX_MAX_OUTPUT_RATIO_V1)
+        {
 	      return error::TransactionValidationError::EXCESSIVE_OUTPUTS;
-	  }
+        }
 
         size_t inputIndex = 0;
         for (const auto &input : transaction.inputs)
