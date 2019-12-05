@@ -1729,7 +1729,7 @@ namespace CryptoNote
         /* 10,000,000.00 DEGO */
         /* NORMAL_TX_OUTPUT_COUNT_LIMIT_V1 = 300 */
         if (cachedTransaction.getTransactionFee() > 0
-            && cachedTransaction.getTransaction().outputs.size() > CryptoNote::parameters::NORMAL_TX_OUTPUT_COUNT_LIMIT_V1 / 3)
+            && cachedTransaction.getTransaction().outputs.size() > CryptoNote::parameters::NORMAL_TX_OUTPUT_COUNT_LIMIT_V1 / 3
             && cachedTransaction.getTransactionAmount() < CryptoNote::parameters::NORMAL_TX_OUTPUT_SUM_MIN_V1 * 1000)
         {
             logger(Logging::TRACE) << "Not adding transaction " << transactionHash
@@ -1739,7 +1739,7 @@ namespace CryptoNote
 
         /* 100,000,000.00 DEGO */
         if (cachedTransaction.getTransactionFee() > 0
-            && cachedTransaction.getTransaction().outputs.size() > CryptoNote::parameters::NORMAL_TX_OUTPUT_COUNT_LIMIT_V1 / 3 * 2)
+            && cachedTransaction.getTransaction().outputs.size() > CryptoNote::parameters::NORMAL_TX_OUTPUT_COUNT_LIMIT_V1 / 3 * 2
             && cachedTransaction.getTransactionAmount() < CryptoNote::parameters::NORMAL_TX_OUTPUT_SUM_MIN_V1 * 10000)
         {
             logger(Logging::TRACE) << "Not adding transaction " << transactionHash
