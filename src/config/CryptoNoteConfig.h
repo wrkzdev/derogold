@@ -176,6 +176,10 @@ namespace CryptoNote
 
         const size_t NORMAL_TX_OUTPUT_COUNT_LIMIT_V1 = 300;
 
+        const size_t NORMAL_TX_OUTPUT_EACH_AMOUNT_V1 = UINT64_C(10000);
+
+        const size_t NORMAL_TX_OUTPUT_EACH_AMOUNT_V1_THRESHOLD = 100;
+
         const size_t NORMAL_TX_MAX_OUTPUT_RATIO_V1_HEIGHT = 2100000;
 
         const uint32_t UPGRADE_HEIGHT_V2 = 1;

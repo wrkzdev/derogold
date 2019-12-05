@@ -1756,6 +1756,21 @@ namespace CryptoNote
             return {false, "Transaction has an excessive number of outputs."};
         }
 
+        uint64_t CheckOutputCount = 0;
+        for (const auto &output : cachedTransaction.outputs)
+        {
+            if (output.amount < CryptoNote::parameters::NORMAL_TX_OUTPUT_EACH_AMOUNT_V1)
+            {
+                ++CheckOutputCount;
+            }
+        }
+        if (CheckOutputCount > CryptoNote::parameters::NORMAL_TX_OUTPUT_EACH_AMOUNT_V1_THRESHOLD)
+        {
+            logger(Logging::TRACE) << "Not adding transaction " << transactionHash
+                                   << " to transaction pool, excessive output with small amount.";
+            return {false, "Transaction has an excessive output with small amount."};
+        }
+
         /* If there are already a certain number of fusion transactions in
         the pool, then do not try to add another */
         if (cachedTransaction.getTransactionFee() == 0
