@@ -170,6 +170,12 @@ namespace CryptoNote
         /* Similar to above. This is for the dust fusion to limit in the pool. */
         const size_t FUSION_TX_MAX_POOL_COUNT_FOR_AMOUNT_V1 = 20;
 
+        /* Max. number of FUSION_TX_MAX_POOL_FOR_DUST_AMOUNT_V1 */
+        const size_t FUSION_TX_MAX_POOL_COUNT_FOR_DUST_AMOUNT_THRESHOLD_V1 = 50;
+
+        /* Amount less than this will count to FUSION_TX_MAX_POOL_COUNT_FOR_DUST_AMOUNT_V1 */
+        const size_t FUSION_TX_MAX_POOL_FOR_DUST_AMOUNT_V1 = 10000;
+
         const size_t FUSION_TX_MAX_POOL_AMOUNT_V1 = UINT64_C(1000000);
 
         const size_t NORMAL_TX_OUTPUT_SUM_MIN_V1 = UINT64_C(1000000);
