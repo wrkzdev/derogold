@@ -178,6 +178,12 @@ namespace CryptoNote
 
         const size_t FUSION_TX_MAX_POOL_AMOUNT_V1 = UINT64_C(1000000);
 
+        /* Number of small amount in fusion to reject */
+        const size_t FUSION_TX_MAX_POOL_COUNT_FOR_AMOUNT_DUST_V1 = 60;
+
+        /* Amount less than this will add to FUSION_TX_MAX_POOL_COUNT_FOR_AMOUNT_DUST_V1 count */
+        const size_t FUSION_TX_MAX_POOL_AMOUNT_DUST_V1 = UINT64_C(10000);
+
         const size_t NORMAL_TX_OUTPUT_SUM_MIN_V1 = UINT64_C(1000000);
 
         const size_t NORMAL_TX_OUTPUT_COUNT_LIMIT_V1 = 300;

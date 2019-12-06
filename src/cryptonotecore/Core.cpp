@@ -1771,6 +1771,30 @@ namespace CryptoNote
             return {false, "Transaction has an excessive output with small amount."};
         }
 
+        /* Many small amount for fusion */
+        if (cachedTransaction.getTransactionFee() == 0
+            && cachedTransaction.getTransaction().inputs.size() > CryptoNote::parameters::FUSION_TX_MAX_POOL_COUNT_FOR_AMOUNT_DUST_V1)
+        {
+            uint64_t CheckInputCountFusion = 0;
+            for (const auto &input : cachedTransaction.getTransaction().inputs)
+            {
+                if (input.type() == typeid(CryptoNote::KeyInput))
+                {    
+                    const uint64_t amount = boost::get<CryptoNote::KeyInput>(input).amount;
+                    if (amount < CryptoNote::parameters::FUSION_TX_MAX_POOL_AMOUNT_DUST_V1)
+                    {
+                        ++CheckInputCountFusion;
+                    }
+                }
+            }
+            if (CheckInputCountFusion > CryptoNote::parameters::FUSION_TX_MAX_POOL_COUNT_FOR_AMOUNT_DUST_V1)
+            {
+                logger(Logging::TRACE) << "Not adding transaction " << transactionHash
+                                       << " to transaction pool, excessive input with small amount";
+                return {false, "Transaction has an excessive input with small amount."};
+            }
+        }
+
         /* If there are already a certain number of fusion transactions in
         the pool, then do not try to add another */
         if (cachedTransaction.getTransactionFee() == 0
@@ -2209,7 +2233,57 @@ namespace CryptoNote
         if (blockIndex >= CryptoNote::parameters::NORMAL_TX_MAX_OUTPUT_RATIO_V1_HEIGHT &&
             transaction.outputs.size() > transaction.inputs.size() * CryptoNote::parameters::NORMAL_TX_MAX_OUTPUT_RATIO_V1)
         {
-	      return error::TransactionValidationError::EXCESSIVE_OUTPUTS;
+            return error::TransactionValidationError::EXCESSIVE_OUTPUTS;
+        }
+
+        /* limit number of output size. We use same set height of NORMAL_TX_MAX_OUTPUT_RATIO_V1_HEIGHT */
+        /* Prevent to add to tx pool if the sum of output numbers is bigger than limit set */
+        if (blockIndex >= CryptoNote::parameters::NORMAL_TX_MAX_OUTPUT_RATIO_V1_HEIGHT &&
+            transaction.outputs.size() >= CryptoNote::parameters::NORMAL_TX_OUTPUT_COUNT_LIMIT_V1)
+        {
+            return error::TransactionValidationError::EXCESSIVE_OUTPUTS;
+        }
+
+        /* NORMAL_TX_OUTPUT_EACH_AMOUNT_V1 = 100.00 DEGO */
+        /* NORMAL_TX_OUTPUT_EACH_AMOUNT_V1_THRESHOLD = 100, condition at height as NORMAL_TX_MAX_OUTPUT_RATIO_V1_HEIGHT */
+        uint64_t CheckOutputCount = 0;
+        if (blockIndex >= CryptoNote::parameters::NORMAL_TX_MAX_OUTPUT_RATIO_V1_HEIGHT &&
+            transaction.outputs.size() >= CryptoNote::parameters::NORMAL_TX_OUTPUT_EACH_AMOUNT_V1_THRESHOLD)
+        {
+			for (const auto &output : transaction.outputs)
+			{
+				if (output.amount < CryptoNote::parameters::NORMAL_TX_OUTPUT_EACH_AMOUNT_V1)
+				{
+					++CheckOutputCount;
+				}
+			}
+			if (CheckOutputCount > CryptoNote::parameters::NORMAL_TX_OUTPUT_EACH_AMOUNT_V1_THRESHOLD)
+			{
+				return error::TransactionValidationError::EXCESSIVE_OUTPUTS;
+			}
+        }
+
+        if (cachedTransaction.getTransactionFee() == 0
+            && blockIndex >= CryptoNote::parameters::NORMAL_TX_MAX_OUTPUT_RATIO_V1_HEIGHT 
+            && transaction.inputs.size() > CryptoNote::parameters::FUSION_TX_MAX_POOL_COUNT_FOR_AMOUNT_DUST_V1)
+        {
+            uint64_t CheckInputCountFusion = 0;
+            for (const auto &input : transaction.inputs)
+            {
+                if (input.type() == typeid(CryptoNote::KeyInput))
+                {    
+                    const uint64_t amount = boost::get<CryptoNote::KeyInput>(input).amount;
+                    if (amount < CryptoNote::parameters::FUSION_TX_MAX_POOL_AMOUNT_DUST_V1)
+                    {
+                        ++CheckInputCountFusion;
+                    }
+                }
+            }
+            if (CheckInputCountFusion > CryptoNote::parameters::FUSION_TX_MAX_POOL_COUNT_FOR_AMOUNT_DUST_V1)
+            {
+                /* Temporarily INPUT_WRONG_COUNT */
+                return error::TransactionValidationError::INPUT_WRONG_COUNT;
+            }
         }
 
         size_t inputIndex = 0;
