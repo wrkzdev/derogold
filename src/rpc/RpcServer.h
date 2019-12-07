@@ -32,7 +32,8 @@ namespace CryptoNote
             Core &c,
             NodeServer &p2p,
             ICryptoNoteProtocolHandler &protocol,
-	    const bool BlockExplorerDetailed);
+            const bool BlockExplorerDetailed,
+            const bool Mining);
 
 	typedef std::function<bool(RpcServer *, const HttpRequest &request, HttpResponse &response)> HandlerFunction;
 
@@ -215,8 +216,9 @@ namespace CryptoNote
 
         uint32_t m_fee_amount;
 
-	bool m_blockExplorerDetailed;
+        bool m_blockExplorerDetailed;
 
+        bool m_Mining;
     };
 
 } // namespace CryptoNote

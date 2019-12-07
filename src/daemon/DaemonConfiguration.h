@@ -40,7 +40,8 @@ namespace DaemonConfig
             rpcPort = CryptoNote::RPC_DEFAULT_PORT;
             noConsole = false;
             enableBlockExplorer = false;
-	    enableBlockExplorerDetailed = false;
+            enableBlockExplorerDetailed = false;
+            enableMining = false;
             localIp = false;
             hideMyPort = false;
             p2pResetPeerstate = false;
@@ -101,7 +102,9 @@ namespace DaemonConfig
 
         bool enableBlockExplorer;
 
-	bool enableBlockExplorerDetailed;
+        bool enableBlockExplorerDetailed;
+
+        bool enableMining;
 
         bool localIp;
 
