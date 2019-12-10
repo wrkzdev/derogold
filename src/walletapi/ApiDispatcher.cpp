@@ -1352,7 +1352,7 @@ std::tuple<Error, uint16_t>
 {
     const auto [unlocked, locked, dust] = m_walletBackend->getTotalBalance();
 
-    nlohmann::json j {{"unlocked", unlocked}, {"locked", locked}}, {"dust", dust};
+    nlohmann::json j {{"unlocked", unlocked}, {"locked", locked}, {"dust", dust}};
 
     res.set_content(j.dump(4) + "\n", "application/json");
 
