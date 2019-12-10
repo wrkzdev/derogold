@@ -112,16 +112,9 @@ std::tuple<uint64_t, uint64_t, uint64_t> SubWallet::getBalance(const uint64_t cu
         /* If an unlock height is present, check if the input is unlocked */
         if (Utilities::isInputUnlocked(input.unlockTime, currentHeight))
         {
-            if (Utilities::isInputDustActivated(currentHeight))
+            if (input.amount < CryptoNote::parameters::DEFAULT_DUST_THRESHOLD_V2)
             {
-                if (input.amount < CryptoNote::parameters::DEFAULT_DUST_THRESHOLD_V2)
-                {
-                    dustBalance += input.amount;
-                }
-                else
-                {
-                    unlockedBalance += input.amount;
-                }
+                dustBalance += input.amount;
             }
             else
             {
@@ -130,16 +123,9 @@ std::tuple<uint64_t, uint64_t, uint64_t> SubWallet::getBalance(const uint64_t cu
         }
         else
         {
-            if (Utilities::isInputDustActivated(currentHeight))
+            if (input.amount < CryptoNote::parameters::DEFAULT_DUST_THRESHOLD_V2)
             {
-                if (input.amount < CryptoNote::parameters::DEFAULT_DUST_THRESHOLD_V2)
-                {
-                    dustBalance += input.amount;
-                }
-                else
-                {
-                    lockedBalance += input.amount;
-                }
+                dustBalance += input.amount;
             }
             else
             {
@@ -151,16 +137,9 @@ std::tuple<uint64_t, uint64_t, uint64_t> SubWallet::getBalance(const uint64_t cu
     /* Add the locked balance from incoming transactions */
     for (const auto unconfirmedInput : m_unconfirmedIncomingAmounts)
     {
-        if (Utilities::isInputDustActivated(currentHeight))
+        if (unconfirmedInput.amount < CryptoNote::parameters::DEFAULT_DUST_THRESHOLD_V2)
         {
-            if (unconfirmedInput.amount < CryptoNote::parameters::DEFAULT_DUST_THRESHOLD_V2)
-            {
-                dustBalance += unconfirmedInput.amount;
-            }
-            else
-            {
-                lockedBalance += unconfirmedInput.amount;
-            }
+            dustBalance += unconfirmedInput.amount;
         }
         else
         {
