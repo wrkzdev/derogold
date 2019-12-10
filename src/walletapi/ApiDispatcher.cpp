@@ -1373,7 +1373,7 @@ std::tuple<Error, uint16_t> ApiDispatcher::getBalanceForAddress(
         return {error, 400};
     }
 
-    nlohmann::json j {{"unlocked", unlocked}, {"locked", locked} {"dust", dust}};
+    nlohmann::json j {{"unlocked", unlocked}, {"locked", locked}, {"dust", dust}};
 
     res.set_content(j.dump(4) + "\n", "application/json");
 
