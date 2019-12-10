@@ -343,14 +343,10 @@ std::vector<WalletTypes::TxInputAndOwner> SubWallet::getSpendableInputs(const ui
     {
         if (Utilities::isInputUnlocked(input.unlockTime, height))
         {
-            inputs.emplace_back(input, m_publicSpendKey, m_privateSpendKey);
-        }
-        if (!Utilities::isInputDustActivated(height))
-        {
             if (input.amount >= CryptoNote::parameters::DEFAULT_DUST_THRESHOLD_V2)
             {
                 inputs.emplace_back(input, m_publicSpendKey, m_privateSpendKey);
-            } 
+            }
         }
     }
     return inputs;
