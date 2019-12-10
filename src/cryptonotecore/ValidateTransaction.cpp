@@ -360,18 +360,28 @@ bool ValidateTransaction::validateTransactionExtra()
 
     /* If we're checking if it's valid for the pool, we don't wait for the height
      * to enforce. */
-    if (m_isPoolTransaction || m_blockHeight >= heightToEnforceV2 || m_blockHeight >= heightToEnforceV3)
-    {
-        if ((m_transaction.extra.size() >= CryptoNote::parameters::MAX_EXTRA_SIZE_V2 
-                && m_blockHeight >= heightToEnforceV2)
-             || (m_transaction.extra.size() >= CryptoNote::parameters::MAX_EXTRA_SIZE_V3 
-                && m_blockHeight >= heightToEnforceV3))
-        {
-            m_validationResult.errorCode = CryptoNote::error::TransactionValidationError::EXTRA_TOO_LARGE;
-            m_validationResult.errorMessage = "Transaction extra is too large";
 
-            return false;
+    bool tooBigExtra = false;
+
+    if (m_isPoolTransaction || m_blockHeight >= heightToEnforceV3)
+    {
+        if (m_transaction.extra.size() >= CryptoNote::parameters::MAX_EXTRA_SIZE_V3)
+        {
+            tooBigExtra = true;
         }
+    }
+    else if (m_blockHeight >= heightToEnforceV2
+          && m_transaction.extra.size() >= CryptoNote::parameters::MAX_EXTRA_SIZE_V2)
+    {
+        tooBigExtra = true;
+    }
+
+    if (tooBigExtra)
+    {
+        m_validationResult.errorCode = CryptoNote::error::TransactionValidationError::EXTRA_TOO_LARGE;
+        m_validationResult.errorMessage = "Transaction extra is too large";
+
+        return false;
     }
 
     return true;
