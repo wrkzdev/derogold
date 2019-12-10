@@ -105,7 +105,7 @@ class SubWallets
 
     /* Get the sum of the balance of the subwallets pointed to. If
        takeFromAll, get the total balance from all subwallets. */
-    std::tuple<uint64_t, uint64_t> getBalance(
+    std::tuple<uint64_t, uint64_t, uint64_t> getBalance(
         std::vector<Crypto::PublicKey> subWalletsToTakeFrom,
         const bool takeFromAll,
         const uint64_t currentHeight) const;
@@ -161,7 +161,7 @@ class SubWallets
 
     void convertSyncTimestampToHeight(const uint64_t timestamp, const uint64_t height);
 
-    std::vector<std::tuple<std::string, uint64_t, uint64_t>> getBalances(const uint64_t currentHeight) const;
+    std::vector<std::tuple<std::string, uint64_t, uint64_t, uint64_t>> getBalances(const uint64_t currentHeight) const;
 
     void pruneSpentInputs(const uint64_t pruneHeight);
 
