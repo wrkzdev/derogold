@@ -65,6 +65,11 @@ namespace Utilities
         return currentHeightAdjusted >= unlockTime;
     }
 
+    bool isInputDustActivated(const uint64_t currentHeight)
+    {
+        return currentHeight >= CryptoNote::parameters::FUSION_DUST_THRESHOLD_HEIGHT_V2;
+    }
+
     /* The formula for the block size is as follows. Calculate the
        maxBlockCumulativeSize. This is equal to:
        100,000 + ((height * 102,400) / 1,051,200)

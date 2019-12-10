@@ -345,6 +345,10 @@ std::vector<WalletTypes::TxInputAndOwner> SubWallet::getSpendableInputs(const ui
         {
             inputs.emplace_back(input, m_publicSpendKey, m_privateSpendKey);
         }
+        if (Utilities::isInputDustActivated(height))
+        {
+            inputs.emplace_back(input, m_publicSpendKey, m_privateSpendKey);
+        }
     }
     return inputs;
 }
