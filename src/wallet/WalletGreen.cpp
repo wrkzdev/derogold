@@ -3802,9 +3802,14 @@ namespace CryptoNote
             updated = true;
         }
 
-        if (it->dustBalance > dust)
+        if (it->dustBalance < dust)
         {
-            m_pendingBalance -= it->pendingBalance - pending;
+            m_dustBalance += dust - it->dustBalance;
+            updated = true;
+        }
+        else if (it->dustBalance > dust)
+        {
+            m_dustBalance -= it->dustBalance - dust;
             updated = true;
         }
 
