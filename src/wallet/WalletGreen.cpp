@@ -159,6 +159,7 @@ namespace CryptoNote
         m_state(WalletState::NOT_INITIALIZED),
         m_actualBalance(0),
         m_pendingBalance(0),
+        m_dustBalance(0),
         m_transactionSoftLockTime(transactionSoftLockTime)
     {
         m_readyEvent.set();
@@ -261,6 +262,7 @@ namespace CryptoNote
                 m_walletsContainer.modify(it, [&walletIndex](WalletRecord &wallet) {
                     wallet.actualBalance = 0;
                     wallet.pendingBalance = 0;
+                    wallet.dustBalance = 0;
                     wallet.container = reinterpret_cast<CryptoNote::ITransfersContainer *>(
                         walletIndex++); // dirty hack. container field must be unique
                 });
@@ -287,6 +289,7 @@ namespace CryptoNote
             m_unlockTransactionsJob.clear();
             m_actualBalance = 0;
             m_pendingBalance = 0;
+            m_dustBalance = 0;
             m_fusionTxsCache.clear();
             m_blockchain.clear();
         }
@@ -646,7 +649,8 @@ namespace CryptoNote
         m_logger(INFO, BRIGHT_WHITE) << "Container loaded, view public key " << m_viewPublicKey << ", wallet count "
                                      << m_walletsContainer.size() << ", actual balance "
                                      << m_currency.formatAmount(m_actualBalance) << ", pending balance "
-                                     << m_currency.formatAmount(m_pendingBalance);
+                                     << m_currency.formatAmount(m_pendingBalance) << ", dust balance "
+                                     << m_currency.formatAmount(m_dustBalance);
     }
 
     void WalletGreen::load(const std::string &path, const std::string &password)
@@ -702,6 +706,7 @@ namespace CryptoNote
             m_viewSecretKey,
             m_actualBalance,
             m_pendingBalance,
+            m_dustBalance,
             m_walletsContainer,
             m_synchronizer,
             m_unlockTransactionsJob,
@@ -760,6 +765,7 @@ namespace CryptoNote
             m_viewSecretKey,
             m_actualBalance,
             m_pendingBalance,
+            m_dustBalance,
             m_walletsContainer,
             m_synchronizer,
             m_unlockTransactionsJob,
@@ -952,6 +958,7 @@ namespace CryptoNote
 
             wallet.actualBalance = 0;
             wallet.pendingBalance = 0;
+            wallet.dustBalance = 0;
             wallet.container =
                 reinterpret_cast<CryptoNote::ITransfersContainer *>(i); // dirty hack. container field must be unique
 
@@ -1479,12 +1486,14 @@ namespace CryptoNote
 
         m_actualBalance -= it->actualBalance;
         m_pendingBalance -= it->pendingBalance;
+        m_dustBalance -= it->dustBalance;
 
-        if (it->actualBalance != 0 || it->pendingBalance != 0)
+        if (it->actualBalance != 0 || it->pendingBalance != 0 || it->dustBalance != 0)
         {
             m_logger(INFO, BRIGHT_WHITE) << "Container balance updated, actual "
                                          << m_currency.formatAmount(m_actualBalance) << ", pending "
-                                         << m_currency.formatAmount(m_pendingBalance);
+                                         << m_currency.formatAmount(m_pendingBalance) << ", dust "
+                                         << m_currency.formatAmount(m_dustBalance);
         }
 
         auto addressIndex = std::distance(
@@ -1562,6 +1571,23 @@ namespace CryptoNote
 
         const auto &wallet = getWalletRecord(address);
         return wallet.pendingBalance;
+    }
+
+    uint64_t WalletGreen::getDustBalance() const
+    {
+        throwIfNotInitialized();
+        throwIfStopped();
+
+        return m_dustBalance;
+    }
+
+    uint64_t WalletGreen::getDustBalance(const std::string &address) const
+    {
+        throwIfNotInitialized();
+        throwIfStopped();
+
+        const auto &wallet = getWalletRecord(address);
+        return wallet.dustBalance;
     }
 
     size_t WalletGreen::getTransactionCount() const
@@ -3748,6 +3774,10 @@ namespace CryptoNote
         uint64_t actual = container->balance(ITransfersContainer::IncludeAllUnlocked);
         uint64_t pending = container->balance(ITransfersContainer::IncludeAllLocked);
 
+        uint64_t dust_actual = container->dustbalance(ITransfersContainer::IncludeAllUnlocked);
+        uint64_t dust_pending = container->dustbalance(ITransfersContainer::IncludeAllLocked);
+        uint64_t dust = dust_actual + dust_pending;
+
         bool updated = false;
 
         if (it->actualBalance < actual)
@@ -3772,20 +3802,29 @@ namespace CryptoNote
             updated = true;
         }
 
+        if (it->dustBalance > dust)
+        {
+            m_pendingBalance -= it->pendingBalance - pending;
+            updated = true;
+        }
+
         if (updated)
         {
-            m_walletsContainer.get<TransfersContainerIndex>().modify(it, [actual, pending](WalletRecord &wallet) {
+            m_walletsContainer.get<TransfersContainerIndex>().modify(it, [actual, pending, dust](WalletRecord &wallet) {
                 wallet.actualBalance = actual;
                 wallet.pendingBalance = pending;
+                wallet.dustBalance = dust;
             });
 
             m_logger(INFO, BRIGHT_WHITE) << "Wallet balance updated, address "
                                          << m_currency.accountAddressAsString({it->spendPublicKey, m_viewPublicKey})
                                          << ", actual " << m_currency.formatAmount(it->actualBalance) << ", pending "
-                                         << m_currency.formatAmount(it->pendingBalance);
+                                         << m_currency.formatAmount(it->pendingBalance) << ", dust "
+										 << m_currency.formatAmount(it->dustBalance);
             m_logger(INFO, BRIGHT_WHITE) << "Container balance updated, actual "
                                          << m_currency.formatAmount(m_actualBalance) << ", pending "
-                                         << m_currency.formatAmount(m_pendingBalance);
+                                         << m_currency.formatAmount(m_pendingBalance) << ", dust "
+                                         << m_currency.formatAmount(m_dustBalance) << ", dust ";
         }
     }
 

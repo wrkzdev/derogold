@@ -94,6 +94,7 @@ void balance(CryptoNote::INode &node, CryptoNote::WalletGreen &wallet, bool view
 {
     const uint64_t unconfirmedBalance = wallet.getPendingBalance();
     uint64_t confirmedBalance = wallet.getActualBalance();
+    uint64_t dustBalance = wallet.getDustBalance();
 
     const uint32_t localHeight = node.getLastLocalBlockHeight();
     const uint32_t remoteHeight = node.getLastKnownBlockHeight();
@@ -124,10 +125,11 @@ void balance(CryptoNote::INode &node, CryptoNote::WalletGreen &wallet, bool view
         }
     }
 
-    const uint64_t totalBalance = unconfirmedBalance + confirmedBalance;
+    const uint64_t totalBalance = unconfirmedBalance + confirmedBalance + dustBalance;
 
     std::cout << "Available balance: " << SuccessMsg(formatAmount(confirmedBalance)) << std::endl
               << "Locked (unconfirmed) balance: " << WarningMsg(formatAmount(unconfirmedBalance)) << std::endl
+              << "Dust balance: " << WarningMsg(formatAmount(dustBalance)) << std::endl
               << "Total balance: " << InformationMsg(formatAmount(totalBalance)) << std::endl;
 
     if (viewWallet)
