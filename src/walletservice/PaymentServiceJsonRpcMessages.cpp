@@ -154,6 +154,7 @@ namespace PaymentService
     {
         serializer(availableBalance, "availableBalance");
         serializer(lockedAmount, "lockedAmount");
+        serializer(dustAmount, "dustAmount");
     }
 
     void GetBlockHashes::Request::serialize(CryptoNote::ISerializer &serializer)

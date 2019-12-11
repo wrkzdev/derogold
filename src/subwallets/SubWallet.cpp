@@ -102,29 +102,51 @@ void SubWallet::storeTransactionInput(const WalletTypes::TransactionInput input,
     m_unspentInputs.push_back(input);
 }
 
-std::tuple<uint64_t, uint64_t> SubWallet::getBalance(const uint64_t currentHeight) const
+std::tuple<uint64_t, uint64_t, uint64_t> SubWallet::getBalance(const uint64_t currentHeight) const
 {
     uint64_t unlockedBalance = 0;
     uint64_t lockedBalance = 0;
+    uint64_t dustBalance = 0;
     for (const auto input : m_unspentInputs)
     {
         /* If an unlock height is present, check if the input is unlocked */
         if (Utilities::isInputUnlocked(input.unlockTime, currentHeight))
         {
-            unlockedBalance += input.amount;
+            if (input.amount < CryptoNote::parameters::DEFAULT_DUST_THRESHOLD_V2)
+            {
+                dustBalance += input.amount;
+            }
+            else
+            {
+                unlockedBalance += input.amount;
+            }
         }
         else
         {
-            lockedBalance += input.amount;
+            if (input.amount < CryptoNote::parameters::DEFAULT_DUST_THRESHOLD_V2)
+            {
+                dustBalance += input.amount;
+            }
+            else
+            {
+                lockedBalance += input.amount;
+            }
         }
     }
 
     /* Add the locked balance from incoming transactions */
     for (const auto unconfirmedInput : m_unconfirmedIncomingAmounts)
     {
-        lockedBalance += unconfirmedInput.amount;
+        if (unconfirmedInput.amount < CryptoNote::parameters::DEFAULT_DUST_THRESHOLD_V2)
+        {
+            dustBalance += unconfirmedInput.amount;
+        }
+        else
+        {
+            lockedBalance += unconfirmedInput.amount;
+        }
     }
-    return {unlockedBalance, lockedBalance};
+    return {unlockedBalance, lockedBalance, dustBalance};
 }
 
 void SubWallet::reset(
@@ -343,7 +365,10 @@ std::vector<WalletTypes::TxInputAndOwner> SubWallet::getSpendableInputs(const ui
     {
         if (Utilities::isInputUnlocked(input.unlockTime, height))
         {
-            inputs.emplace_back(input, m_publicSpendKey, m_privateSpendKey);
+            if (input.amount >= CryptoNote::parameters::DEFAULT_DUST_THRESHOLD_V2)
+            {
+                inputs.emplace_back(input, m_publicSpendKey, m_privateSpendKey);
+            }
         }
     }
     return inputs;

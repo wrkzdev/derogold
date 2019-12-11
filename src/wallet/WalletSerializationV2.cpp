@@ -124,6 +124,7 @@ namespace CryptoNote
         Crypto::SecretKey &viewSecretKey,
         uint64_t &actualBalance,
         uint64_t &pendingBalance,
+        uint64_t &dustBalance,
         WalletsContainer &walletsContainer,
         TransfersSyncronizer &synchronizer,
         UnlockTransactionJobs &unlockTransactions,
@@ -134,6 +135,7 @@ namespace CryptoNote
         uint32_t transactionSoftLockTime):
         m_actualBalance(actualBalance),
         m_pendingBalance(pendingBalance),
+        m_dustBalance(dustBalance),
         m_walletsContainer(walletsContainer),
         m_synchronizer(synchronizer),
         m_unlockTransactions(unlockTransactions),
@@ -212,6 +214,7 @@ namespace CryptoNote
 
         m_actualBalance = 0;
         m_pendingBalance = 0;
+        m_dustBalance = 0;
         m_deletedKeys.clear();
 
         std::unordered_set<Crypto::PublicKey> cachedKeySet;
@@ -221,12 +224,14 @@ namespace CryptoNote
             Crypto::PublicKey spendPublicKey;
             uint64_t actualBalance;
             uint64_t pendingBalance;
+            uint64_t dustBalance;
             serializer(spendPublicKey, "spendPublicKey");
 
             if (saveCache)
             {
                 serializer(actualBalance, "actualBalance");
                 serializer(pendingBalance, "pendingBalance");
+                serializer(dustBalance, "dustBalance");
             }
 
             cachedKeySet.insert(spendPublicKey);
@@ -240,10 +245,12 @@ namespace CryptoNote
             {
                 m_actualBalance += actualBalance;
                 m_pendingBalance += pendingBalance;
+                m_dustBalance += dustBalance;
 
-                index.modify(it, [actualBalance, pendingBalance](WalletRecord &wallet) {
+                index.modify(it, [actualBalance, pendingBalance, dustBalance](WalletRecord &wallet) {
                     wallet.actualBalance = actualBalance;
                     wallet.pendingBalance = pendingBalance;
+                    wallet.dustBalance = dustBalance;
                 });
             }
         }
@@ -269,6 +276,7 @@ namespace CryptoNote
             {
                 serializer(wallet.actualBalance, "actualBalance");
                 serializer(wallet.pendingBalance, "pendingBalance");
+                serializer(wallet.dustBalance, "dustBalance");
             }
         }
     }

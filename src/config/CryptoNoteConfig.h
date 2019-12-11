@@ -108,6 +108,12 @@ namespace CryptoNote
 
         const uint64_t DEFAULT_DUST_THRESHOLD = UINT64_C(0);
 
+        const uint64_t DEFAULT_DUST_THRESHOLD_V2 = UINT64_C(100);
+
+        const uint32_t DUST_THRESHOLD_V2_HEIGHT = 2100000;
+
+        const uint32_t FUSION_DUST_THRESHOLD_HEIGHT_V2 = DUST_THRESHOLD_V2_HEIGHT;
+
         const uint64_t EXPECTED_NUMBER_OF_BLOCKS_PER_DAY = 24 * 60 * 60 / DIFFICULTY_TARGET_V2;
 
         const size_t DIFFICULTY_WINDOW = 60;
