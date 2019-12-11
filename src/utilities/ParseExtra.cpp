@@ -79,7 +79,7 @@ namespace Utilities
             }
 
             /* Found nonce information and need to decode it.
-            /* Nonce is a sub-tagged field and thus we need to work through
+               Nonce is a sub-tagged field and thus we need to work through
                the data to determine what fields are in here */
             if (c == Constants::TX_EXTRA_NONCE_IDENTIFIER && elementsRemaining > 1 && !seenNonce)
             {
