@@ -791,7 +791,7 @@ namespace CryptoNote
         {
             if (t.visible && isIncluded(t, flags))
             {
-                if (amount >= WalletConfig::dustAmount)
+                if (t.amount >= WalletConfig::dustAmount)
                 {
                     amount += t.amount;
                 }
@@ -805,7 +805,7 @@ namespace CryptoNote
             {
                 if (t.visible && isIncluded(t.type, IncludeStateLocked, flags))
                 {
-                    if (amount >= WalletConfig::dustAmount)
+                    if (t.amount >= WalletConfig::dustAmount)
                     {
                         amount += t.amount;
                     }
@@ -825,7 +825,7 @@ namespace CryptoNote
         {
             if (t.visible && isIncluded(t, flags))
             {
-                if (amount < WalletConfig::dustAmount)
+                if (t.amount < WalletConfig::dustAmount)
                 {
                     amount += t.amount;
                 }
@@ -838,7 +838,7 @@ namespace CryptoNote
             {
                 if (t.visible && isIncluded(t.type, IncludeStateLocked, flags))
                 {
-                    if (amount < WalletConfig::dustAmount)
+                    if (t.amount < WalletConfig::dustAmount)
                     {
                         amount += t.amount;
                     }
