@@ -1389,7 +1389,7 @@ std::tuple<Error, uint16_t>
 
     for (const auto [address, unlocked, locked, dust] : balances)
     {
-        j.push_back({{"address", address}, {"unlocked", unlocked}, {"locked", locked}, {"locked", dust}});
+        j.push_back({{"address", address}, {"unlocked", unlocked}, {"locked", locked}, {"dust", dust}});
     }
 
     res.set_content(j.dump(4) + "\n", "application/json");
