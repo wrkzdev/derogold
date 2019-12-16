@@ -3,6 +3,9 @@
 //
 // Please see the included LICENSE file for more information
 
+#include <string>
+#include <sstream>
+#include <iostream>
 #pragma once
 
 const std::string asciiArt =
