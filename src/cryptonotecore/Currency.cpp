@@ -607,7 +607,7 @@ namespace CryptoNote
         numberOfDecimalPlaces(parameters::CRYPTONOTE_DISPLAY_DECIMAL_POINT);
 
         mininumFee(parameters::MINIMUM_FEE);
-        defaultDustThreshold(parameters::DEFAULT_DUST_THRESHOLD);
+        defaultDustThreshold(parameters::DEFAULT_DUST_THRESHOLD_V2);
 
         difficultyWindow(parameters::DIFFICULTY_WINDOW);
 
