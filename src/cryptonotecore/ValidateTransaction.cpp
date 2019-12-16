@@ -431,7 +431,7 @@ bool ValidateTransaction::validateInputOutputCheckingExtend()
         }
 
         /* 100,000.00 DEGO */
-        /* NORMAL_TX_OUTPUT_COUNT_LIMIT_V1 = 450 */
+        /* NORMAL_TX_OUTPUT_COUNT_LIMIT_V1 = 450 initially, changes to 150 with the fork at 1980000 as set in CryptoNoteConfig.h */
         if (!isFusion
             && m_transaction.outputs.size() > CryptoNote::parameters::NORMAL_TX_OUTPUT_COUNT_LIMIT_V1 / 6
             && m_cachedTransaction.getTransactionAmount() < CryptoNote::parameters::NORMAL_TX_OUTPUT_SUM_MIN_V1 * 10)

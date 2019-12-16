@@ -106,11 +106,13 @@ namespace CryptoNote
 
         const uint64_t DEFAULT_MIXIN_V1 = 1;
 
+        /* DUST_THRESHOLD_V2_HEIGHT to activate at height 1980000 */
+
+        const uint32_t DUST_THRESHOLD_V2_HEIGHT = 1980000;	
+
         const uint64_t DEFAULT_DUST_THRESHOLD = UINT64_C(0);
 
         const uint64_t DEFAULT_DUST_THRESHOLD_V2 = UINT64_C(100);
-
-        const uint32_t DUST_THRESHOLD_V2_HEIGHT = 2100000;
 
         const uint32_t FUSION_DUST_THRESHOLD_HEIGHT_V2 = DUST_THRESHOLD_V2_HEIGHT;
 
@@ -192,13 +194,15 @@ namespace CryptoNote
 
         const size_t NORMAL_TX_OUTPUT_SUM_MIN_V1 = UINT64_C(1000000);
 
-        const size_t NORMAL_TX_OUTPUT_COUNT_LIMIT_V1 = 450;
+        const size_t NORMAL_TX_OUTPUT_COUNT_LIMIT_V1 = 150;
 
         const size_t NORMAL_TX_OUTPUT_EACH_AMOUNT_V1 = UINT64_C(10000);
 
         const size_t NORMAL_TX_OUTPUT_EACH_AMOUNT_V1_THRESHOLD = 100;
 
-        const size_t NORMAL_TX_MAX_OUTPUT_RATIO_V1_HEIGHT = 2100000;
+       	/* Activates the whole bunch of tx counts & amounts checks at height 1980000 */
+        /* also activates the NORMAL_TX_OUTPUT_COUNT_LIMIT_V1_HEIGHT */ 
+        const size_t NORMAL_TX_MAX_OUTPUT_RATIO_V1_HEIGHT = 1980000;
 
         const uint32_t UPGRADE_HEIGHT_V2 = 1;
 
@@ -220,11 +224,11 @@ namespace CryptoNote
         const uint64_t FORK_HEIGHTS[] = {
             700000, // 0
             1470000, // 1
-            2100000, // 2
+            1980000, // 2
         };
 
         /* MAKE SURE TO UPDATE THIS VALUE WITH EVERY MAJOR RELEASE BEFORE A FORK */
-        const uint64_t SOFTWARE_SUPPORTED_FORK_INDEX = 1;
+        const uint64_t SOFTWARE_SUPPORTED_FORK_INDEX = 2;
 
         const uint64_t FORK_HEIGHTS_SIZE = sizeof(FORK_HEIGHTS) / sizeof(*FORK_HEIGHTS);
 
