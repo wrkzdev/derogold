@@ -46,8 +46,7 @@ namespace CryptoNote
             EXCESSIVE_OUTPUTS,
             WRONG_FEE,
             SIZE_TOO_LARGE,
-            EXCESSIVE_SMALL_INPUTS,
-            INPUT_HAS_DUST,
+            EXCESSIVE_SMALL_INPUTS
         };
 
         // custom category:
@@ -136,8 +135,6 @@ namespace CryptoNote
                         return "Transaction is too large (in bytes)";
                     case TransactionValidationError::EXCESSIVE_SMALL_INPUTS:
                         return "Transaction has an excessive number of small input count";
-                    case TransactionValidationError::INPUT_HAS_DUST:
-                        return "Transaction has dust input(s)";
                     default:
                         return "Unknown error";
                 }

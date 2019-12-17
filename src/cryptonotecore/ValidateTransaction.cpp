@@ -76,12 +76,6 @@ TransactionValidationResult ValidateTransaction::validate()
         return m_validationResult;
     }
 
-    /* Validate transaction input and output ratio. Extended. */
-    if (!validateDust())
-    {
-        return m_validationResult;
-    }
-
     /* Validate transaction mixin is in the valid range */
     if (!validateTransactionMixin())
     {
@@ -514,45 +508,6 @@ bool ValidateTransaction::validateInputOutputCheckingExtend()
                 m_validationResult.errorMessage = "Transaction has an excessive input with small amount.";
 
                 return false;
-            }
-        }
-    }
-
-    return true;
-}
-
-bool ValidateTransaction::validateDust()
-{
-    if (m_transaction.inputs.empty())
-    {
-        m_validationResult.errorCode = CryptoNote::error::TransactionValidationError::EMPTY_INPUTS;
-        m_validationResult.errorMessage = "Transaction has no inputs";
-
-        return false;
-    }
-
-    uint64_t sumOfInputs = 0;
-
-    std::unordered_set<Crypto::KeyImage> ki;
-
-    for (const auto &input : m_transaction.inputs)
-    {
-        uint64_t amount = 0;
-
-        if (input.type() == typeid(CryptoNote::KeyInput))
-        {
-            const CryptoNote::KeyInput &in = boost::get<CryptoNote::KeyInput>(input);
-            amount = in.amount;
-
-            if (m_isPoolTransaction || m_blockHeight >= CryptoNote::parameters::FUSION_DUST_THRESHOLD_HEIGHT_V2)
-            {
-                if (amount < CryptoNote::parameters::DEFAULT_DUST_THRESHOLD_V2)
-                {
-                    m_validationResult.errorCode = CryptoNote::error::TransactionValidationError::INPUT_HAS_DUST;
-                    m_validationResult.errorMessage = "Transaction has dust input(s)";
-
-                    return false;
-                }
             }
         }
     }
