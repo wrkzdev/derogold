@@ -22,7 +22,6 @@ namespace CryptoNote
             Crypto::SecretKey &viewSecretKey,
             uint64_t &actualBalance,
             uint64_t &pendingBalance,
-            uint64_t &dustBalance,
             WalletsContainer &walletsContainer,
             TransfersSyncronizer &synchronizer,
             UnlockTransactionJobs &unlockTransactions,
@@ -68,8 +67,6 @@ namespace CryptoNote
         uint64_t &m_actualBalance;
 
         uint64_t &m_pendingBalance;
-
-        uint64_t &m_dustBalance;
 
         WalletsContainer &m_walletsContainer;
 

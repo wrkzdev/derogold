@@ -88,8 +88,6 @@ namespace CryptoNote
 
         virtual uint64_t balance(uint32_t flags = IncludeDefault) const = 0;
 
-        virtual uint64_t dustbalance(uint32_t flags = IncludeDefault) const = 0;
-
         virtual void
             getOutputs(std::vector<TransactionOutputInformation> &transfers, uint32_t flags = IncludeDefault) const = 0;
 

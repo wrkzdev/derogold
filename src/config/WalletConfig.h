@@ -62,9 +62,6 @@ namespace WalletConfig
     /* The minimum amount allowed to be sent - usually 1 (in ATOMIC units!) */
     const uint64_t minimumSend = 100000;
 
-    /* The minimum amount allowed to be sent - usually 1 (in ATOMIC units!) */
-    const uint64_t dustAmount = 100;
-
     /* Is a mixin of zero disabled on your network? */
     const bool mixinZeroDisabled = false;
 

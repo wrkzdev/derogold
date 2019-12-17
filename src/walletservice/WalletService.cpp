@@ -903,7 +903,7 @@ namespace PaymentService
     }
 
     std::error_code
-        WalletService::getBalance(const std::string &address, uint64_t &availableBalance, uint64_t &lockedAmount, uint64_t &dustAmount)
+        WalletService::getBalance(const std::string &address, uint64_t &availableBalance, uint64_t &lockedAmount)
     {
         try
         {
@@ -912,7 +912,6 @@ namespace PaymentService
 
             availableBalance = wallet.getActualBalance(address);
             lockedAmount = wallet.getPendingBalance(address);
-            dustAmount = wallet.getDustBalance(address);
         }
         catch (std::system_error &x)
         {
@@ -921,12 +920,11 @@ namespace PaymentService
         }
 
         logger(Logging::DEBUGGING) << address << " actual balance: " << availableBalance
-                                   << ", pending: " << lockedAmount
-                                   << ", dust: " << dustAmount;;
+                                   << ", pending: " << lockedAmount;
         return std::error_code();
     }
 
-    std::error_code WalletService::getBalance(uint64_t &availableBalance, uint64_t &lockedAmount, uint64_t &dustAmount)
+    std::error_code WalletService::getBalance(uint64_t &availableBalance, uint64_t &lockedAmount)
     {
         try
         {
@@ -935,7 +933,6 @@ namespace PaymentService
 
             availableBalance = wallet.getActualBalance();
             lockedAmount = wallet.getPendingBalance();
-            dustAmount = wallet.getDustBalance();
         }
         catch (std::system_error &x)
         {
@@ -943,7 +940,7 @@ namespace PaymentService
             return x.code();
         }
 
-        logger(Logging::DEBUGGING) << "Wallet actual balance: " << availableBalance << ", pending: " << lockedAmount << ", dust: " << dustAmount;
+        logger(Logging::DEBUGGING) << "Wallet actual balance: " << availableBalance << ", pending: " << lockedAmount;
         return std::error_code();
     }
 
