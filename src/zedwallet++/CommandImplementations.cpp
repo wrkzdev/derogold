@@ -97,7 +97,7 @@ void balance(const std::shared_ptr<WalletBackend> walletBackend)
         }
     }
 
-    const uint64_t totalBalance = unlockedBalance + lockedBalance + dustBalance;
+    const uint64_t totalBalance = unlockedBalance + lockedBalance;
 
     std::cout << "Available balance: " << SuccessMsg(Utilities::formatAmount(unlockedBalance)) << "\n"
               << "Locked (unconfirmed) balance: " << WarningMsg(Utilities::formatAmount(lockedBalance))
