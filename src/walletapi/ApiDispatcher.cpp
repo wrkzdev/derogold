@@ -1350,9 +1350,9 @@ std::tuple<Error, uint16_t> ApiDispatcher::getTransactionDetails(
 std::tuple<Error, uint16_t>
     ApiDispatcher::getBalance(const httplib::Request &req, httplib::Response &res, const nlohmann::json &body) const
 {
-    const auto [unlocked, locked, dust] = m_walletBackend->getTotalBalance();
+    const auto [unlocked, locked] = m_walletBackend->getTotalBalance();
 
-    nlohmann::json j {{"unlocked", unlocked}, {"locked", locked}, {"dust", dust}};
+    nlohmann::json j {{"unlocked", unlocked}, {"locked", locked}};
 
     res.set_content(j.dump(4) + "\n", "application/json");
 
@@ -1366,14 +1366,14 @@ std::tuple<Error, uint16_t> ApiDispatcher::getBalanceForAddress(
 {
     std::string address = req.path.substr(std::string("/balance/").size());
 
-    const auto [error, unlocked, locked, dust] = m_walletBackend->getBalance(address);
+    const auto [error, unlocked, locked] = m_walletBackend->getBalance(address);
 
     if (error)
     {
         return {error, 400};
     }
 
-    nlohmann::json j {{"unlocked", unlocked}, {"locked", locked}, {"dust", dust}};
+    nlohmann::json j {{"unlocked", unlocked}, {"locked", locked}};
 
     res.set_content(j.dump(4) + "\n", "application/json");
 
@@ -1387,9 +1387,9 @@ std::tuple<Error, uint16_t>
 
     nlohmann::json j;
 
-    for (const auto [address, unlocked, locked, dust] : balances)
+    for (const auto [address, unlocked, locked] : balances)
     {
-        j.push_back({{"address", address}, {"unlocked", unlocked}, {"locked", locked}, {"dust", dust}});
+        j.push_back({{"address", address}, {"unlocked", unlocked}, {"locked", locked}});
     }
 
     res.set_content(j.dump(4) + "\n", "application/json");

@@ -700,25 +700,25 @@ Error WalletBackend::unsafeSave() const
     return WalletBackend::saveWalletJSONToDisk(toJSON(), m_filename, m_password);
 }
 
-/* Get the balance for one subwallet (error, unlocked, locked, dust) */
-std::tuple<Error, uint64_t, uint64_t, uint64_t> WalletBackend::getBalance(const std::string address) const
+/* Get the balance for one subwallet (error, unlocked, locked) */
+std::tuple<Error, uint64_t, uint64_t> WalletBackend::getBalance(const std::string address) const
 {
     /* Verify the address is good, and one of our subwallets */
     if (Error error = validateOurAddresses({address}, m_subWallets); error != SUCCESS)
     {
-        return {error, 0, 0, 0};
+        return {error, 0, 0};
     }
 
     const bool takeFromAll = false;
 
-    const auto [unlockedBalance, lockedBalance, dustBalance] = m_subWallets->getBalance(
+    const auto [unlockedBalance, lockedBalance] = m_subWallets->getBalance(
         Utilities::addressesToSpendKeys({address}), takeFromAll, m_daemon->networkBlockCount());
 
-    return {SUCCESS, unlockedBalance, lockedBalance, dustBalance};
+    return {SUCCESS, unlockedBalance, lockedBalance};
 }
 
 /* Gets the combined balance for all wallets in the container */
-std::tuple<uint64_t, uint64_t, uint64_t> WalletBackend::getTotalBalance() const
+std::tuple<uint64_t, uint64_t> WalletBackend::getTotalBalance() const
 {
     const bool takeFromAll = true;
 
@@ -728,7 +728,7 @@ std::tuple<uint64_t, uint64_t, uint64_t> WalletBackend::getTotalBalance() const
 
 uint64_t WalletBackend::getTotalUnlockedBalance() const
 {
-    const auto [unlockedBalance, lockedBalance, dustBalance] = getTotalBalance();
+    const auto [unlockedBalance, lockedBalance] = getTotalBalance();
 
     return unlockedBalance;
 }
@@ -1094,7 +1094,7 @@ std::tuple<Error, Crypto::SecretKey> WalletBackend::getTxPrivateKey(const Crypto
     return {TX_PRIVATE_KEY_NOT_FOUND, key};
 }
 
-std::vector<std::tuple<std::string, uint64_t, uint64_t, uint64_t>> WalletBackend::getBalances() const
+std::vector<std::tuple<std::string, uint64_t, uint64_t>> WalletBackend::getBalances() const
 {
     return m_subWallets->getBalances(m_daemon->networkBlockCount());
 }

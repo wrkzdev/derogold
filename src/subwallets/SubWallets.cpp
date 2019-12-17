@@ -643,7 +643,7 @@ uint64_t SubWallets::getWalletCount() const
 }
 
 /* Will throw if the public keys given don't exist */
-std::tuple<uint64_t, uint64_t, uint64_t> SubWallets::getBalance(
+std::tuple<uint64_t, uint64_t> SubWallets::getBalance(
     std::vector<Crypto::PublicKey> subWalletsToTakeFrom,
     const bool takeFromAll,
     const uint64_t currentHeight) const
@@ -661,18 +661,15 @@ std::tuple<uint64_t, uint64_t, uint64_t> SubWallets::getBalance(
 
     uint64_t lockedBalance = 0;
 
-    uint64_t dustBalance = 0;
-
     for (const auto &pubKey : subWalletsToTakeFrom)
     {
-        const auto [unlocked, locked, dust] = m_subWallets.at(pubKey).getBalance(currentHeight);
+        const auto [unlocked, locked] = m_subWallets.at(pubKey).getBalance(currentHeight);
 
         unlockedBalance += unlocked;
         lockedBalance += locked;
-        dustBalance += dust;
     }
 
-    return {unlockedBalance, lockedBalance, dustBalance};
+    return {unlockedBalance, lockedBalance};
 }
 
 /* Mark a key image as spent, no longer can be used in transactions */
@@ -917,15 +914,15 @@ void SubWallets::convertSyncTimestampToHeight(const uint64_t timestamp, const ui
     }
 }
 
-std::vector<std::tuple<std::string, uint64_t, uint64_t, uint64_t>> SubWallets::getBalances(const uint64_t currentHeight) const
+std::vector<std::tuple<std::string, uint64_t, uint64_t>> SubWallets::getBalances(const uint64_t currentHeight) const
 {
-    std::vector<std::tuple<std::string, uint64_t, uint64_t, uint64_t>> balances;
+    std::vector<std::tuple<std::string, uint64_t, uint64_t>> balances;
 
     for (const auto &[pubKey, subWallet] : m_subWallets)
     {
-        const auto [unlocked, locked, dust] = subWallet.getBalance(currentHeight);
+        const auto [unlocked, locked] = subWallet.getBalance(currentHeight);
 
-        balances.emplace_back(subWallet.address(), unlocked, locked, dust);
+        balances.emplace_back(subWallet.address(), unlocked, locked);
     }
 
     return balances;
