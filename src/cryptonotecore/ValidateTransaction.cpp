@@ -70,12 +70,6 @@ TransactionValidationResult ValidateTransaction::validate()
         return m_validationResult;
     }
 
-    /* Validate transaction input and output ratio. Extended. */
-    if (!validateInputOutputCheckingExtend())
-    {
-        return m_validationResult;
-    }
-
     /* Validate transaction mixin is in the valid range */
     if (!validateTransactionMixin())
     {
@@ -402,29 +396,6 @@ bool ValidateTransaction::validateInputOutputRatio()
     return true;
 }
 
-/* New checking Input/Output */
-bool ValidateTransaction::validateInputOutputCheckingExtend()
-{
-	const bool isFusion = m_currency.isFusionTransaction(
-        m_transaction,
-        m_cachedTransaction.getTransactionBinaryArray().size(),
-        m_blockHeight
-    );
-
-    if (m_isPoolTransaction || m_blockHeight >= CryptoNote::parameters::NORMAL_TX_MAX_OUTPUT_COUNT_V1_HEIGHT)
-    {
-        /* Prevent to add to tx pool if the sum of output numbers is bigger than limit set */
-        if (m_transaction.outputs.size() >= CryptoNote::parameters::NORMAL_TX_MAX_OUTPUT_COUNT_V1 )
-        {
-            m_validationResult.errorCode = CryptoNote::error::TransactionValidationError::EXCESSIVE_OUTPUTS;
-            m_validationResult.errorMessage = "Transaction has excessive outputs";
-
-            return false;
-        }
-    }
-
-    return true;
-}
 
 bool ValidateTransaction::validateTransactionMixin()
 {
