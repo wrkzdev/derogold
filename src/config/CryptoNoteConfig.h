@@ -165,36 +165,11 @@ namespace CryptoNote
             to help curtail fusion transaction spam. */
         const size_t FUSION_TX_MAX_POOL_COUNT = 60;
 
-        const size_t NORMAL_TX_MAX_OUTPUT_RATIO_V1 = 90;
+        /* We just set it output max to 90 */
+        const size_t NORMAL_TX_MAX_OUTPUT_COUNT_V1  = 90;
 
-        /* Similar to above. This is for the dust fusion to limit in the pool. */
-        const size_t FUSION_TX_MAX_POOL_COUNT_FOR_AMOUNT_V1 = 20;
-
-        /* Max. number of FUSION_TX_MAX_POOL_FOR_DUST_AMOUNT_V1 */
-        const size_t FUSION_TX_MAX_POOL_COUNT_FOR_DUST_AMOUNT_THRESHOLD_V1 = 50;
-
-        /* Amount less than this will count to FUSION_TX_MAX_POOL_COUNT_FOR_DUST_AMOUNT_V1 */
-        const size_t FUSION_TX_MAX_POOL_FOR_DUST_AMOUNT_V1 = 10000;
-
-        const size_t FUSION_TX_MAX_POOL_AMOUNT_V1 = UINT64_C(1000000);
-
-        /* Number of small amount in fusion to reject */
-        const size_t FUSION_TX_MAX_POOL_COUNT_FOR_AMOUNT_DUST_V1 = 60;
-
-        /* Amount less than this will add to FUSION_TX_MAX_POOL_COUNT_FOR_AMOUNT_DUST_V1 count */
-        const size_t FUSION_TX_MAX_POOL_AMOUNT_DUST_V1 = UINT64_C(10000);
-
-        const size_t NORMAL_TX_OUTPUT_SUM_MIN_V1 = UINT64_C(1000000);
-
-        const size_t NORMAL_TX_OUTPUT_COUNT_LIMIT_V1 = 150;
-
-        const size_t NORMAL_TX_OUTPUT_EACH_AMOUNT_V1 = UINT64_C(10000);
-
-        const size_t NORMAL_TX_OUTPUT_EACH_AMOUNT_V1_THRESHOLD = 100;
-
-       	/* Activates the whole bunch of tx counts & amounts checks at height 1980000 */
-        /* also activates the NORMAL_TX_OUTPUT_COUNT_LIMIT_V1_HEIGHT */ 
-        const size_t NORMAL_TX_MAX_OUTPUT_RATIO_V1_HEIGHT = 1980000;
+       	/* Activates the whole bunch of tx output counts max at height 1980000 */
+        const size_t NORMAL_TX_MAX_OUTPUT_COUNT_V1_HEIGHT = 1980000;
 
         const uint32_t UPGRADE_HEIGHT_V2 = 1;
 
