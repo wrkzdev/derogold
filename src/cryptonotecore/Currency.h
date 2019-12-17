@@ -101,8 +101,6 @@ namespace CryptoNote
 
         uint64_t defaultFusionDustThreshold(uint32_t height) const
         {
-                return CryptoNote::parameters::DEFAULT_DUST_THRESHOLD;
-
             return m_defaultDustThreshold;
         }
 
