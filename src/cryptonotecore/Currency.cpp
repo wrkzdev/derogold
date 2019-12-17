@@ -306,7 +306,7 @@ namespace CryptoNote
         uint64_t inputAmount = 0;
         for (auto amount : inputsAmounts)
         {
-            if ((amount < defaultFusionDustThreshold(height)) && (height > CryptoNote::parameters::DUST_THRESHOLD_V2_HEIGHT))    
+            if (amount < defaultFusionDustThreshold(height))    
             {
                 return false;
             }
