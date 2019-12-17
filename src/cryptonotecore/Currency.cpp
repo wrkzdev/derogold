@@ -306,7 +306,7 @@ namespace CryptoNote
         uint64_t inputAmount = 0;
         for (auto amount : inputsAmounts)
         {
-            if (amount < defaultFusionDustThreshold(height))
+            if ((amount < defaultFusionDustThreshold(height)) && (height > CryptoNote::parameters::DUST_THRESHOLD_V2_HEIGHT))    
             {
                 return false;
             }
@@ -607,7 +607,7 @@ namespace CryptoNote
         numberOfDecimalPlaces(parameters::CRYPTONOTE_DISPLAY_DECIMAL_POINT);
 
         mininumFee(parameters::MINIMUM_FEE);
-        defaultDustThreshold(parameters::DEFAULT_DUST_THRESHOLD_V2);
+        defaultDustThreshold(parameters::DEFAULT_DUST_THRESHOLD);
 
         difficultyWindow(parameters::DIFFICULTY_WINDOW);
 
