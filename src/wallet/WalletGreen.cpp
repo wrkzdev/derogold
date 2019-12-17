@@ -3910,16 +3910,6 @@ namespace CryptoNote
                 + m_currency.formatAmount(m_currency.defaultFusionDustThreshold(height)));
         }
 
-        if (threshold <= CryptoNote::parameters::FUSION_TX_MAX_POOL_AMOUNT_DUST_V1)
-        {
-            m_logger(ERROR, BRIGHT_RED) << "Fusion transaction threshold is too small. Threshold "
-                                        << m_currency.formatAmount(threshold) << ", minimum threshold "
-                                        << m_currency.formatAmount(static_cast<uint64_t>(CryptoNote::parameters::FUSION_TX_MAX_POOL_AMOUNT_DUST_V1 + 1));
-            throw std::runtime_error(
-                "Threshold must be greater than "
-                + m_currency.formatAmount(static_cast<uint64_t>(CryptoNote::parameters::FUSION_TX_MAX_POOL_AMOUNT_DUST_V1)));
-        }
-
         if (m_walletsContainer.get<RandomAccessIndex>().size() == 0)
         {
             m_logger(ERROR, BRIGHT_RED) << "The container doesn't have any wallets";

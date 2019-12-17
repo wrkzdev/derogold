@@ -364,11 +364,6 @@ namespace CryptoNote
             return false;
         }
 
-        if (amount < CryptoNote::parameters::FUSION_TX_MAX_POOL_AMOUNT_DUST_V1)
-        {
-            return false;
-        }
-
         auto it = std::lower_bound(Constants::PRETTY_AMOUNTS.begin(), Constants::PRETTY_AMOUNTS.end(), amount);
         if (it == Constants::PRETTY_AMOUNTS.end() || amount != *it)
         {
