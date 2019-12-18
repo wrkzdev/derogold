@@ -22,8 +22,6 @@ namespace Utilities
 
     bool isInputUnlocked(const uint64_t unlockTime, const uint64_t currentHeight);
 
-    bool isInputDustActivated(const uint64_t currentHeight);
-
     uint64_t getMaxTxSize(const uint64_t currentHeight);
 
     void sleepUnlessStopping(const std::chrono::milliseconds duration, std::atomic<bool> &condition);

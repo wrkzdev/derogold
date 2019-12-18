@@ -77,7 +77,7 @@ void printPrivateKeys(const std::shared_ptr<WalletBackend> walletBackend)
 
 void balance(const std::shared_ptr<WalletBackend> walletBackend)
 {
-    auto [unlockedBalance, lockedBalance, dustBalance] = walletBackend->getTotalBalance();
+    auto [unlockedBalance, lockedBalance] = walletBackend->getTotalBalance();
 
     /* We can make a better approximation of the view wallet balance if we
        ignore fusion transactions.
@@ -97,12 +97,11 @@ void balance(const std::shared_ptr<WalletBackend> walletBackend)
         }
     }
 
-    const uint64_t totalBalance = unlockedBalance + lockedBalance + dustBalance;
+    const uint64_t totalBalance = unlockedBalance + lockedBalance;
 
     std::cout << "Available balance: " << SuccessMsg(Utilities::formatAmount(unlockedBalance)) << "\n"
-              << "Locked (unconfirmed) balance: " << WarningMsg(Utilities::formatAmount(lockedBalance)) << "\n"
-              << "Dust balance: " << WarningMsg(Utilities::formatAmount(dustBalance)) << "\n"
-              << "Total balance: " << InformationMsg(Utilities::formatAmount(totalBalance)) << "\n";
+              << "Locked (unconfirmed) balance: " << WarningMsg(Utilities::formatAmount(lockedBalance))
+              << "\nTotal balance: " << InformationMsg(Utilities::formatAmount(totalBalance)) << "\n";
 
     if (walletBackend->isViewWallet())
     {

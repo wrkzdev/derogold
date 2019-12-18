@@ -72,10 +72,6 @@ class ValidateTransaction
 
         bool validateInputOutputRatio();
 
-        bool validateInputOutputCheckingExtend();
-
-        bool validateDust();
-
         bool validateTransactionMixin();
 
         bool validateTransactionInputsExpensive();

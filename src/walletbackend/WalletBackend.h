@@ -155,11 +155,11 @@ class WalletBackend
         const std::string destinationAddress,
         const std::vector<uint8_t> extraData);
 
-    /* Get the balance for one subwallet (error, unlocked, locked, dust) */
-    std::tuple<Error, uint64_t, uint64_t, uint64_t> getBalance(const std::string address) const;
+    /* Get the balance for one subwallet (error, unlocked, locked) */
+    std::tuple<Error, uint64_t, uint64_t> getBalance(const std::string address) const;
 
     /* Get the balance for all subwallets */
-    std::tuple<uint64_t, uint64_t, uint64_t> getTotalBalance() const;
+    std::tuple<uint64_t, uint64_t> getTotalBalance() const;
 
     uint64_t getTotalUnlockedBalance() const;
 
@@ -247,7 +247,7 @@ class WalletBackend
 
     std::tuple<Error, Crypto::SecretKey> getTxPrivateKey(const Crypto::Hash txHash) const;
 
-    std::vector<std::tuple<std::string, uint64_t, uint64_t, uint64_t>> getBalances() const;
+    std::vector<std::tuple<std::string, uint64_t, uint64_t>> getBalances() const;
 
     /////////////////////////////
     /* Public member variables */

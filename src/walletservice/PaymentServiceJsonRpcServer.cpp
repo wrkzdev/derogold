@@ -326,11 +326,11 @@ namespace PaymentService
     {
         if (!request.address.empty())
         {
-            return service.getBalance(request.address, response.availableBalance, response.lockedAmount, response.dustAmount);
+            return service.getBalance(request.address, response.availableBalance, response.lockedAmount);
         }
         else
         {
-            return service.getBalance(response.availableBalance, response.lockedAmount, response.dustAmount);
+            return service.getBalance(response.availableBalance, response.lockedAmount);
         }
     }
 

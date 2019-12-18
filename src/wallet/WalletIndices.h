@@ -30,7 +30,6 @@ namespace CryptoNote
         CryptoNote::ITransfersContainer *container = nullptr;
         uint64_t pendingBalance = 0;
         uint64_t actualBalance = 0;
-        uint64_t dustBalance = 0;
         time_t creationTimestamp;
     };
 

@@ -243,7 +243,7 @@ Error validateAmount(
     }
 
     /* Get the available balance, using the source addresses */
-    const auto [availableBalance, lockedBalance, dustBalance] = subWallets->getBalance(
+    const auto [availableBalance, lockedBalance] = subWallets->getBalance(
         Utilities::addressesToSpendKeys(subWalletsToTakeFrom),
         /* Take from all if no subwallets specified */
         subWalletsToTakeFrom.empty(),

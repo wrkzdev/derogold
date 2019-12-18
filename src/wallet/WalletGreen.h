@@ -100,10 +100,6 @@ namespace CryptoNote
 
         virtual uint64_t getPendingBalance(const std::string &address) const;
 
-        virtual uint64_t getDustBalance() const;
-
-        virtual uint64_t getDustBalance(const std::string &address) const;
-
         virtual size_t getTransactionCount() const;
 
         virtual WalletTransaction getTransaction(size_t transactionIndex) const;
@@ -691,8 +687,6 @@ namespace CryptoNote
         uint64_t m_actualBalance;
 
         uint64_t m_pendingBalance;
-
-        uint64_t m_dustBalance;
 
         uint32_t m_transactionSoftLockTime;
 

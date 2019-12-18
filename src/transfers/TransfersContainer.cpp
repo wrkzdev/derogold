@@ -14,7 +14,6 @@
 #include "serialization/SerializationOverloads.h"
 
 #include <config/Constants.h>
-#include <config/WalletConfig.h>
 
 using namespace Common;
 using namespace Crypto;
@@ -791,11 +790,7 @@ namespace CryptoNote
         {
             if (t.visible && isIncluded(t, flags))
             {
-                if (t.amount >= WalletConfig::dustAmount)
-                {
-                    amount += t.amount;
-                }
-                
+                amount += t.amount;
             }
         }
 
@@ -805,43 +800,7 @@ namespace CryptoNote
             {
                 if (t.visible && isIncluded(t.type, IncludeStateLocked, flags))
                 {
-                    if (t.amount >= WalletConfig::dustAmount)
-                    {
-                        amount += t.amount;
-                    }
-                }
-            }
-        }
-
-        return amount;
-    }
-
-    uint64_t TransfersContainer::dustbalance(uint32_t flags) const
-    {
-        std::lock_guard<std::mutex> lk(m_mutex);
-        uint64_t amount = 0;
-
-        for (const auto &t : m_availableTransfers)
-        {
-            if (t.visible && isIncluded(t, flags))
-            {
-                if (t.amount < WalletConfig::dustAmount)
-                {
                     amount += t.amount;
-                }
-            }
-        }
-
-        if ((flags & IncludeStateLocked) != 0)
-        {
-            for (const auto &t : m_unconfirmedTransfers)
-            {
-                if (t.visible && isIncluded(t.type, IncludeStateLocked, flags))
-                {
-                    if (t.amount < WalletConfig::dustAmount)
-                    {
-                        amount += t.amount;
-                    }
                 }
             }
         }

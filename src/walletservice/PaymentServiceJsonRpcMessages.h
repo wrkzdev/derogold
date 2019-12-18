@@ -236,8 +236,6 @@ namespace PaymentService
 
             uint64_t lockedAmount;
 
-            uint64_t dustAmount;
-
             void serialize(CryptoNote::ISerializer &serializer);
         };
     };

@@ -190,8 +190,6 @@ namespace CryptoNote
 
         virtual uint64_t balance(uint32_t flags) const override;
 
-        virtual uint64_t dustbalance(uint32_t flags) const override;
-
         virtual void getOutputs(std::vector<TransactionOutputInformation> &transfers, uint32_t flags) const override;
 
         virtual bool getTransactionInformation(

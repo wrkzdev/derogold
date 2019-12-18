@@ -57,7 +57,7 @@ class SubWallet
     /* Store a transaction input */
     void storeTransactionInput(const WalletTypes::TransactionInput input, const bool isViewWallet);
 
-    std::tuple<uint64_t, uint64_t, uint64_t> getBalance(const uint64_t currentHeight) const;
+    std::tuple<uint64_t, uint64_t> getBalance(const uint64_t currentHeight) const;
 
     void reset(const uint64_t startHeight, const uint64_t startTimestamp);
 
