@@ -103,8 +103,8 @@ namespace Utilities
 
 	const float days = (next_fork - height) /
 		(height >= CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT
-		? 24 * 60 * 60 / CryptoNote::parameters::DIFFICULTY_TARGET
-		: 24 * 60 * 60 / CryptoNote::parameters::DIFFICULTY_TARGET_V2);
+		? 24 * 60 * 60 / CryptoNote::parameters::DIFFICULTY_TARGET_V2
+		: 24 * 60 * 60 / CryptoNote::parameters::DIFFICULTY_TARGET);
 
         /* Next fork in < 30 days away */
         if (days < 30)
@@ -144,8 +144,8 @@ namespace Utilities
 
 	const float days = static_cast<float>(next_fork - height) /
 		(height >= CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT
-		 ? 24 * 60 * 60 / CryptoNote::parameters::DIFFICULTY_TARGET
-		 : 24 * 60 * 60 / CryptoNote::parameters::DIFFICULTY_TARGET_V2);
+		 ? 24 * 60 * 60 / CryptoNote::parameters::DIFFICULTY_TARGET_V2
+		 : 24 * 60 * 60 / CryptoNote::parameters::DIFFICULTY_TARGET);
 
         std::stringstream stream;
 
