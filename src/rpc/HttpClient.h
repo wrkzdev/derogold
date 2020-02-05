@@ -54,14 +54,20 @@ namespace CryptoNote
     };
 
     template<typename Request, typename Response>
-    void invokeJsonCommand(HttpClient &client, const std::string &url, const Request &req, Response &res)
+    void invokeJsonCommand(HttpClient &client, const std::string &url, const std::string &method, const Request &req, Response &res)
     {
         HttpRequest hreq;
         HttpResponse hres;
 
         hreq.addHeader("Content-Type", "application/json");
         hreq.setUrl(url);
-        hreq.setBody(storeToJson(req));
+        hreq.setMethod(method);
+
+        if (method == "POST")
+        {
+            hreq.setBody(storeToJson(req));
+        }
+
         client.request(hreq, hres);
 
         if (hres.getStatus() != HttpResponse::STATUS_200)

@@ -1376,6 +1376,16 @@ namespace CryptoNote
         }
     }
 
+    uint64_t WalletGreen::scanHeightToTimestamp(const uint64_t scanHeight)
+    {
+        if (scanHeight == 0)
+        {
+            return 0;
+        }
+
+    /* Get the amount of seconds since the blockchain launched */
+    uint64_t secondsSinceLaunch = scanHeight * CryptoNote::parameters::DIFFICULTY_TARGET;
+
     uint64_t WalletGreen::getCurrentTimestampAdjusted()
     {
         /* Get the current time as a unix timestamp */

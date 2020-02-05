@@ -14,8 +14,9 @@
 #include <cryptonotecore/Checkpoints.h>
 #include <cryptonotecore/Currency.h>
 #include <cryptonotecore/IBlockchainCache.h>
+#include <utilities/ThreadPool.h>
 
-struct TransactionValidationResult 
+struct TransactionValidationResult
 {
     /* A programmatic error code of the result */
     std::error_code errorCode;
@@ -45,6 +46,7 @@ class ValidateTransaction
             CryptoNote::IBlockchainCache *cache,
             const CryptoNote::Currency &currency,
             const CryptoNote::Checkpoints &checkpoints,
+	    Utilities::ThreadPool<bool> &threadPool,
             const uint64_t blockHeight,
             const uint64_t blockSizeMedian,
             const bool isPoolTransaction);
@@ -76,6 +78,8 @@ class ValidateTransaction
 
         bool validateTransactionInputsExpensive();
 
+        void setTransactionValidationResult(const std::error_code &error_code, const std::string &error_message = "");
+
         /////////////////////////
         /* PRIVATE MEMBER VARS */
         /////////////////////////
@@ -101,4 +105,8 @@ class ValidateTransaction
 
         uint64_t m_sumOfOutputs = 0;
         uint64_t m_sumOfInputs = 0;
+
+	Utilities::ThreadPool<bool> &m_threadPool;
+
+        std::mutex m_mutex;
 };
