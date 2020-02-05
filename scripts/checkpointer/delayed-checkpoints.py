@@ -26,7 +26,7 @@ def lastknownblock():
 
 
 def height():
-    base_url = 'http://localhost:6969/getheight'
+    base_url = 'http://localhost:6969/height'
     resp = requests.get(base_url).json()
     if 'height' not in resp:
         print ('Unexpected response, make sure DergoGoldd is running',
