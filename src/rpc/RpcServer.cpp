@@ -501,7 +501,9 @@ std::tuple<Error, uint16_t> RpcServer::info(
         : CryptoNote::parameters::FORK_HEIGHTS[CryptoNote::parameters::CURRENT_FORK_INDEX]);
 
     writer.Key("hashrate");
-    writer.Uint64(round(difficulty / CryptoNote::parameters::DIFFICULTY_TARGET));
+    writer.Uint64(height > CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT
+        ? (round(difficulty / CryptoNote::parameters::DIFFICULTY_TARGET_V2))
+	: (round(difficulty / CryptoNote::parameters::DIFFICULTY_TARGET)));
 
     writer.Key("synced");
     writer.Bool(height == networkHeight);
