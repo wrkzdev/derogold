@@ -2449,7 +2449,6 @@ inline bool Client::read_response_line(Stream& strm, Response& res)
 inline bool Client::send(Request& req, Response& res, const bool isRetry)
 {
     if (req.path.empty()) 
-        return false;
     {
         return false;
     }
@@ -2473,6 +2472,7 @@ inline bool Client::send(Request& req, Response& res, const bool isRetry)
     /* Failed to send - possibly connection closed due to timeout. Invalidate
        the socket so we make a new one on next request.*/
     opened_connection_ = INVALID_SOCKET;
+
     /* If the request failed, it's possible the socket timed out,
        let's give it one more try to make sure */
     if (!isRetry)
