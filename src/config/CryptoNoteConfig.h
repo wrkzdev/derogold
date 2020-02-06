@@ -192,6 +192,9 @@ namespace CryptoNote
             700000, // 0
             1470000, // 1
             1980000, // 2
+	    2250000, // 3
+	    2325000, // 4
+	    2400000, // 5
         };
 
         /* MAKE SURE TO UPDATE THIS VALUE WITH EVERY MAJOR RELEASE BEFORE A FORK */
