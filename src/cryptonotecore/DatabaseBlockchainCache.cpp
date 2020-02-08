@@ -1189,6 +1189,8 @@ namespace CryptoNote
     {
         auto batch = BlockchainReadBatch().requestBlockIndexBySpentKeyImage(keyImage);
         auto res = database.read(batch);
+	auto res = database.readThreadSafe(batch);
+
         if (res)
         {
             logger(Logging::ERROR) << "checkIfSpent failed, request to database failed: " << res.message();
