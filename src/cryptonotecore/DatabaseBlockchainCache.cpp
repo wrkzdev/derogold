@@ -1188,7 +1188,6 @@ namespace CryptoNote
     bool DatabaseBlockchainCache::checkIfSpent(const Crypto::KeyImage &keyImage, uint32_t blockIndex) const
     {
         auto batch = BlockchainReadBatch().requestBlockIndexBySpentKeyImage(keyImage);
-        auto res = database.read(batch);
 	auto res = database.readThreadSafe(batch);
 
         if (res)
