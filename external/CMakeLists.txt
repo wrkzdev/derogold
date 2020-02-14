@@ -12,12 +12,14 @@ endif()
 add_subdirectory(miniupnpc)
 add_subdirectory(cryptopp)
 add_subdirectory(zstd)
+add_subdirectory(snappy)
 
 if (MSVC)
     add_subdirectory(rocksDB EXCLUDE_FROM_ALL)
-    set_property(TARGET upnpc-static cryptopp-static rocksdb zstd PROPERTY FOLDER "external")
+    add_subdirectory(levelDB EXCLUDE_FROM_ALL)
+    set_property(TARGET upnpc-static cryptopp-static rocksdb leveldb snappy zstd PROPERTY FOLDER "external")
 elseif (NOT MSVC)
-    set_property(TARGET upnpc-static cryptopp-static zstd PROPERTY FOLDER "external")
+    set_property(TARGET upnpc-static cryptopp-static snappy zstd PROPERTY FOLDER "external")
     add_custom_target(
             rocksdb
             COMMAND $(MAKE) rocksdb
@@ -26,6 +28,15 @@ elseif (NOT MSVC)
     add_library(rocksdblib STATIC IMPORTED GLOBAL)
     set_target_properties(rocksdblib PROPERTIES IMPORTED_LOCATION ${PROJECT_BINARY_DIR}/rocksdb/librocksdb.a)
     add_dependencies(rocksdblib rocksdb)
+
+    add_custom_target(
+            leveldb
+            COMMAND $(MAKE) leveldb
+            WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/leveldb
+    )
+    add_library(leveldblib STATIC IMPORTED GLOBAL)
+    set_target_properties(leveldblib PROPERTIES IMPORTED_LOCATION ${PROJECT_BINARY_DIR}/leveldb/libleveldb.a)
+    add_dependencies(leveldblib leveldb)
 endif ()
 
 if (MSVC)
