@@ -193,6 +193,7 @@ std::vector<std::string> BlockchainReadBatch::getRawKeys() const
             DB::serializeKey(DB::TRANSACTION_HASH_TO_TRANSACTION_INFO_PREFIX, DB::TRANSACTIONS_COUNT_KEY));
     }
 
+    assert(!rawKeys.empty());
     return rawKeys;
 }
 

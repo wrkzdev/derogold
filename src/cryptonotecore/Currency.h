@@ -290,6 +290,12 @@ namespace CryptoNote
             std::vector<uint64_t> timestamps,
             std::vector<uint64_t> cumulativeDifficulties) const;
 
+        uint64_t nextDifficulty(
+            uint8_t version,
+            uint32_t blockIndex,
+            std::vector<uint64_t> timestamps,
+            std::vector<uint64_t> cumulativeDifficulties) const;
+
         bool checkProofOfWorkV1(const CachedBlock &block, uint64_t currentDifficulty) const;
 
         bool checkProofOfWorkV2(const CachedBlock &block, uint64_t currentDifficulty) const;

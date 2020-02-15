@@ -10,6 +10,7 @@
 #include <cryptonotecore/TransactionValidationErrors.h>
 #include <cryptonotecore/ValidateTransaction.h>
 #include <utilities/Fees.h>
+#include <utilities/Utilities.h>
 
 ValidateTransaction::ValidateTransaction(
     const CryptoNote::CachedTransaction &cachedTransaction,
@@ -495,7 +496,7 @@ bool ValidateTransaction::validateTransactionInputsExpensive()
     uint64_t inputIndex = 0;
 
     std::vector<std::future<bool>> validationResult;
-
+    std::atomic<bool> cancelValidation = false;
     const Crypto::Hash prefixHash = m_cachedTransaction.getTransactionPrefixHash();
 
     for (const auto &input : m_transaction.inputs)
@@ -503,7 +504,10 @@ bool ValidateTransaction::validateTransactionInputsExpensive()
         /* Validate each input on a separate thread in our thread pool */
         validationResult.push_back(m_threadPool.addJob([inputIndex, &input, &prefixHash, this]{
             const CryptoNote::KeyInput &in = boost::get<CryptoNote::KeyInput>(input);
-
+            if (cancelValidation)
+            {
+                return false; // fail the validation immediately if cancel requested
+            }
             if (m_blockchainCache->checkIfSpent(in.keyImage, m_blockHeight))
             {
                 setTransactionValidationResult(
@@ -592,6 +596,7 @@ bool ValidateTransaction::validateTransactionInputsExpensive()
         if (!result.get())
         {
             valid = false;
+            cancelValidation = true;
         }
     }
 

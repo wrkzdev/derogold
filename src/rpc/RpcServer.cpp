@@ -1167,7 +1167,7 @@ std::tuple<Error, uint16_t> RpcServer::getBlockTemplate(
 
         /* The reserved offset is past the transactionPublicKey, then past
          * the extra nonce tags */
-        reservedOffset = (it - blockBlob.begin()) + sizeof(transactionPublicKey) + 2;
+        reservedOffset = (it - blockBlob.begin()) + sizeof(transactionPublicKey) + 3;
 
         if (reservedOffset + reserveSize > blockBlob.size())
         {
