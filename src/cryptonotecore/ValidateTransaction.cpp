@@ -502,7 +502,7 @@ bool ValidateTransaction::validateTransactionInputsExpensive()
     for (const auto &input : m_transaction.inputs)
     {
         /* Validate each input on a separate thread in our thread pool */
-        validationResult.push_back(m_threadPool.addJob([inputIndex, &input, &prefixHash, this]{
+        validationResult.push_back(m_threadPool.addJob([inputIndex, &input, &prefixHash, &cancelValidation, this]{
             const CryptoNote::KeyInput &in = boost::get<CryptoNote::KeyInput>(input);
             if (cancelValidation)
             {
