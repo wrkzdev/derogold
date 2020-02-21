@@ -208,7 +208,7 @@ namespace CryptoNote
     {
         size_t fusionTransactionCount = 0;
 
-        std::scoped_lock lock(m_transactionsMutex)
+        std::scoped_lock lock(m_transactionsMutex);
 
         for (const auto &transaction : transactionCostIndex)
         {
@@ -298,7 +298,7 @@ namespace CryptoNote
 
     uint64_t TransactionPool::getTransactionReceiveTime(const Crypto::Hash &hash) const
     {
-        std::scoped_lock lock(m_transactionsMutex)
+        std::scoped_lock lock(m_transactionsMutex);
 
         auto it = transactionHashIndex.find(hash);
         assert(it != transactionHashIndex.end());
