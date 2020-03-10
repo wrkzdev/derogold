@@ -23,8 +23,14 @@ namespace CryptoNote
 
         const uint64_t DIFFICULTY_TARGET_V2 = 20; // seconds
 
+	const uint64_t DIFFICULTY_TARGET_V3 = 69; // seconds
+
         /* Height to swap to DIFFICULTY_TARGET_V2 */
         const uint64_t DIFFICULTY_TARGET_V2_HEIGHT = 700000;
+
+	/* Height to change to DIFFICULTY_TARGET_V3 */
+
+	const uint64_t DIFFICULTY_TARGET_V3_HEIGHT = 2325000;
 
         const uint32_t CRYPTONOTE_MAX_BLOCK_NUMBER = 500000000;
 
@@ -36,7 +42,7 @@ namespace CryptoNote
 
         const uint32_t CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW = 120;
 
-        const uint64_t CRYPTONOTE_BLOCK_FUTURE_TIME_LIMIT = 6 * DIFFICULTY_TARGET_V2;
+        const uint64_t CRYPTONOTE_BLOCK_FUTURE_TIME_LIMIT = 6 * DIFFICULTY_TARGET_V3;
 
         const size_t BLOCKCHAIN_TIMESTAMP_CHECK_WINDOW = 11;
 
@@ -108,7 +114,7 @@ namespace CryptoNote
 
         const uint64_t DEFAULT_DUST_THRESHOLD = UINT64_C(0);
 
-        const uint64_t EXPECTED_NUMBER_OF_BLOCKS_PER_DAY = 24 * 60 * 60 / DIFFICULTY_TARGET_V2;
+        const uint64_t EXPECTED_NUMBER_OF_BLOCKS_PER_DAY = 24 * 60 * 60 / DIFFICULTY_TARGET_V3;
 
         const size_t DIFFICULTY_WINDOW = 60;
 
@@ -118,7 +124,7 @@ namespace CryptoNote
 
         const uint64_t MAX_BLOCK_SIZE_GROWTH_SPEED_NUMERATOR = 100 * 1024;
 
-        const uint64_t MAX_BLOCK_SIZE_GROWTH_SPEED_DENOMINATOR = 365 * 24 * 60 * 60 / DIFFICULTY_TARGET_V2;
+        const uint64_t MAX_BLOCK_SIZE_GROWTH_SPEED_DENOMINATOR = 365 * 24 * 60 * 60 / DIFFICULTY_TARGET_V3;
 
         const uint64_t MAX_EXTRA_SIZE = 140000;
 
@@ -179,7 +185,9 @@ namespace CryptoNote
 
         const uint32_t UPGRADE_HEIGHT_V5 = 4; // Upgrade height for CN-Turtle Variant 2 switch.
 
-        const uint32_t UPGRADE_HEIGHT_CURRENT = UPGRADE_HEIGHT_V5;
+	const uint32_t UPGRADE_HEIGHT_V6 = 5; // Upgrade height for DIFFICULTY_TARGET_V3
+
+        const uint32_t UPGRADE_HEIGHT_CURRENT = UPGRADE_HEIGHT_V6;
 
         const unsigned UPGRADE_VOTING_THRESHOLD = 90; // percent
         const uint32_t UPGRADE_VOTING_WINDOW = EXPECTED_NUMBER_OF_BLOCKS_PER_DAY; // blocks
@@ -195,10 +203,12 @@ namespace CryptoNote
 	    2325000, // 3
 	    2400000, // 4
 	    2500000, // 5
+	    2600000, // 6
+	    2700000, // 7
         };
 
         /* MAKE SURE TO UPDATE THIS VALUE WITH EVERY MAJOR RELEASE BEFORE A FORK */
-        const uint64_t SOFTWARE_SUPPORTED_FORK_INDEX = 2;
+        const uint64_t SOFTWARE_SUPPORTED_FORK_INDEX = 3;
 
         const uint64_t FORK_HEIGHTS_SIZE = sizeof(FORK_HEIGHTS) / sizeof(*FORK_HEIGHTS);
 
@@ -239,6 +249,7 @@ namespace CryptoNote
     const uint8_t BLOCK_MAJOR_VERSION_3 = 3; /* UPGRADE_HEIGHT_V3 */
     const uint8_t BLOCK_MAJOR_VERSION_4 = 4; /* UPGRADE_HEIGHT_V4 */
     const uint8_t BLOCK_MAJOR_VERSION_5 = 5; /* UPGRADE_HEIGHT_V5 */
+    const uint8_t BLOCK_MAJOR_VERSION_6 = 6; /* UPGRADE_HEIGHT_V6 */
 
     const uint8_t BLOCK_MINOR_VERSION_0 = 0;
 
@@ -251,6 +262,7 @@ namespace CryptoNote
             {BLOCK_MAJOR_VERSION_3, Crypto::cn_slow_hash_v0}, /* UPGRADE_HEIGHT_V3 */
             {BLOCK_MAJOR_VERSION_4, Crypto::cn_lite_slow_hash_v1}, /* UPGRADE_HEIGHT_V4 */
             {BLOCK_MAJOR_VERSION_5, Crypto::cn_turtle_lite_slow_hash_v2}, /* UPGRADE_HEIGHT_V5 */
+	    {BLOCK_MAJOR_VERSION_5, Crypto::cn_turtle_lite_slow_hash_v2}, /* UPGRADE_HEIGHT_V6 */
     };
 
     const size_t BLOCKS_IDS_SYNCHRONIZING_DEFAULT_COUNT = 10000; // by default, blocks ids count in synchronizing
@@ -271,9 +283,9 @@ namespace CryptoNote
 
     // P2P Network Configuration Section - This defines our current P2P network version
     // and the minimum version for communication between nodes
-    const uint8_t P2P_CURRENT_VERSION = 3;
+    const uint8_t P2P_CURRENT_VERSION = 4;
 
-    const uint8_t P2P_MINIMUM_VERSION = 2;
+    const uint8_t P2P_MINIMUM_VERSION = 3;
 
     // This defines the minimum P2P version required for lite blocks propogation
     const uint8_t P2P_LITE_BLOCKS_PROPOGATION_VERSION = 0;
@@ -320,9 +332,7 @@ namespace CryptoNote
     const char* const SEED_NODES[] = {
         "195.154.81.135:12169", // bob bie
         "144.76.5.24:42069", // Pluto
-        "5.172.219.174:42069", // sniperviperman 
         "91.239.237.54:42069", // Leo Cuvée CZ
         "46.214.70.196:42069", // derogold4ever.online
-        "130.185.202.159:42069" // SolFly
     };
 } // namespace CryptoNote
