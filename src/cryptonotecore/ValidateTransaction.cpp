@@ -117,6 +117,24 @@ TransactionValidationResult ValidateTransaction::revalidateAfterHeightChange()
         return m_validationResult;
     }
 
+    /* Validate the transaction inputs are non empty, key images are valid, etc. */
+    if (!validateTransactionInputs())
+    {
+        return m_validationResult;
+    }
+
+    /* Validate transaction outputs are non zero, don't overflow, etc */
+    if (!validateTransactionOutputs())
+    {
+        return m_validationResult;
+    }
+
+    /* Validate transaction fee is still in the valid fee */
+    if (!validateTransactionFee())
+    {
+        return m_validationResult;
+    }
+
     m_validationResult.valid = true;
     setTransactionValidationResult(
          CryptoNote::error::TransactionValidationError::VALIDATION_SUCCESS
@@ -362,8 +380,25 @@ bool ValidateTransaction::validateTransactionFee()
         m_blockHeight
     );
 
-    if (!isFusion)
+    bool validFee;
+
+    if (isFusion)
     {
+        /* Fusions must pay at least FUSION_FEE_V1 in fees. */
+        if (m_blockHeight >= CryptoNote::parameters::FUSION_FEE_V1_HEIGHT)
+        {
+            validFee = fee >= CryptoNote::parameters::FUSION_FEE_V1;
+        }
+        /* Fusion transactions are free. Any fee is valid. */
+        else
+        {
+            validFee = true;
+        }
+    }
+    else
+    {
+        validFee = fee != 0;
+
         const uint64_t minFee = Utilities::getMinimumFee(m_blockHeight);
         if (fee == 0 || (fee < minFee))
         {
@@ -374,6 +409,16 @@ bool ValidateTransaction::validateTransactionFee()
 
             return false;
         }
+    }
+
+    if (!validFee)
+    {
+        setTransactionValidationResult(
+            CryptoNote::error::TransactionValidationError::WRONG_FEE,
+            "Transaction fee is below minimum fee and is not a fusion transaction"
+        );
+
+        return false;
     }
 
     m_validationResult.fee = fee;
