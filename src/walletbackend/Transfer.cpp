@@ -79,6 +79,10 @@ namespace SendTransaction
 
         CryptoNote::KeyPair txKeyPair;
 
+        const uint64_t fee = daemon->networkBlockCount() >= CryptoNote::parameters::FUSION_FEE_V1_HEIGHT
+            ? CryptoNote::parameters::FUSION_FEE_V1
+            : 0;
+
         while (true)
         {
             /* Not got enough unspent inputs for a fusion tx - we're fully optimized. */
@@ -92,8 +96,14 @@ namespace SendTransaction
 
             std::vector<WalletTypes::TransactionDestination> destinations;
 
+            if (fee >= foundMoney)
+            {
+                return {FULLY_OPTIMIZED, Crypto::Hash()};
+            }
+
+            uint64_t amountToSplit = foundMoney - fee;
             /* Split transfer into denominations and create an output for each */
-            for (const auto denomination : splitAmountIntoDenominations(foundMoney))
+            for (const auto denomination : splitAmountIntoDenominations(amountToSplit))
             {
                 WalletTypes::TransactionDestination destination;
 
@@ -156,7 +166,7 @@ namespace SendTransaction
             return {AMOUNTS_NOT_PRETTY, Crypto::Hash()};
         }
 
-        if (!verifyTransactionFee(0, tx))
+        if (!verifyTransactionFee(fee, tx))
         {
             return {UNEXPECTED_FEE, Crypto::Hash()};
         }
@@ -170,7 +180,7 @@ namespace SendTransaction
         }
 
         /* No fee or change with fusion */
-        const uint64_t fee(0), changeRequired(0);
+        const uint64_t changeRequired(0);
 
         /* Store the unconfirmed transaction, update our balance */
         storeSentTransaction(txHash, fee, paymentID, ourInputs, destination, changeRequired, subWallets);
