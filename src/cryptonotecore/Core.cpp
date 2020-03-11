@@ -2344,14 +2344,18 @@ bool Core::getRawBlocks(
 
 	uint64_t futureTimeLimit;
 
-	if (previousBlockIndex + 1 >= CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT)
-	{
-		futureTimeLimit = CryptoNote::parameters::DIFFICULTY_TARGET * 6;
-	}
-	else
-	{
-		futureTimeLimit = CryptoNote::parameters::DIFFICULTY_TARGET_V2 * 6;
-	}
+        if (previousBlockIndex + 1 >= CryptoNote::parameters::DIFFICULTY_TARGET_V3_HEIGHT)
+        {
+            futureTimeLimit = CryptoNote::parameters::DIFFICULTY_TARGET_V3 * 6;
+						        }
+        else if (previousBlockIndex + 1 >= CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT)        
+        {
+            futureTimeLimit = CryptoNote::parameters::DIFFICULTY_TARGET_V2 * 6;
+        }
+        else
+        {
+            futureTimeLimit = CryptoNote::parameters::DIFFICULTY_TARGET * 6;
+        }
 
 	if (block.timestamp > getAdjustedTime() + futureTimeLimit) {
 		return error::BlockValidationError::TIMESTAMP_TOO_FAR_IN_FUTURE;

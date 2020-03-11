@@ -217,10 +217,15 @@ bool Nigel::getDaemonInfo()
             m_peerCount =
                 j.at("incoming_connections_count").get<uint64_t>() + j.at("outgoing_connections_count").get<uint64_t>();
 
-	    if (m_networkBlockCount >= CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT)
+	    if (m_networkBlockCount >= CryptoNote::parameters::DIFFICULTY_TARGET_V3_HEIGHT)
 	    {
                  m_lastKnownHashrate = j.at("difficulty").get<uint64_t>() 
-	         	/ CryptoNote::parameters::DIFFICULTY_TARGET_V2;
+	         	/ CryptoNote::parameters::DIFFICULTY_TARGET_V3;
+	    }
+	    else if (m_networkBlockCount >= CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT)
+            {
+                  m_lastKnownHashrate = j.at("difficulty").get<uint64_t>()
+                        / CryptoNote::parameters::DIFFICULTY_TARGET_V2;
 	    }
 	    else
 	    {

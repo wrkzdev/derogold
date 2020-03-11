@@ -16,7 +16,11 @@ uint64_t nextDifficulty(std::vector<uint64_t> timestamps, std::vector<uint64_t> 
 {
     int64_t T = CryptoNote::parameters::DIFFICULTY_TARGET;
 
-    if (blockHeight >= CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT)
+    if (blockHeight >= CryptoNote::parameters::DIFFICULTY_TARGET_V3_HEIGHT)
+    {
+        T = CryptoNote::parameters::DIFFICULTY_TARGET_V3;
+    }
+    else if (blockHeight >= CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT)
     {
         T = CryptoNote::parameters::DIFFICULTY_TARGET_V2;
     }

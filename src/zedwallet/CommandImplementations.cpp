@@ -267,7 +267,11 @@ void printHashrate(uint64_t difficulty, uint64_t remoteHeight)
     /* Hashrate is difficulty divided by block target time */
     uint64_t hashrate;
 
-    if (remoteHeight >= CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT)
+    if (remoteHeight >= CryptoNote::parameters::DIFFICULTY_TARGET_V3_HEIGHT)
+    {
+        hashrate = difficulty / CryptoNote::parameters::DIFFICULTY_TARGET_V3;
+    }
+    else if (remoteHeight >= CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT)
     {
         hashrate = difficulty / CryptoNote::parameters::DIFFICULTY_TARGET_V2;
     }

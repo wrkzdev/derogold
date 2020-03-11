@@ -335,11 +335,15 @@ namespace CryptoNote
 
 	    uint64_t days;
 
-	    if (currentHeight >= CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT || remoteHeight < CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT)
+	    if (currentHeight >= CryptoNote::parameters::DIFFICULTY_TARGET_V3_HEIGHT || remoteHeight < CryptoNote::parameters::DIFFICULTY_TARGET_V3_HEIGHT)
          {   
-                 days = std::abs(diff) / (24 * 60 * 60 / CryptoNote::parameters::DIFFICULTY_TARGET_V2);
+                 days = std::abs(diff) / (24 * 60 * 60 / CryptoNote::parameters::DIFFICULTY_TARGET_V3);
          }   
-               else
+            else if (currentHeight >= CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT || remoteHeight < CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT)
+         {
+                 days = std::abs(diff) / (24 * 60 * 60 / CryptoNote::parameters::DIFFICULTY_TARGET_V2);
+         }
+	    else
          {
            uint64_t blocksBefore = CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT - currentHeight;
            uint64_t blocksAfter = remoteHeight - CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT;

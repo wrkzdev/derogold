@@ -134,17 +134,23 @@ namespace Utilities
         /* Get the amount of seconds since the blockchain launched */
 	uint64_t secondsSinceLaunch;
 
-	if (scanHeight < CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT)
+	if (scanHeight < CryptoNote::parameters::DIFFICULTY_TARGET_V3_HEIGHT)
 	{
-	     secondsSinceLaunch = scanHeight * CryptoNote::parameters::DIFFICULTY_TARGET;
+	     secondsSinceLaunch = scanHeight * CryptoNote::parameters::DIFFICULTY_TARGET_V2;
 	}
+	else if (scanHeight < CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT)
+        {
+             secondsSinceLaunch = scanHeight * CryptoNote::parameters::DIFFICULTY_TARGET;
+        }
 	else
 	{
 	     uint64_t blocksBefore = CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT;
 	     uint64_t blocksAfter = scanHeight - CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT;
+             uint64_t blocksAfterV2 = scanHeight - CryptoNote::parameters::DIFFICULTY_TARGET_V3_HEIGHT;
 
 	     secondsSinceLaunch = (blocksBefore * CryptoNote::parameters::DIFFICULTY_TARGET) +
-		                  (blocksAfter  * CryptoNote::parameters::DIFFICULTY_TARGET_V2);
+		                  (blocksAfter  * CryptoNote::parameters::DIFFICULTY_TARGET_V2) +
+                                  (blocksAfterV2 * CryptoNote::parameters::DIFFICULTY_TARGET_V3);
 	}
 
         /* Get the genesis block timestamp and add the time since launch */
