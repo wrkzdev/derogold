@@ -23,7 +23,7 @@ namespace CryptoNote
 
         const uint64_t DIFFICULTY_TARGET_V2 = 20; // seconds
 
-	const uint64_t DIFFICULTY_TARGET_V3 = 69; // seconds
+	const uint64_t DIFFICULTY_TARGET_V3 = 300; // seconds
 
         /* Height to swap to DIFFICULTY_TARGET_V2 */
         const uint64_t DIFFICULTY_TARGET_V2_HEIGHT = 700000;
