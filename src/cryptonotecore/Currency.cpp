@@ -111,6 +111,10 @@ namespace CryptoNote
         {
             return m_upgradeHeightV5;
         }
+	else if (majorVersion == BLOCK_MAJOR_VERSION_6)
+        {
+            return m_upgradeHeightV6;
+        }
         else
         {
             return static_cast<uint32_t>(-1);
@@ -572,6 +576,7 @@ namespace CryptoNote
         m_upgradeHeightV3(currency.m_upgradeHeightV3),
         m_upgradeHeightV4(currency.m_upgradeHeightV4),
         m_upgradeHeightV5(currency.m_upgradeHeightV5),
+	m_upgradeHeightV6(currency.m_upgradeHeightV6),
         m_upgradeVotingThreshold(currency.m_upgradeVotingThreshold),
         m_upgradeVotingWindow(currency.m_upgradeVotingWindow),
         m_upgradeWindow(currency.m_upgradeWindow),

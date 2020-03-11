@@ -370,6 +370,8 @@ namespace CryptoNote
 
         uint32_t m_upgradeHeightV5;
 
+        uint32_t m_upgradeHeightV6;
+
         unsigned int m_upgradeVotingThreshold;
 
         uint32_t m_upgradeVotingWindow;
@@ -585,6 +587,12 @@ namespace CryptoNote
         CurrencyBuilder &upgradeHeightV5(uint32_t val)
         {
             m_currency.m_upgradeHeightV5 = val;
+            return *this;
+        }
+        
+        CurrencyBuilder &upgradeHeightV6(uint32_t val)
+        {
+            m_currency.m_upgradeHeightV6 = val;
             return *this;
         }
 
