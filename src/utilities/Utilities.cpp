@@ -131,26 +131,22 @@ namespace Utilities
             return 0;
         }
 
-        /* Get the amount of seconds since the blockchain launched */
-	uint64_t secondsSinceLaunch;
-
-
     uint64_t secondsSinceLaunch = 0;
 
     /* How many seconds have passed since DIFFICULTY_TARGET_V3_HEIGHT */
     if (scanHeight >= CryptoNote::parameters::DIFFICULTY_TARGET_V3_HEIGHT)
     {
-        secondsSinceLaunch += (scanHeight - CryptoNote::parameters::DIFFICULTY_TARGET_V3_HEIGHT) * DIFFICULTY_TARGET_V3;
+        secondsSinceLaunch += (scanHeight - CryptoNote::parameters::DIFFICULTY_TARGET_V3_HEIGHT) * CryptoNote::parameters::DIFFICULTY_TARGET_V3;
     }
 
     /* How many seconds have passed between DIFFICULTY_TARGET_V2_HEIGHT and min(DIFFICULTY_TARGET_V3_HEIGHT, currentHeight) */
     if (scanHeight >= CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT)
     {
-        secondsSinceLaunch += (std::min(scanHeight, CryptoNote::parameters::DIFFICULTY_TARGET_V3_HEIGHT) - CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT) * DIFFICULTY_TARGET_V3;
+        secondsSinceLaunch += (std::min(scanHeight, CryptoNote::parameters::DIFFICULTY_TARGET_V3_HEIGHT) - CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT) * CryptoNote::parameters::DIFFICULTY_TARGET_V3;
     }
 
     /* How many seconds passed between start height and min(scanHeight, DIFFICULTY_TARGET_V2) */
-    secondsSinceLaunch += std::min(scanHeight, CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT)  * DIFFICULTY_TARGET_V1;
+    secondsSinceLaunch += std::min(scanHeight, CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT)  * CryptoNote::parameters::DIFFICULTY_TARGET;
 
     /* Get the genesis block timestamp and add the time since launch */
     uint64_t timestamp = CryptoNote::parameters::GENESIS_BLOCK_TIMESTAMP + secondsSinceLaunch;
