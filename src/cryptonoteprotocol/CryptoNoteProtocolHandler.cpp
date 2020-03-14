@@ -332,25 +332,31 @@ namespace CryptoNote
             /* Find the difference between the remote and the local height */
             int64_t diff = static_cast<int64_t>(remoteHeight) - static_cast<int64_t>(currentHeight);
 
+        uint64_t days;
+        uint64_t blocksWithDiffV3Remaining = 0;
+        uint64_t blocksWithDiffV2Remaining = 0;
 
-	    uint64_t days;
+        /* We have passed V3 height. Lets figure out how many v3 diff blocks we still need to sync. */
+        if (remoteHeight >= CryptoNote::parameters::DIFFICULTY_TARGET_V3_HEIGHT)
+        {
+	/* Take the max of the current height or the target height. If our current height is less than the diff v3 target height,
+	 * we don't want to include those blocks, as they are not v3 ones. */
+	blocksWithDiffV3Remaining = remoteHeight - std::max(currentHeight, CryptoNote::parameters::DIFFICULTY_TARGET_V3_HEIGHT);
+        }
 
-	    if (currentHeight >= CryptoNote::parameters::DIFFICULTY_TARGET_V3_HEIGHT || remoteHeight < CryptoNote::parameters::DIFFICULTY_TARGET_V3_HEIGHT)
-         {   
-                 days = std::abs(diff) / (24 * 60 * 60 / CryptoNote::parameters::DIFFICULTY_TARGET_V3);
-         }   
-            else if (currentHeight >= CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT || remoteHeight < CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT)
-         {
-                 days = std::abs(diff) / (24 * 60 * 60 / CryptoNote::parameters::DIFFICULTY_TARGET_V2);
-         }
-	    else
-         {
-           uint64_t blocksBefore = CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT - currentHeight;
-           uint64_t blocksAfter = remoteHeight - CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT;
+        /* We have passed V3 height. Lets figure out how many v3 diff blocks we still need to sync. */
+        if (remoteHeight >= CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT)
+        {
+	/* Find number of blocks between max(current height / v2 height) and v3 height */
+	blocksWithDiffV2Remaining = remoteHeight - blocksWithDiffV3Remaining - std::max(currentHeight, CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT);
+        }
 
-           days = blocksBefore / (24 * 60 * 60 / CryptoNote::parameters::DIFFICULTY_TARGET);
-           days += blocksAfter / (24 * 60 * 60 / CryptoNote::parameters::DIFFICULTY_TARGET_V2);
-         }
+        const uint64_t blocksWithDiffV1Remaining = remoteHeight - blocksWithDiffV3Remaining - blocksWithDiffV2Remaining - currentHeight;
+
+        days = blocksWithDiffV3Remaining / (24 * 60 * 60 / CryptoNote::parameters::DIFFICULTY_TARGET_V3);
+        days += blocksWithDiffV2Remaining / (24 * 60 * 60 / CryptoNote::parameters::DIFFICULTY_TARGET_V2);
+        days += blocksWithDiffV1Remaining / (24 * 60 * 60 / CryptoNote::parameters::DIFFICULTY_TARGET);
+
 
             std::stringstream ss;
 
