@@ -283,11 +283,8 @@ namespace CryptoNote
         size_t requestPaymentIdTransactionsCount(IDataBase &database, const Crypto::Hash &paymentId)
         {
             auto batch = BlockchainReadBatch().requestTransactionCountByPaymentId(paymentId);
-#if defined (USE_LEVELDB)
             auto error = database.read(batch);
-#else
-            auto error = database.readThreadSafe(batch);
-#endif
+
             if (error)
             {
                 throw std::system_error(error, "Error while reading transactions count by payment id");
