@@ -23,7 +23,6 @@
 #include <utilities/ParseExtra.h>
 #include <zedwallet/AddressBook.h>
 #include <zedwallet/Commands.h>
-#include <zedwallet/Fusion.h>
 #include <zedwallet/Menu.h>
 #include <zedwallet/Open.h>
 #include <zedwallet/Sync.h>
