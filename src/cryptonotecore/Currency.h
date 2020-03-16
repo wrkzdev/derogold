@@ -42,11 +42,6 @@ namespace CryptoNote
             return m_publicAddressBase58Prefix;
         }
 
-        uint32_t minedMoneyUnlockWindow() const
-        {
-            return m_minedMoneyUnlockWindow;
-        }
-
         size_t timestampCheckWindow(uint32_t blockHeight) const
         {
                 return m_timestampCheckWindow;
@@ -314,8 +309,6 @@ namespace CryptoNote
 
         uint64_t m_publicAddressBase58Prefix;
 
-        uint32_t m_minedMoneyUnlockWindow;
-
         size_t m_timestampCheckWindow;
 
         uint64_t m_moneySupply;
@@ -433,12 +426,6 @@ namespace CryptoNote
         CurrencyBuilder &publicAddressBase58Prefix(uint64_t val)
         {
             m_currency.m_publicAddressBase58Prefix = val;
-            return *this;
-        }
-
-        CurrencyBuilder &minedMoneyUnlockWindow(uint32_t val)
-        {
-            m_currency.m_minedMoneyUnlockWindow = val;
             return *this;
         }
 
