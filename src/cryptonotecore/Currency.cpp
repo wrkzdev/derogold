@@ -284,7 +284,7 @@ namespace CryptoNote
 
         uint64_t unlockTime = height + CryptoNote::parameters::CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW;
 
-        if (height >= CryptoNote::parameters::CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW_V2)
+        if (height >= CryptoNote::parameters::CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW_V2_HEIGHT)
         {
             unlockTime = height + CryptoNote::parameters::CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW_V2;
         }
