@@ -1054,8 +1054,13 @@ namespace CryptoNote
         /* Starting from the end of the outputs vector, return the first output
            that is unlocked */
         const auto end = std::find_if(outs.rbegin(), outs.rend(), [&](const auto index) {
-                             return index.blockIndex <= blockIndex - currency.minedMoneyUnlockWindow();
-                         }).base();
+            if (index.blockIndex >= CryptoNote::parameters::CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW_V2_HEIGHT)
+            {
+                return index.blockIndex <= blockIndex - CryptoNote::parameters::CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW_V2;
+            }
+
+            return index.blockIndex <= blockIndex - CryptoNote::parameters::CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW;
+        }).base();
 
         /* Distance between the first output and the selected output, in the vector */
         uint32_t dist = static_cast<uint32_t>(std::distance(outs.begin(), end));

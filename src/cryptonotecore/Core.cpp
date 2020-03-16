@@ -1700,9 +1700,7 @@ bool Core::getRawBlocks(
             return {true, ""};
         }
 
-        auto upperBlockLimit = getTopBlockIndex() - currency.minedMoneyUnlockWindow();
-
-        if (upperBlockLimit < currency.minedMoneyUnlockWindow())
+        if (getTopBlockIndex() <= CryptoNote::parameters::CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW)
         {
             std::string error = "Blockchain height is less than mined unlock window";
             logger(Logging::DEBUGGING) << error;
@@ -2384,7 +2382,14 @@ bool Core::getRawBlocks(
             return error::TransactionValidationError::BASE_INPUT_WRONG_BLOCK_INDEX;
         }
 
-        if (!(block.baseTransaction.unlockTime == previousBlockIndex + 1 + currency.minedMoneyUnlockWindow()))
+        uint64_t expectedUnlockTime = previousBlockIndex + 1 + CryptoNote::parameters::CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW;
+
+        if (previousBlockIndex + 1 >= CryptoNote::parameters::CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW_V2_HEIGHT)
+        {
+            expectedUnlockTime = previousBlockIndex + 1 + CryptoNote::parameters::CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW_V2;
+        }
+
+        if (block.baseTransaction.unlockTime != expectedUnlockTime)
         {
             return error::TransactionValidationError::WRONG_TRANSACTION_UNLOCK_TIME;
         }

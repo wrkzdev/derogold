@@ -281,8 +281,16 @@ namespace CryptoNote
         }
 
         tx.version = CURRENT_TRANSACTION_VERSION;
-        // lock
-        tx.unlockTime = height + m_minedMoneyUnlockWindow;
+
+        uint64_t unlockTime = height + CryptoNote::parameters::CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW;
+
+        if (height >= CryptoNote::parameters::CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW_V2)
+        {
+            unlockTime = height + CryptoNote::parameters::CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW_V2;
+        }
+
+        /* Unspendable until current height + mined money unlock */
+        tx.unlockTime = unlockTime;
         tx.inputs.push_back(in);
         return true;
     }
@@ -554,7 +562,6 @@ namespace CryptoNote
         m_maxBlockBlobSize(currency.m_maxBlockBlobSize),
         m_maxTxSize(currency.m_maxTxSize),
         m_publicAddressBase58Prefix(currency.m_publicAddressBase58Prefix),
-        m_minedMoneyUnlockWindow(currency.m_minedMoneyUnlockWindow),
         m_timestampCheckWindow(currency.m_timestampCheckWindow),
         m_moneySupply(currency.m_moneySupply),
         m_rewardBlocksWindow(currency.m_rewardBlocksWindow),
@@ -600,7 +607,6 @@ namespace CryptoNote
         maxBlockBlobSize(parameters::CRYPTONOTE_MAX_BLOCK_BLOB_SIZE);
         maxTxSize(parameters::CRYPTONOTE_MAX_TX_SIZE);
         publicAddressBase58Prefix(parameters::CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX);
-        minedMoneyUnlockWindow(parameters::CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW);
 
         timestampCheckWindow(parameters::BLOCKCHAIN_TIMESTAMP_CHECK_WINDOW);
 

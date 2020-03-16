@@ -1938,9 +1938,16 @@ namespace CryptoNote
             assert(globalIndexes.size() == transactions.size());
 
             uint32_t uppperBlockIndex = 0;
-            if (blockIndex > currency.minedMoneyUnlockWindow())
+
+            /* Only select unlocked outputs. */
+            if (blockIndex >= CryptoNote::parameters::CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW_V2_HEIGHT
+                           + CryptoNote::parameters::CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW_V2)
             {
-                uppperBlockIndex = blockIndex - currency.minedMoneyUnlockWindow();
+                uppperBlockIndex = blockIndex - CryptoNote::parameters::CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW_V2;
+            }
+            else if (blockIndex >= CryptoNote::parameters::CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW)
+            {
+                uppperBlockIndex = blockIndex - CryptoNote::parameters::CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW;
             }
 
             for (size_t i = 0; i < transactions.size(); ++i)
