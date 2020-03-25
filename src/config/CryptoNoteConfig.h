@@ -275,7 +275,7 @@ namespace CryptoNote
 
     const size_t BLOCKS_IDS_SYNCHRONIZING_DEFAULT_COUNT = 10000; // by default, blocks ids count in synchronizing
 
-    const uint64_t BLOCKS_SYNCHRONIZING_DEFAULT_COUNT = 100; // by default, blocks count in blocks downloading
+    const uint64_t BLOCKS_SYNCHRONIZING_DEFAULT_COUNT = 20; // by default, blocks count in blocks downloading, reduced from 100 to 20 prior the 2,325,000 fork
 
     const size_t COMMAND_RPC_GET_BLOCKS_FAST_MAX_COUNT = 1000;
 
