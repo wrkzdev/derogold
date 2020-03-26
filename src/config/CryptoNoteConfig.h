@@ -193,7 +193,7 @@ namespace CryptoNote
 
         const uint32_t UPGRADE_HEIGHT_V5 = 4; // Upgrade height for CN-Turtle Variant 2 switch.
 
-	const uint32_t UPGRADE_HEIGHT_V6 = 5; // Upgrade height for DIFFICULTY_TARGET_V3
+	const uint32_t UPGRADE_HEIGHT_V6 = 2325000; // Upgrade height for DIFFICULTY_TARGET_V3
 
         const uint32_t UPGRADE_HEIGHT_CURRENT = UPGRADE_HEIGHT_V6;
 
