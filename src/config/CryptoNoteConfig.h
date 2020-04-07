@@ -340,6 +340,7 @@ namespace CryptoNote
     const char* const SEED_NODES[] = {
         "195.154.81.135:12169", // bob bie
         "144.76.5.24:42069", // Pluto
+        "5.9.89.252:42069", // https://dego-data-dir.bot.tips
         "91.239.237.54:42069", // Leo Cuvée CZ
         "46.214.70.196:42069", // derogold4ever.online
     };
