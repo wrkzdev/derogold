@@ -5,7 +5,7 @@ import sys
 import json
 import requests
 
-topbuffer = 24 * 60 * 2
+topbuffer = (24 * 60 * 60) / 300
 
 if len (sys.argv) <> 2 :
     print "Invalid number of arguments! "

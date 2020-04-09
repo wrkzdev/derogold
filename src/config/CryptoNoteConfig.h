@@ -273,11 +273,11 @@ namespace CryptoNote
             {BLOCK_MAJOR_VERSION_6, Crypto::cn_turtle_lite_slow_hash_v2}, /* UPGRADE_HEIGHT_V6 */
     };
 
-    const size_t BLOCKS_IDS_SYNCHRONIZING_DEFAULT_COUNT = 10000; // by default, blocks ids count in synchronizing
+    const size_t BLOCKS_IDS_SYNCHRONIZING_DEFAULT_COUNT = 1000; // by default, blocks ids count in synchronizing
 
-    const uint64_t BLOCKS_SYNCHRONIZING_DEFAULT_COUNT = 20; // by default, blocks count in blocks downloading, reduced from 100 to 20 prior the 2,325,000 fork
+    const uint64_t BLOCKS_SYNCHRONIZING_DEFAULT_COUNT = 5; // by default, blocks count in blocks downloading, reduced from 100 to 20 prior the 2,325,000 fork
 
-    const size_t COMMAND_RPC_GET_BLOCKS_FAST_MAX_COUNT = 1000;
+    const size_t COMMAND_RPC_GET_BLOCKS_FAST_MAX_COUNT = 100;
 
     const int P2P_DEFAULT_PORT = 42069;
 
