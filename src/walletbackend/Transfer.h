@@ -135,6 +135,10 @@ namespace SendTransaction
     /* Verify fee is as expected */
     bool verifyTransactionFee(const uint64_t expectedFee, CryptoNote::Transaction tx);
 
+    std::vector<uint8_t> generateTransactionPoW(
+        CryptoNote::Transaction tx,
+        std::vector<uint8_t> extra);
+
     /* Template so we can do transaction, and transactionprefix */
     template<typename T> Crypto::Hash getTransactionHash(T tx)
     {
