@@ -2707,6 +2707,8 @@ namespace CryptoNote
             tx->addInput(makeAccountKeys(*input.walletRecord), input.keyInfo, input.ephKeys);
         }
 
+        tx->generateTxProofOfWork();
+
         size_t i = 0;
         for (auto &input : keysInfo)
         {
