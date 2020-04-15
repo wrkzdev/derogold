@@ -339,8 +339,6 @@ namespace SendTransaction
             return {UNEXPECTED_FEE, Crypto::Hash()};
         }
 
-        return {SUCCESS, Crypto::Hash()};
-
         const auto [sendError, txHash] = relayTransaction(txResult.transaction, daemon);
 
         if (sendError)

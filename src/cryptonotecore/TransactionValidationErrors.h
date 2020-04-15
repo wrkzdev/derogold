@@ -45,7 +45,8 @@ namespace CryptoNote
             OUTPUT_AMOUNT_TOO_LARGE,
             EXCESSIVE_OUTPUTS,
             WRONG_FEE,
-            SIZE_TOO_LARGE
+            SIZE_TOO_LARGE,
+            POW_INVALID
         };
 
         // custom category:
@@ -132,6 +133,8 @@ namespace CryptoNote
                         return "Transaction fee is below minimum fee and is not a fusion transaction";
                     case TransactionValidationError::SIZE_TOO_LARGE:
                         return "Transaction is too large (in bytes)";
+                    case TransactionValidationError::POW_INVALID:
+                        return "Transaction has a too weak proof of work";
                     default:
                         return "Unknown error";
                 }

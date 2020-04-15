@@ -558,7 +558,17 @@ bool ValidateTransaction::validateTransactionPoW()
     
     Crypto::cn_turtle_lite_slow_hash_v2(data.data(), data.size(), hash);
 
-    return CryptoNote::check_hash(hash, CryptoNote::parameters::TRANSACTION_POW_DIFFICULTY);
+    if (CryptoNote::check_hash(hash, CryptoNote::parameters::TRANSACTION_POW_DIFFICULTY))
+    {
+        return true;
+    }
+
+    setTransactionValidationResult(
+        CryptoNote::error::TransactionValidationError::POW_INVALID,
+        "Transaction has a too weak proof of work"
+    );
+
+    return false;
 }
 
 bool ValidateTransaction::validateTransactionInputsExpensive()
