@@ -52,10 +52,10 @@ namespace Utilities
         bool seenMergedMiningTag = false;
         bool seenPowNonce = false;
 
-        for (auto it = extra.begin(); it <= extra.end(); it++)
+        for (auto it = extra.begin(); it < extra.end(); it++)
         {
             /* Nothing else to parse. */
-            if (seenPubKey && seenPaymentID && seenMergedMiningTag && seenExtraData)
+            if (seenPubKey && seenPaymentID && seenMergedMiningTag && seenExtraData && seenPowNonce)
             {
                 break;
             }
