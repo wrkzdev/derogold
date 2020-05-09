@@ -174,7 +174,7 @@ namespace CryptoNote
 
         const size_t FUSION_TX_MIN_IN_OUT_COUNT_RATIO = 4;
 
-        const uint64_t FUSION_FEE_V1_HEIGHT = 2323846;
+        const uint64_t FUSION_FEE_V1_HEIGHT = 2325000;
 
         const uint64_t FUSION_FEE_V1 = 1000000;
 
