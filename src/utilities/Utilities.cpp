@@ -131,31 +131,31 @@ namespace Utilities
             return 0;
         }
 
-    uint64_t secondsSinceLaunch = 0;
+        uint64_t secondsSinceLaunch = 0;
 
-    /* How many seconds have passed since DIFFICULTY_TARGET_V3_HEIGHT */
-    if (scanHeight >= CryptoNote::parameters::DIFFICULTY_TARGET_V3_HEIGHT)
-    {
-        secondsSinceLaunch += (scanHeight - CryptoNote::parameters::DIFFICULTY_TARGET_V3_HEIGHT) * CryptoNote::parameters::DIFFICULTY_TARGET_V3;
-    }
+        /* How many seconds have passed since DIFFICULTY_TARGET_V3_HEIGHT */
+        if (scanHeight >= CryptoNote::parameters::DIFFICULTY_TARGET_V3_HEIGHT)
+        {
+            secondsSinceLaunch += (scanHeight - CryptoNote::parameters::DIFFICULTY_TARGET_V3_HEIGHT) / CryptoNote::parameters::DIFFICULTY_TARGET_V3;
+        }
 
-    /* How many seconds have passed between DIFFICULTY_TARGET_V2_HEIGHT and min(DIFFICULTY_TARGET_V3_HEIGHT, currentHeight) */
-    if (scanHeight >= CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT)
-    {
-        secondsSinceLaunch += (std::min(scanHeight, CryptoNote::parameters::DIFFICULTY_TARGET_V3_HEIGHT) - CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT) * CryptoNote::parameters::DIFFICULTY_TARGET_V3;
-    }
+        /* How many seconds have passed between DIFFICULTY_TARGET_V2_HEIGHT and min(DIFFICULTY_TARGET_V3_HEIGHT, currentHeight) */
+        if (scanHeight >= CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT)
+        {
+            secondsSinceLaunch += (std::min(scanHeight, CryptoNote::parameters::DIFFICULTY_TARGET_V3_HEIGHT) - CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT) / CryptoNote::parameters::DIFFICULTY_TARGET_V3;
+        }
 
-    /* How many seconds passed between start height and min(scanHeight, DIFFICULTY_TARGET_V2) */
-    secondsSinceLaunch += std::min(scanHeight, CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT)  * CryptoNote::parameters::DIFFICULTY_TARGET;
+        /* How many seconds passed between start height and min(scanHeight, DIFFICULTY_TARGET_V2) */
+        secondsSinceLaunch += std::min(scanHeight, CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT) / CryptoNote::parameters::DIFFICULTY_TARGET;
 
-    /* Get the genesis block timestamp and add the time since launch */
-    uint64_t timestamp = CryptoNote::parameters::GENESIS_BLOCK_TIMESTAMP + secondsSinceLaunch;
+        /* Get the genesis block timestamp and add the time since launch */
+        uint64_t timestamp = CryptoNote::parameters::GENESIS_BLOCK_TIMESTAMP + secondsSinceLaunch;
 
-    /* Don't make timestamp too large or daemon throws an error */
-    if (timestamp >= getCurrentTimestampAdjusted())
-    {
-        return getCurrentTimestampAdjusted();
-    }
+        /* Don't make timestamp too large or daemon throws an error */
+        if (timestamp >= getCurrentTimestampAdjusted())
+        {
+            return getCurrentTimestampAdjusted();
+        }
 
         return timestamp;
     }
