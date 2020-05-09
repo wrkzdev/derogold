@@ -136,18 +136,30 @@ namespace Utilities
         /* How many seconds have passed since DIFFICULTY_TARGET_V3_HEIGHT */
         if (scanHeight >= CryptoNote::parameters::DIFFICULTY_TARGET_V3_HEIGHT)
         {
-            secondsSinceLaunch += (scanHeight - CryptoNote::parameters::DIFFICULTY_TARGET_V3_HEIGHT) / CryptoNote::parameters::DIFFICULTY_TARGET_V3;
+            /* How many blocks since the scan height with v3 diff */
+            const uint64_t numBlocksWithV3Diff = scanHeight - CryptoNote::parameters::DIFFICULTY_TARGET_V3_HEIGHT;
+
+            /* Number of seconds in this time period is just the number of blocks
+             * multiplied by the average time per block */
+            secondsSinceLaunch += numBlocksWithV3Diff * CryptoNote::parameters::DIFFICULTY_TARGET_V3;
         }
 
         /* How many seconds have passed between DIFFICULTY_TARGET_V2_HEIGHT and min(DIFFICULTY_TARGET_V3_HEIGHT, currentHeight) */
         if (scanHeight >= CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT)
         {
-            secondsSinceLaunch += (std::min(scanHeight, CryptoNote::parameters::DIFFICULTY_TARGET_V3_HEIGHT) - CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT) / CryptoNote::parameters::DIFFICULTY_TARGET_V3;
+            const uint64_t maxV2Block = std::min(scanHeight, CryptoNote::parameters::DIFFICULTY_TARGET_V3_HEIGHT - 1);
+
+            /* How many blocks since the scan height with v2 diff */
+            const uint64_t numBlocksWithV2Diff = maxV2Block - CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT;
+
+            secondsSinceLaunch += numBlocksWithV2Diff * CryptoNote::parameters::DIFFICULTY_TARGET_V2;
         }
 
-        /* How many seconds passed between start height and min(scanHeight, DIFFICULTY_TARGET_V2) */
-        secondsSinceLaunch += std::min(scanHeight, CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT) / CryptoNote::parameters::DIFFICULTY_TARGET;
+        const uint64_t numBlocksWithV1Diff = std::min(scanHeight, CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT - 1);
 
+        /* How many seconds passed between start height and min(scanHeight, DIFFICULTY_TARGET_V2) */
+        secondsSinceLaunch += numBlocksWithV1Diff * CryptoNote::parameters::DIFFICULTY_TARGET;
+        
         /* Get the genesis block timestamp and add the time since launch */
         uint64_t timestamp = CryptoNote::parameters::GENESIS_BLOCK_TIMESTAMP + secondsSinceLaunch;
 
