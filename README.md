@@ -184,6 +184,10 @@ The binaries will be in the `src/Release` folder when you are complete.
 - `cd src`
 - `./DeroGoldd --version`
 
+##### Building with LevelDB
+Add this line to your cmake to compile source for LevelDB
+- `cmake .. -DCMAKE_BUILD_TYPE=Release -DWITH_LEVELDB=true`
+
 #### Thanks
 Cryptonote Developers, Bytecoin Developers, Monero Developers, Forknote Project, TurtleCoin Community
 
