@@ -170,7 +170,7 @@ namespace CryptoNote
 
         const size_t FUSION_TX_MAX_SIZE = CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_CURRENT * 30 / 100;
 
-        const size_t FUSION_TX_MIN_INPUT_COUNT = 12;
+        const size_t FUSION_TX_MIN_INPUT_COUNT = 120;
 
         const size_t FUSION_TX_MIN_IN_OUT_COUNT_RATIO = 4;
 
