@@ -22,6 +22,7 @@
 #include <wallet/WalletErrors.h>
 #include <wallet/WalletGreen.h>
 #include <wallet/WalletUtils.h>
+#include <zedwallet/Fusion.h>
 #include <zedwallet/Tools.h>
 
 bool parseAmount(std::string strAmount, uint64_t &amount)
@@ -548,11 +549,26 @@ void sendTX(
     {
         auto tx = walletInfo->wallet.formTransaction(p);
 
-        /* Transaction is too large. */
+        /* Transaction is too large. Lets try and perform fusion to let us
+           send more at once */
         if (walletInfo->wallet.txIsTooLarge(tx))
         {
-            splitTX(walletInfo->wallet, p, nodeFee);
-            return;
+            /* If the fusion transactions didn't completely unlock, abort tx */
+            if (!fusionTX(walletInfo->wallet, p, height))
+            {
+                return;
+            }
+
+            /* Reform with the optimized inputs */
+            tx = walletInfo->wallet.formTransaction(p);
+
+            /* If the transaction is still too large, lets split it up into
+               smaller chunks */
+            if (walletInfo->wallet.txIsTooLarge(tx))
+            {
+                splitTX(walletInfo->wallet, p, nodeFee);
+                return;
+            }
         }
 
         const size_t id = walletInfo->wallet.transfer(tx);

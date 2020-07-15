@@ -9,6 +9,7 @@
 #include <utilities/ColouredMsg.h>
 #include <zedwallet/AddressBook.h>
 #include <zedwallet/CommandImplementations.h>
+#include <zedwallet/Fusion.h>
 #include <zedwallet/Open.h>
 #include <zedwallet/Transfer.h>
 
@@ -75,6 +76,10 @@ bool handleCommand(const std::string command, std::shared_ptr<WalletInfo> wallet
     else if (command == "list_transfers")
     {
         listTransfers(true, true, walletInfo->wallet, node);
+    }
+    else if (command == "optimize")
+    {
+        fullOptimize(walletInfo->wallet, node.getLastKnownBlockHeight());
     }
     else if (command == "outgoing_transfers")
     {
