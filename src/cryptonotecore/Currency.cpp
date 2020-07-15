@@ -327,7 +327,7 @@ namespace CryptoNote
             inputAmount += amount;
         }
 
-        if (height >= CryptoNote::parameters::FUSION_FEE_V1_HEIGHT)
+        if (height >= CryptoNote::parameters::FUSION_FEE_V1_HEIGHT && height < CryptoNote::parameters::FUSION_FEE_V1_EXIT_HEIGHT)
         {
             inputAmount -= CryptoNote::parameters::FUSION_FEE_V1;
         }

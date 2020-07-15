@@ -176,6 +176,8 @@ namespace CryptoNote
 
         const uint64_t FUSION_FEE_V1_HEIGHT = 2325000;
 
+	const uint64_t FUSION_FEE_V1_EXIT_HEIGHT = 2361823;
+
         const uint64_t FUSION_FEE_V1 = 1000000;
 
         /* This sets the maximum number of fusion transactions that can be present in the pool
@@ -214,14 +216,14 @@ namespace CryptoNote
             1470000, // 1
             1980000, // 2
 	    2325000, // 3
-	    2400000, // 4
+	    2361823, // 4
 	    2500000, // 5
 	    2600000, // 6
 	    2700000, // 7
         };
 
         /* MAKE SURE TO UPDATE THIS VALUE WITH EVERY MAJOR RELEASE BEFORE A FORK */
-        const uint64_t SOFTWARE_SUPPORTED_FORK_INDEX = 3;
+        const uint64_t SOFTWARE_SUPPORTED_FORK_INDEX = 4;
 
         const uint64_t FORK_HEIGHTS_SIZE = sizeof(FORK_HEIGHTS) / sizeof(*FORK_HEIGHTS);
 
