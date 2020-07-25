@@ -173,7 +173,17 @@ namespace CryptoNote
             m_maxBlockSizeInitial
             + (height * m_maxBlockSizeGrowthSpeedNumerator) / m_maxBlockSizeGrowthSpeedDenominator);
         assert(maxSize >= m_maxBlockSizeInitial);
-        return maxSize;
+	if (height >= CryptoNote::parameters::MAX_BLOCK_SIZE_V1_HEIGHT)
+        {
+	    if (maxSize >= CryptoNote::parameters::MAX_BLOCK_SIZE_V1)
+	    {
+	        return CryptoNote::parameters::MAX_BLOCK_SIZE_V1;
+	    }
+            else 
+            {
+                return maxSize;
+            }
+        }
     }
 
     bool Currency::constructMinerTx(
