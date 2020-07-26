@@ -174,9 +174,9 @@ namespace CryptoNote
 
         const size_t FUSION_TX_MAX_SIZE = CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_CURRENT * 30 / 100;
 
-        const size_t FUSION_TX_MIN_INPUT_COUNT = 120;
+        const size_t FUSION_TX_MIN_INPUT_COUNT = 12;
 
-        const size_t FUSION_TX_MIN_IN_OUT_COUNT_RATIO = 14;
+        const size_t FUSION_TX_MIN_IN_OUT_COUNT_RATIO = 4;
 
         const uint64_t FUSION_FEE_V1_HEIGHT = 2325000;
 
@@ -188,7 +188,7 @@ namespace CryptoNote
             at any given time. Incoming fusion transactions that attempt to exceed this limit
             will be rejected from the pool and will not be added. This mechanism is in place
             to help curtail fusion transaction spam. */
-        const size_t FUSION_TX_MAX_POOL_COUNT = 420;
+        const size_t FUSION_TX_MAX_POOL_COUNT = 60;
 
         /* We just set it output max to 90 */
         const size_t NORMAL_TX_MAX_OUTPUT_COUNT_V1  = 90;
