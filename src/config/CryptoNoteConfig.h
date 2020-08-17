@@ -144,10 +144,10 @@ namespace CryptoNote
 
         const uint64_t MAX_EXTRA_SIZE_V3_HEIGHT = 1470000;
 
-        const uint64_t TRANSACTION_POW_HEIGHT = 2500000;
+        const uint64_t TRANSACTION_POW_HEIGHT = 2370000;
 
         /* Higher difficulty = More PoW (and thus time) to generate a transaction. */
-        const uint64_t TRANSACTION_POW_DIFFICULTY = 10000;
+        const uint64_t TRANSACTION_POW_DIFFICULTY = 17000;
 
         /* For new projects forked from this code base, the values immediately below
            should be changed to 0 to prevent issues with transaction processing
