@@ -227,13 +227,13 @@ namespace CryptoNote
             1980000, // 2
 	    2325000, // 3
 	    2361823, // 4
-	    2500000, // 5
+	    2370000, // 5
 	    2600000, // 6
 	    2700000, // 7
         };
 
         /* MAKE SURE TO UPDATE THIS VALUE WITH EVERY MAJOR RELEASE BEFORE A FORK */
-        const uint64_t SOFTWARE_SUPPORTED_FORK_INDEX = 4;
+        const uint64_t SOFTWARE_SUPPORTED_FORK_INDEX = 5;
 
         const uint64_t FORK_HEIGHTS_SIZE = sizeof(FORK_HEIGHTS) / sizeof(*FORK_HEIGHTS);
 
