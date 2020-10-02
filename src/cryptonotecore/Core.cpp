@@ -1868,6 +1868,12 @@ bool Core::getRawBlocks(
             return {false, "Pool already contains the maximum amount of fusion transactions"};
         }
 
+        if (cachedTransaction.getTransactionFee() < CryptoNote::parameters::MINIMUM_FEE_PASS_LIMIT_TX_POOL
+            && transactionPool->getTransactionCount() >= CryptoNote::parameters::TX_MAX_POOL_COUNT)
+        {
+            return {false, "Pool already contains the maximum amount of transactions"};
+        }
+
         uint64_t fee;
 
         if (auto validationResult =
