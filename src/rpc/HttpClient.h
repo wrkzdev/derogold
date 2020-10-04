@@ -12,6 +12,7 @@
 #include <memory>
 #include <system/TcpConnection.h>
 #include <system/TcpStream.h>
+#include <version.h>
 
 namespace CryptoNote
 {
@@ -60,7 +61,15 @@ namespace CryptoNote
         HttpResponse hres;
 
         hreq.addHeader("Content-Type", "application/json");
+
+        std::stringstream userAgent;
+
+        userAgent << "NodeRpcProxy/" << PROJECT_VERSION_LONG;
+
+        hreq.addHeader("User-Agent", userAgent.str());
+
         hreq.setUrl(url);
+
         hreq.setMethod(method);
 
         if (method == "POST")
@@ -86,6 +95,12 @@ namespace CryptoNote
     {
         HttpRequest hreq;
         HttpResponse hres;
+
+        std::stringstream userAgent;
+
+        userAgent << "NodeRpcProxy/" << PROJECT_VERSION_LONG;
+
+        hreq.addHeader("User-Agent", userAgent.str());
 
         hreq.setUrl(url);
         hreq.setBody(storeToBinaryKeyValue(req));

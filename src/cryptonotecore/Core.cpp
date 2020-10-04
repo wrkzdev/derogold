@@ -2,12 +2,14 @@
 // Copyright (c) 2014-2018, The Monero Project
 // Copyright (c) 2018-2019, The Galaxia Project Developers
 // Copyright (c) 2018-2019, The TurtleCoin Developers
+// Copyright (c) 2018-2020, The WrkzCoin developers
 //
 // Please see the included LICENSE file for more information.
 
 #include <WalletTypes.h>
 #include <algorithm>
 #include <common/CryptoNoteTools.h>
+#include <common/FileSystemShim.h>
 #include <common/Math.h>
 #include <common/MemoryInputStream.h>
 #include <common/ShuffleGenerator.h>
@@ -28,6 +30,7 @@
 #include <cryptonotecore/UpgradeManager.h>
 #include <cryptonotecore/ValidateTransaction.h>
 #include <cryptonoteprotocol/CryptoNoteProtocolHandlerCommon.h>
+#include <fstream>
 #include <numeric>
 #include <set>
 #include <system/Timer.h>
@@ -36,6 +39,7 @@
 #include <utilities/FormatTools.h>
 #include <utilities/LicenseCanary.h>
 #include <utilities/ParseExtra.h>
+#include <utilities/ThreadSafeQueue.h>
 
 using namespace Crypto;
 
@@ -200,32 +204,6 @@ namespace CryptoNote
             return emissionChange;
         }
 
-        uint32_t findCommonRoot(IMainChainStorage &storage, IBlockchainCache &rootSegment)
-        {
-            assert(storage.getBlockCount());
-            assert(rootSegment.getBlockCount());
-            assert(rootSegment.getStartBlockIndex() == 0);
-            assert(getBlockHash(storage.getBlockByIndex(0)) == rootSegment.getBlockHash(0));
-
-            uint32_t left = 0;
-            uint32_t right = std::min(storage.getBlockCount() - 1, rootSegment.getBlockCount() - 1);
-            while (left != right)
-            {
-                assert(right >= left);
-                uint32_t checkElement = left + (right - left) / 2 + 1;
-                if (getBlockHash(storage.getBlockByIndex(checkElement)) == rootSegment.getBlockHash(checkElement))
-                {
-                    left = checkElement;
-                }
-                else
-                {
-                    right = checkElement - 1;
-                }
-            }
-
-            return left;
-        }
-
         const std::chrono::seconds OUTDATED_TRANSACTION_POLLING_INTERVAL = std::chrono::seconds(60);
 
     } // namespace
@@ -236,8 +214,7 @@ namespace CryptoNote
         Checkpoints &&checkpoints,
         System::Dispatcher &dispatcher,
         std::unique_ptr<IBlockchainCacheFactory> &&blockchainCacheFactory,
-        std::unique_ptr<IMainChainStorage> &&mainchainStorage,
-	const uint32_t transactionValidationThreads):
+        const uint32_t transactionValidationThreads):
         currency(currency),
         dispatcher(dispatcher),
         contextGroup(dispatcher),
@@ -245,15 +222,14 @@ namespace CryptoNote
         checkpoints(std::move(checkpoints)),
         upgradeManager(new UpgradeManager()),
         blockchainCacheFactory(std::move(blockchainCacheFactory)),
-        mainChainStorage(std::move(mainchainStorage)),
         initialized(false),
-	m_transactionValidationThreadPool(transactionValidationThreads)
+        m_transactionValidationThreadPool(transactionValidationThreads)
     {
         upgradeManager->addMajorBlockVersion(BLOCK_MAJOR_VERSION_2, currency.upgradeHeight(BLOCK_MAJOR_VERSION_2));
         upgradeManager->addMajorBlockVersion(BLOCK_MAJOR_VERSION_3, currency.upgradeHeight(BLOCK_MAJOR_VERSION_3));
         upgradeManager->addMajorBlockVersion(BLOCK_MAJOR_VERSION_4, currency.upgradeHeight(BLOCK_MAJOR_VERSION_4));
         upgradeManager->addMajorBlockVersion(BLOCK_MAJOR_VERSION_5, currency.upgradeHeight(BLOCK_MAJOR_VERSION_5));
-	upgradeManager->addMajorBlockVersion(BLOCK_MAJOR_VERSION_6, currency.upgradeHeight(BLOCK_MAJOR_VERSION_6));
+        upgradeManager->addMajorBlockVersion(BLOCK_MAJOR_VERSION_6, currency.upgradeHeight(BLOCK_MAJOR_VERSION_6));
 
         transactionPool = std::unique_ptr<ITransactionPoolCleanWrapper>(new TransactionPoolCleanWrapper(
             std::unique_ptr<ITransactionPool>(new TransactionPool(logger)),
@@ -679,7 +655,7 @@ namespace CryptoNote
             /* Pop into a set for quicker .find() */
             std::unordered_set<Crypto::Hash> poolTransactions(txs.begin(), txs.end());
 
-            for (const auto hash : transactionHashes)
+            for (const auto &hash : transactionHashes)
             {
                 if (poolTransactions.find(hash) != poolTransactions.end())
                 {
@@ -771,7 +747,7 @@ namespace CryptoNote
                 firstBlockHeight);
 
             /* Difference between the start and end */
-            uint64_t blockDifference = currentIndex - startIndex;
+            uint64_t blockDifference = (currentIndex > startIndex) ? currentIndex - startIndex : startIndex - currentIndex;
 
             /* Sync actualBlockCount or the amount of blocks between
            start and end, whichever is smaller */
@@ -812,7 +788,7 @@ namespace CryptoNote
                 rawBlocks = mainChain->getBlocksByHeight(startIndex, endIndex);
             }
 
-            for (const auto rawBlock : rawBlocks)
+            for (const auto &rawBlock : rawBlocks)
             {
                 BlockTemplate block;
 
@@ -853,122 +829,122 @@ namespace CryptoNote
         }
     }
 
-/* Known block hashes = The hashes the wallet knows about. We'll give blocks starting from this hash.
-   Timestamp = The timestamp to start giving blocks from, if knownBlockHashes is empty. Used for syncing a new
-   wallet. walletBlocks = The returned vector of blocks */
-bool Core::getRawBlocks(
-    const std::vector<Crypto::Hash> &knownBlockHashes,
-    const uint64_t startHeight,
-    const uint64_t startTimestamp,
-    const uint64_t blockCount,
-    const bool skipCoinbaseTransactions,
-    std::vector<RawBlock> &blocks,
-    std::optional<WalletTypes::TopBlock> &topBlockInfo) const
-{
-    throwIfNotInitialized();
-
-    try
+    /* Known block hashes = The hashes the wallet knows about. We'll give blocks starting from this hash.
+       Timestamp = The timestamp to start giving blocks from, if knownBlockHashes is empty. Used for syncing a new
+       wallet. walletBlocks = The returned vector of blocks */
+    bool Core::getRawBlocks(
+        const std::vector<Crypto::Hash> &knownBlockHashes,
+        const uint64_t startHeight,
+        const uint64_t startTimestamp,
+        const uint64_t blockCount,
+        const bool skipCoinbaseTransactions,
+        std::vector<RawBlock> &blocks,
+        std::optional<WalletTypes::TopBlock> &topBlockInfo) const
     {
-        IBlockchainCache *mainChain = chainsLeaves[0];
+        throwIfNotInitialized();
 
-        /* Current height */
-        uint64_t currentIndex = mainChain->getTopBlockIndex();
-        Crypto::Hash currentHash = mainChain->getTopBlockHash();
-
-        uint64_t actualBlockCount = std::min(BLOCKS_SYNCHRONIZING_DEFAULT_COUNT, blockCount);
-
-        if (actualBlockCount == 0)
+        try
         {
-            actualBlockCount = BLOCKS_SYNCHRONIZING_DEFAULT_COUNT;
-        }
+            IBlockchainCache *mainChain = chainsLeaves[0];
 
-        auto [success, timestampBlockHeight] = mainChain->getBlockHeightForTimestamp(startTimestamp);
+            /* Current height */
+            uint64_t currentIndex = mainChain->getTopBlockIndex();
+            Crypto::Hash currentHash = mainChain->getTopBlockHash();
 
-        /* If no timestamp given, occasionaly the daemon returns a non zero
-       block height... for some reason. Set it back to zero if we didn't
-       give a timestamp to fix this. */
-        if (startTimestamp == 0)
-        {
-            timestampBlockHeight = 0;
-        }
+            uint64_t actualBlockCount = std::min(BLOCKS_SYNCHRONIZING_DEFAULT_COUNT, blockCount);
 
-        /* If we couldn't get the first block timestamp, then the node is
-       synced less than the current height, so return no blocks till we're
-       synced. */
-        if (startTimestamp != 0 && !success)
-        {
-            topBlockInfo = WalletTypes::TopBlock({currentHash, currentIndex});
+            if (actualBlockCount == 0)
+            {
+                actualBlockCount = BLOCKS_SYNCHRONIZING_DEFAULT_COUNT;
+            }
+
+            auto [success, timestampBlockHeight] = mainChain->getBlockHeightForTimestamp(startTimestamp);
+
+            /* If no timestamp given, occasionaly the daemon returns a non zero
+           block height... for some reason. Set it back to zero if we didn't
+           give a timestamp to fix this. */
+            if (startTimestamp == 0)
+            {
+                timestampBlockHeight = 0;
+            }
+
+            /* If we couldn't get the first block timestamp, then the node is
+           synced less than the current height, so return no blocks till we're
+           synced. */
+            if (startTimestamp != 0 && !success)
+            {
+                topBlockInfo = WalletTypes::TopBlock({currentHash, currentIndex});
+                return true;
+            }
+
+            /* If a height was given, start from there, else convert the timestamp
+           to a block */
+            uint64_t firstBlockHeight = startHeight == 0 ? timestampBlockHeight : startHeight;
+
+            /* The height of the last block we know about */
+            uint64_t lastKnownBlockHashHeight = static_cast<uint64_t>(findBlockchainSupplement(knownBlockHashes));
+
+            /* Start returning either from the start height, or the height of the
+           last block we know about, whichever is higher */
+            uint64_t startIndex = std::max(
+                /* Plus one so we return the next block - default to zero if it's zero,
+           otherwise genesis block will be skipped. */
+                lastKnownBlockHashHeight == 0 ? 0 : lastKnownBlockHashHeight + 1,
+                firstBlockHeight);
+
+            /* Difference between the start and end */
+            uint64_t blockDifference = (currentIndex > startIndex) ? currentIndex - startIndex : startIndex - currentIndex;
+
+            /* Sync actualBlockCount or the amount of blocks between
+           start and end, whichever is smaller */
+            uint64_t endIndex = std::min(actualBlockCount, blockDifference + 1) + startIndex;
+
+            logger(Logging::DEBUGGING) << "\n\n"
+                                       << "\n============================================="
+                                       << "\n========= GetRawBlocks summary ========="
+                                       << "\n* Known block hashes size: " << knownBlockHashes.size()
+                                       << "\n* Blocks requested: " << actualBlockCount
+                                       << "\n* Start height: " << startHeight
+                                       << "\n* Start timestamp: " << startTimestamp
+                                       << "\n* Current index: " << currentIndex
+                                       << "\n* Timestamp block height: " << timestampBlockHeight
+                                       << "\n* First block height: " << firstBlockHeight
+                                       << "\n* Last known block hash height: " << lastKnownBlockHashHeight
+                                       << "\n* Start index: " << startIndex
+                                       << "\n* Block difference: " << blockDifference << "\n* End index: " << endIndex
+                                       << "\n============================================="
+                                       << "\n\n\n";
+
+            /* If we're fully synced, then the start index will be greater than our
+           current block. */
+            if (currentIndex < startIndex)
+            {
+                topBlockInfo = WalletTypes::TopBlock({currentHash, currentIndex});
+                return true;
+            }
+
+            if (skipCoinbaseTransactions)
+            {
+                blocks = mainChain->getNonEmptyBlocks(startIndex, actualBlockCount);
+            }
+            else
+            {
+                blocks = mainChain->getBlocksByHeight(startIndex, endIndex);
+            }
+
+            if (blocks.empty())
+            {
+                topBlockInfo = WalletTypes::TopBlock({currentHash, currentIndex});
+            }
+
             return true;
         }
-
-        /* If a height was given, start from there, else convert the timestamp
-       to a block */
-        uint64_t firstBlockHeight = startHeight == 0 ? timestampBlockHeight : startHeight;
-
-        /* The height of the last block we know about */
-        uint64_t lastKnownBlockHashHeight = static_cast<uint64_t>(findBlockchainSupplement(knownBlockHashes));
-
-        /* Start returning either from the start height, or the height of the
-       last block we know about, whichever is higher */
-        uint64_t startIndex = std::max(
-            /* Plus one so we return the next block - default to zero if it's zero,
-       otherwise genesis block will be skipped. */
-            lastKnownBlockHashHeight == 0 ? 0 : lastKnownBlockHashHeight + 1,
-            firstBlockHeight);
-
-        /* Difference between the start and end */
-        uint64_t blockDifference = currentIndex - startIndex;
-
-        /* Sync actualBlockCount or the amount of blocks between
-       start and end, whichever is smaller */
-        uint64_t endIndex = std::min(actualBlockCount, blockDifference + 1) + startIndex;
-
-        logger(Logging::DEBUGGING) << "\n\n"
-                                   << "\n============================================="
-                                   << "\n========= GetRawBlocks summary ========="
-                                   << "\n* Known block hashes size: " << knownBlockHashes.size()
-                                   << "\n* Blocks requested: " << actualBlockCount
-                                   << "\n* Start height: " << startHeight
-                                   << "\n* Start timestamp: " << startTimestamp
-                                   << "\n* Current index: " << currentIndex
-                                   << "\n* Timestamp block height: " << timestampBlockHeight
-                                   << "\n* First block height: " << firstBlockHeight
-                                   << "\n* Last known block hash height: " << lastKnownBlockHashHeight
-                                   << "\n* Start index: " << startIndex
-                                   << "\n* Block difference: " << blockDifference << "\n* End index: " << endIndex
-                                   << "\n============================================="
-                                   << "\n\n\n";
-
-        /* If we're fully synced, then the start index will be greater than our
-       current block. */
-        if (currentIndex < startIndex)
+        catch (std::exception &e)
         {
-            topBlockInfo = WalletTypes::TopBlock({currentHash, currentIndex});
-            return true;
+            logger(Logging::ERROR) << "Failed to get wallet sync data: " << e.what();
+            return false;
         }
-
-        if (skipCoinbaseTransactions)
-        {
-            blocks = mainChain->getNonEmptyBlocks(startIndex, actualBlockCount);
-        }
-        else
-        {
-            blocks = mainChain->getBlocksByHeight(startIndex, endIndex);
-        }
-
-        if (blocks.empty())
-        {
-            topBlockInfo = WalletTypes::TopBlock({currentHash, currentIndex});
-        }
-
-        return true;
     }
-    catch (std::exception &e)
-    {
-        logger(Logging::ERROR) << "Failed to get wallet sync data: " << e.what();
-        return false;
-    }
-}
 
     WalletTypes::RawCoinbaseTransaction Core::getRawCoinbaseTransaction(const CryptoNote::Transaction &t)
     {
@@ -1117,9 +1093,10 @@ bool Core::getRawBlocks(
     }
 
     // TODO: just use mainChain->getDifficultyForNextBlock() ?
-    uint64_t Core::getDifficultyForNextBlock() const {
+    uint64_t Core::getDifficultyForNextBlock() const
+    {
         throwIfNotInitialized();
-        IBlockchainCache* mainChain = chainsLeaves[0];
+        IBlockchainCache *mainChain = chainsLeaves[0];
 
         uint32_t topBlockIndex = mainChain->getTopBlockIndex();
 
@@ -1262,11 +1239,13 @@ bool Core::getRawBlocks(
 
         uint64_t cumulativeFee = 0;
 
+        const uint64_t timestamp = cachedBlock.getBlock().timestamp;
+
         for (const auto &transaction : transactions)
         {
             uint64_t fee = 0;
             auto transactionValidationResult =
-                validateTransaction(transaction, validatorState, cache, m_transactionValidationThreadPool, fee, previousBlockIndex, false);
+                validateTransaction(transaction, validatorState, cache, m_transactionValidationThreadPool, fee, previousBlockIndex, timestamp, false);
 
             if (transactionValidationResult)
             {
@@ -1326,7 +1305,7 @@ bool Core::getRawBlocks(
         }
         else if (!currency.checkProofOfWork(cachedBlock, currentDifficulty))
         {
-            logger(Logging::WARNING) << "Proof of work too weak for block " << blockStr;
+            logger(Logging::DEBUGGING) << "Proof of work too weak for block " << blockStr;
             return error::BlockValidationError::PROOF_OF_WORK_TOO_WEAK;
         }
 
@@ -1342,8 +1321,6 @@ bool Core::getRawBlocks(
                 // TODO: exception safety
                 if (cache == chainsLeaves[0])
                 {
-                    mainChainStorage->pushBlock(rawBlock);
-
                     cache->pushBlock(
                         cachedBlock,
                         transactions,
@@ -1395,12 +1372,11 @@ bool Core::getRawBlocks(
                         updateBlockMedianSize();
 
                         /* Take the current block spent key images and run them
-			  against the pool to remove any transactions that may
-			  be in the pool that would now be considered invalid */
-			checkAndRemoveInvalidPoolTransactions(validatorState);
-                        copyTransactionsToPool(chainsLeaves[endpointIndex]);
+                           against the pool to remove any transactions that may
+                           be in the pool that would now be considered invalid */
+                        checkAndRemoveInvalidPoolTransactions(validatorState);
 
-                        switchMainChainStorage(chainsLeaves[0]->getStartBlockIndex(), *chainsLeaves[0]);
+                        copyTransactionsToPool(chainsLeaves[endpointIndex]);
 
                         ret = error::AddBlockErrorCode::ADDED_TO_ALTERNATIVE_AND_SWITCHED;
 
@@ -1484,29 +1460,29 @@ bool Core::getRawBlocks(
     }
 
     /* This method is a light version of transaction validation that is used
-      to clear the transaction pool of transactions that have been invalidated
-      by the addition of a block to the blockchain. As the transactions are already
-      in the pool, there are only a subset of normal transaction validation
-      tests that need to be completed to determine if the transaction can
-      stay in the pool at this time. */
+       to clear the transaction pool of transactions that have been invalidated
+       by the addition of a block to the blockchain. As the transactions are already
+       in the pool, there are only a subset of normal transaction validation
+       tests that need to be completed to determine if the transaction can
+       stay in the pool at this time. */
     void Core::checkAndRemoveInvalidPoolTransactions(
-	 const TransactionValidatorState blockTransactionsState)
+        const TransactionValidatorState blockTransactionsState)
     {
         auto &pool = *transactionPool;
 
-	const auto poolHashes = pool.getTransactionHashes();
+        const auto poolHashes = pool.getTransactionHashes();
 
-	const auto maxTransactionSize = getMaximumTransactionAllowedSize(blockMedianSize, currency);
+        const auto maxTransactionSize = getMaximumTransactionAllowedSize(blockMedianSize, currency);
 
-	for (const auto poolTxHash : poolHashes)
-	{
-		const auto poolTx = pool.tryGetTransaction(poolTxHash);
+        for (const auto &poolTxHash : poolHashes)
+        {
+            const auto poolTx = pool.tryGetTransaction(poolTxHash);
 
-                /* Tx got removed by another thread */
-                if (!poolTx)
-                {
+            /* Tx got removed by another thread */
+            if (!poolTx)
+            {
                 continue;
-                }
+            }
 
 		const auto poolTxState = extractSpentOutputs(*poolTx);
 
@@ -1514,35 +1490,33 @@ bool Core::getRawBlocks(
 
 		bool isValid = true;
 
-		/* If the transaction is in the chain but somehow was not previously removed, fail */
-		if (isTransactionInChain(poolTxHash))
-		{
-		    isValid = false;
-		}
-		/* If the transaction does not have the right number of mixins, fail */
-		else if (!mixinSuccess)
-		{
-			isValid = false;
-		}
-		/* If the transaction exceeds the maximum size of a transaction, fail */
-		else if (poolTx->getTransactionBinaryArray().size() > maxTransactionSize)
-		{
-			isValid = false;
-		}
-		/* If the the transaction contains outputs that were spent in the new block, fail */
-		else if (hasIntersections(blockTransactionsState, poolTxState))
-		{
-			isValid = false;
-		}
+            /* If the transaction is in the chain but somehow was not previously removed, fail */
+            if (isTransactionInChain(poolTxHash))
+            {
+                isValid = false;
+            }
+            /* If the transaction does not have the right number of mixins, fail */
+            else if (!mixinSuccess)
+            {
+                isValid = false;
+            }
+            /* If the transaction exceeds the maximum size of a transaction, fail */
+            else if (poolTx->getTransactionBinaryArray().size() > maxTransactionSize)
+            {
+                isValid = false;
+            }
+            /* If the the transaction contains outputs that were spent in the new block, fail */
+            else if (hasIntersections(blockTransactionsState, poolTxState))
+            {
+                isValid = false;
+            }
 
-		/* If the transaction is no longer valid, remove it from the pool
-		  and tell everyone else that they should also remove it from the pool */
-		if (!isValid)
-
-		{
-		    pool.removeTransaction(poolTxHash);
-		    notifyObservers(makeDelTransactionMessage({poolTxHash},
-		Messages::DeleteTransaction::Reason::NotActual));
+            /* If the transaction is no longer valid, remove it from the pool
+               and tell everyone else that they should also remove it from the pool */
+            if (!isValid)
+            {
+                pool.removeTransaction(poolTxHash);
+                notifyObservers(makeDelTransactionMessage({poolTxHash}, Messages::DeleteTransaction::Reason::NotActual));
             }
         }
     }
@@ -1550,32 +1524,16 @@ bool Core::getRawBlocks(
     /* This quickly finds out if a transaction is in the blockchain somewhere */
     bool Core::isTransactionInChain(const Crypto::Hash &txnHash)
     {
-	    throwIfNotInitialized();
+        throwIfNotInitialized();
 
-	    auto segment = findSegmentContainingTransaction(txnHash);
+        auto segment = findSegmentContainingTransaction(txnHash);
 
-	    if (segment != nullptr)
-	    {
-		    return true;
-            }
-
-	    return false;
-    }
-
-    void Core::switchMainChainStorage(uint32_t splitBlockIndex, IBlockchainCache &newChain)
-    {
-        assert(mainChainStorage->getBlockCount() > splitBlockIndex);
-
-        auto blocksToPop = mainChainStorage->getBlockCount() - splitBlockIndex;
-        for (size_t i = 0; i < blocksToPop; ++i)
+        if (segment != nullptr)
         {
-            mainChainStorage->popBlock();
+            return true;
         }
 
-        for (uint32_t index = splitBlockIndex; index <= newChain.getTopBlockIndex(); ++index)
-        {
-            mainChainStorage->pushBlock(newChain.getBlockByIndex(index));
-        }
+        return false;
     }
 
     void Core::notifyOnSuccess(
@@ -1748,6 +1706,7 @@ bool Core::getRawBlocks(
             case ExtractOutputKeysResult::OUTPUT_LOCKED:
             {
                 std::string error = "Output is locked";
+
                 logger(Logging::DEBUGGING) << error;
 
                 return {false, error};
@@ -1875,9 +1834,10 @@ bool Core::getRawBlocks(
         }
 
         uint64_t fee;
+        const uint64_t lastTimestamp = chainsLeaves[0]->getLastTimestamps(1)[0];
 
         if (auto validationResult =
-                validateTransaction(cachedTransaction, validatorState, chainsLeaves[0], m_transactionValidationThreadPool, fee, getTopBlockIndex(), true))
+                validateTransaction(cachedTransaction, validatorState, chainsLeaves[0], m_transactionValidationThreadPool, fee, getTopBlockIndex(), true, lastTimestamp))
         {
             logger(Logging::DEBUGGING) << "Transaction " << transactionHash
                                        << " is not valid. Reason: " << validationResult.message();
@@ -2064,10 +2024,10 @@ bool Core::getRawBlocks(
         fillBlockTemplate(b, medianSize, currency.maxBlockCumulativeSize(height), height, transactionsSize, fee);
 
         /*
-          two-phase miner transaction generation: we don't know exact block size until we prepare block, but we don't know
-          reward until we know
-          block size, so first miner transaction generated with fake amount of money, and with phase we know think we know
-          expected block size
+           two-phase miner transaction generation: we don't know exact block size until we prepare block, but we don't know
+           reward until we know
+           block size, so first miner transaction generated with fake amount of money, and with phase we know think we know
+           expected block size
         */
         // make blocks coin-base tx looks close to real coinbase tx to get truthful blob size
         bool r = currency.constructMinerTx(
@@ -2266,9 +2226,10 @@ bool Core::getRawBlocks(
         const CachedTransaction &cachedTransaction,
         TransactionValidatorState &state,
         IBlockchainCache *cache,
-	Utilities::ThreadPool<bool> &threadPool,
+        Utilities::ThreadPool<bool> &threadPool,
         uint64_t &fee,
         uint32_t blockIndex,
+        uint64_t blockTimestamp,
         const bool isPoolTransaction)
     {
         ValidateTransaction txValidator(
@@ -2277,9 +2238,10 @@ bool Core::getRawBlocks(
             cache,
             currency,
             checkpoints,
-	    threadPool,
+            threadPool,
             blockIndex,
             blockMedianSize,
+            blockTimestamp,
             isPoolTransaction
         );
 
@@ -2462,43 +2424,6 @@ bool Core::getRawBlocks(
 
         start_time = std::time(nullptr);
 
-        auto dbBlocksCount = chainsLeaves[0]->getTopBlockIndex() + 1;
-        auto storageBlocksCount = mainChainStorage->getBlockCount();
-
-        logger(Logging::DEBUGGING) << "Blockchain storage blocks count: " << storageBlocksCount
-                                   << ", DB blocks count: " << dbBlocksCount;
-
-        assert(storageBlocksCount != 0); // we assume the storage has at least genesis block
-
-        if (storageBlocksCount > dbBlocksCount)
-        {
-            logger(Logging::INFO) << "Importing blocks from blockchain storage";
-            importBlocksFromStorage();
-        }
-        else if (storageBlocksCount < dbBlocksCount)
-        {
-            auto cutFrom = findCommonRoot(*mainChainStorage, *chainsLeaves[0]) + 1;
-
-            logger(Logging::INFO) << "DB has more blocks than blockchain storage, cutting from block index: "
-                                  << cutFrom;
-            cutSegment(*chainsLeaves[0], cutFrom);
-
-            assert(chainsLeaves[0]->getTopBlockIndex() + 1 == mainChainStorage->getBlockCount());
-        }
-        else if (
-            getBlockHash(mainChainStorage->getBlockByIndex(storageBlocksCount - 1))
-            != chainsLeaves[0]->getTopBlockHash())
-        {
-            logger(Logging::INFO) << "Blockchain storage and root segment are on different chains. "
-                                  << "Cutting root segment to common block index "
-                                  << findCommonRoot(*mainChainStorage, *chainsLeaves[0]) << " and reimporting blocks";
-            importBlocksFromStorage();
-        }
-        else
-        {
-            logger(Logging::DEBUGGING) << "Blockchain storage and root segment are on the same height and chain";
-        }
-
         initialized = true;
     }
 
@@ -2518,74 +2443,453 @@ bool Core::getRawBlocks(
         chainsLeaves[0]->load();
     }
 
-    void Core::importBlocksFromStorage()
+    void writeBlockchain(
+        ThreadSafeQueue<std::future<std::vector<RawBlock>>> &blockQueue,
+        std::fstream &blockchainDump,
+        const uint64_t startIndex,
+        const uint64_t endIndex)
     {
-        uint32_t commonIndex = findCommonRoot(*mainChainStorage, *chainsLeaves[0]);
-        assert(commonIndex <= mainChainStorage->getBlockCount());
+        uint64_t height = startIndex;
 
-        cutSegment(*chainsLeaves[0], commonIndex + 1);
-
-        auto previousBlockHash = getBlockHash(mainChainStorage->getBlockByIndex(commonIndex));
-        auto blockCount = mainChainStorage->getBlockCount();
-        for (uint32_t i = commonIndex + 1; i < blockCount; ++i)
+        while (true)
         {
-            RawBlock rawBlock = mainChainStorage->getBlockByIndex(i);
-            auto blockTemplate = extractBlockTemplate(rawBlock);
-            CachedBlock cachedBlock(blockTemplate);
-
-            if (blockTemplate.previousBlockHash != previousBlockHash)
+            /* Loop through promises */
+            for (auto &block : blockQueue.pop().get())
             {
-                logger(Logging::ERROR)
-                    << "Local blockchain corruption detected. " << std::endl
-                    << "Block with index " << i << " and hash " << cachedBlock.getBlockHash()
-                    << " has previous block hash " << blockTemplate.previousBlockHash << ", but parent has hash "
-                    << previousBlockHash << "." << std::endl
-                    << "Please try to repair this issue by starting the node with the option: --rewind-to-height " << i
-                    << std::endl
-                    << "If the above does not repair the issue, please launch the node with the option: --resync"
-                    << std::endl;
-                throw std::system_error(make_error_code(error::CoreErrorCode::CORRUPTED_BLOCKCHAIN));
+                const auto blockBinary = toBinaryArray(block);
+                const std::string blockBinaryStr = std::string(blockBinary.begin(), blockBinary.end());
+
+                /* Height - Size of following block - Block */
+                const std::string line = std::to_string(height) + " " + std::to_string(blockBinaryStr.size()) + " " + blockBinaryStr + " ";
+
+                if (!line.empty() && line != " ")
+                {
+                    blockchainDump.write(line.c_str(), line.size());
+                    height++;
+                } else
+                {
+                    blockchainDump.close();
+                    return;
+                }
             }
 
-            previousBlockHash = cachedBlock.getBlockHash();
-
-            std::vector<CachedTransaction> transactions;
-            uint64_t cumulativeSize = 0;
-            if (!extractTransactions(rawBlock.transactions, transactions, cumulativeSize))
+            /* All blocks exported. */
+            if (height == endIndex)
             {
-                logger(Logging::ERROR) << "Couldn't deserialize raw block transactions in block "
-                                       << cachedBlock.getBlockHash();
-                throw std::system_error(make_error_code(error::AddBlockErrorCode::DESERIALIZATION_FAILED));
+                blockchainDump.close();
+                return;
             }
+        }        
+    }
 
-            cumulativeSize += getObjectBinarySize(blockTemplate.baseTransaction);
-            TransactionValidatorState spentOutputs = extractSpentOutputs(transactions);
-            auto currentDifficulty = chainsLeaves[0]->getDifficultyForNextBlock(i - 1);
+    /* Note: Final block height will be endIndex - 1 */
+    std::string Core::exportBlockchain(
+        const std::string filePath,
+        const uint64_t numBlocks)
+    {
+        fs::path dumpfile = filePath;
 
-            uint64_t cumulativeFee = std::accumulate(
-                transactions.begin(),
-                transactions.end(),
-                UINT64_C(0),
-                [](uint64_t fee, const CachedTransaction &transaction) {
-                    return fee + transaction.getTransactionFee();
-                });
-
-            int64_t emissionChange =
-                getEmissionChange(currency, *chainsLeaves[0], i - 1, cachedBlock, cumulativeSize, cumulativeFee);
-            chainsLeaves[0]->pushBlock(
-                cachedBlock,
-                transactions,
-                spentOutputs,
-                cumulativeSize,
-                emissionChange,
-                currentDifficulty,
-                std::move(rawBlock));
-
-            if (i % 1000 == 0)
-            {
-                logger(Logging::INFO) << "Imported block with index " << i << " / " << (blockCount - 1);
-            }
+        if (fs::exists(dumpfile))
+        {
+            return filePath + " already exists.";
         }
+
+        IBlockchainCache *mainChain = chainsLeaves[0];
+        uint64_t currentIndex = mainChain->getTopBlockIndex() + 1;
+
+        uint64_t endIndex = currentIndex;
+
+        if (numBlocks > 0 && numBlocks <= endIndex)
+        {
+            endIndex = numBlocks;
+        } else if (numBlocks > endIndex)
+        {
+            return "Out of range. endIndex only: " + std::to_string(endIndex);
+        }
+        uint64_t startIndex = 1;
+
+        if (endIndex < 1000 || endIndex > CryptoNote::parameters::CRYPTONOTE_MAX_BLOCK_NUMBER)
+        {
+            return "Top block is too low or too high, not going to create an export. endIndex: " + std::to_string(endIndex);
+        }
+
+        std::fstream blockchainDump(filePath, std::ios::out | std::ios_base::binary);
+
+        if (!blockchainDump)
+        {
+            return "Failed to open filepath specified: " + std::string(strerror(errno));
+        }
+
+        uint64_t threadCount = std::thread::hardware_concurrency();
+
+        /* Could not detect thread count */
+        if (threadCount == 0)
+        {
+            threadCount = 1;
+        }
+
+        const uint64_t batchSizePerThread = 1000;
+        const uint64_t batchSizePerLoop = batchSizePerThread * threadCount;
+
+        Utilities::ThreadPool<std::vector<RawBlock>> threadPool(threadCount);
+
+        ThreadSafeQueue<std::future<std::vector<RawBlock>>> pendingBlocks;
+
+        std::thread writeThread(writeBlockchain, std::ref(pendingBlocks), std::ref(blockchainDump), startIndex, endIndex);
+
+        for (uint64_t index = startIndex; index < endIndex; index += batchSizePerLoop)
+        {
+            while (pendingBlocks.size() > threadCount)
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            }
+
+            for (uint64_t threadNum = 0; threadNum < threadCount; threadNum++)
+            {
+                const uint64_t batchStart = index + (batchSizePerThread * threadNum);
+
+                if (batchStart >= endIndex)
+                {
+                    break;
+                }
+
+                /* Ensure we don't overshoot the endIndex */
+                const uint64_t batchEnd = std::min(batchStart + batchSizePerThread, endIndex);
+
+                /* Fetch a batch of blocks on each thread. Ensure we take the
+                 * args we capture by value, not reference here, or the batches
+                 * will get all messed up. */
+                pendingBlocks.pushMove(std::move(threadPool.addJob([batchStart, batchEnd, &mainChain] {
+                    return mainChain->getBlocksByHeight(batchStart, batchEnd);
+                })));
+            }
+
+            auto time = std::time(nullptr);
+
+            std::cout << "Progress [" << index << " / " << endIndex << "]" 
+                      << " @ Time [" << std::put_time(std::localtime(&time), "%H:%M:%S") 
+                      << "]" << std::endl;
+        }
+
+        writeThread.join();
+
+        auto time_end = std::time(nullptr);
+
+        std::cout << "Progress [" << endIndex << " / " << endIndex << "]" 
+                  << " @ Time [" << std::put_time(std::localtime(&time_end), "%H:%M:%S") 
+                  << "]" << std::endl;
+
+        return std::string();
+    }
+
+    std::tuple<uint64_t, RawBlock, std::string> readRawBlock(std::ifstream &blockchainDump, uint64_t prevBlockHeight)
+    {
+        std::string blockIndexStr;
+        std::string rawBlockLenStr;
+
+        /* Read in the block height and the length of the following raw block */
+        blockchainDump >> blockIndexStr >> rawBlockLenStr;
+
+        if (blockIndexStr.empty() || blockIndexStr == " " || rawBlockLenStr.empty() || rawBlockLenStr == " ")
+        {
+            return { 0, RawBlock(), "Empty blockIndexStr or rawBlockLenStr" };
+        }
+
+        try
+        {
+            uint64_t blockIndex = std::stoull(blockIndexStr);
+            uint64_t rawBlockLen = std::stoull(rawBlockLenStr);
+
+            /* Verify block height is previous height + 1. If importing
+             * initial block, we don't know the previous block height, so don't
+             * verify this. */
+            if (blockIndex != prevBlockHeight + 1 && prevBlockHeight != 0)
+            {
+                std::stringstream stream;
+
+                stream << "Blockchain import file is invalid, found block "
+                       << "height of " << blockIndex << " after previous block "
+                       << "height of " << prevBlockHeight;
+
+                return { 0, RawBlock(), stream.str() };
+            }
+
+            /* Allocate space for us to read in the raw block */
+            std::string rawBlockStr;
+            rawBlockStr.resize(rawBlockLen);
+
+            /* Advance stream by one char to skip space character */
+            blockchainDump.ignore();
+
+            /* Read raw block */
+            if (!blockchainDump.read(rawBlockStr.data(), rawBlockLen))
+            {
+                std::stringstream stream;
+
+                stream << "Blockchain import file is invalid, rawBlockLen "
+                       << "exceeds end of file while parsing block with height "
+                       << blockIndex << ". Error: " << strerror(errno) << ", rawBlockLen: " << rawBlockLen;
+
+                return { 0, RawBlock(), stream.str() };
+            }
+
+            RawBlock rawBlock;
+
+            /* Parse raw block */
+            if (!fromBinaryArray(rawBlock, std::vector<uint8_t>(rawBlockStr.begin(), rawBlockStr.end())))
+            {
+                std::stringstream stream;
+
+                stream << "[!rawBlock] Blockchain import file is invalid, cannot parse "
+                       << "rawBlock at height " << blockIndex;
+
+                return { 0, RawBlock(), stream.str() };
+            }
+
+            /* Advance stream by one char to skip space character */
+            blockchainDump.ignore();
+
+            return { blockIndex, rawBlock, std::string() };
+        }
+        catch (const std::exception &e)
+        {
+            std::stringstream stream;
+
+            stream << "[exception] Blockchain import file is invalid, cannot parse block "
+                   << "index at height " << prevBlockHeight + 1 << " " << e.what() << "blockIndexStr: " << blockIndexStr << " rawBlockLenStr: " << rawBlockLenStr;
+
+            return { 0, RawBlock(), stream.str() };
+        }
+    }
+
+    std::tuple<Crypto::Hash, std::string> Core::importRawBlock(
+        RawBlock &rawBlock,
+        const Crypto::Hash previousBlockHash,
+        const uint64_t height,
+        const bool lastBlock)
+    {
+        if ((height > 0 && (height % 1000 == 0)) || lastBlock)
+        {
+            auto time = std::time(nullptr);
+
+            std::cout << "Importing block [" << height << "]"
+                      << " @ Time [" << std::put_time(std::localtime(&time), "%H:%M:%S") 
+                      << "]" << std::endl;
+        }
+
+        const BlockTemplate blockTemplate = extractBlockTemplate(rawBlock);
+        const CachedBlock cachedBlock(blockTemplate);
+
+        if (blockTemplate.previousBlockHash != previousBlockHash && height != 0)
+        {
+            std::stringstream stream;
+
+            stream << "Blockchain import file is invalid, previous block hash "
+                   << "of rawBlock at height " << height
+                   << " does not match calculated block hash for rawBlock at "
+                   << "height " << (height - 1);
+
+            return { Crypto::Hash(), stream.str() };
+        }
+
+        std::vector<CachedTransaction> transactions;
+        uint64_t cumulativeSize = 0;
+
+        /* Parse transactions from raw block, get cumulative size of them */
+        if (!extractTransactions(rawBlock.transactions, transactions, cumulativeSize))
+        {
+            std::stringstream stream;
+
+            stream << "Blockchain import file is invalid, cannot parse rawBlock "
+                   << "transactions at height " << height;
+
+            return { Crypto::Hash(), stream.str() };
+        }
+
+        /* Append cumulative size of the block itself */
+        cumulativeSize += getObjectBinarySize(blockTemplate.baseTransaction);
+
+        const TransactionValidatorState spentOutputs = extractSpentOutputs(transactions);
+        const uint64_t currentDifficulty = chainsLeaves[0]->getDifficultyForNextBlock(height - 1);
+
+        /* Total fee of transactions in block */
+        uint64_t cumulativeFee = 0;
+
+        for (const auto &tx : transactions)
+        {
+            cumulativeFee += tx.getTransactionFee();
+        }
+
+        const int64_t emissionChange = getEmissionChange(
+            currency,
+            *chainsLeaves[0],
+            height - 1,
+            cachedBlock,
+            cumulativeSize,
+            cumulativeFee
+        );
+
+        chainsLeaves[0]->pushBlock(
+            cachedBlock,
+            transactions,
+            spentOutputs, 
+            cumulativeSize,
+            emissionChange,
+            currentDifficulty,
+            std::move(rawBlock)
+        );
+
+        return { cachedBlock.getBlockHash(), std::string() };
+    }
+
+    std::string Core::importBlockchain(
+        const std::string filePath,
+        const bool performExpensiveValidation)
+    {
+        IBlockchainCache *mainChain = chainsLeaves[0];
+
+        uint64_t currentIndex = chainsLeaves[0]->getTopBlockIndex() + 1;
+
+        std::cout << "Existing DB has currentIndex: " << currentIndex << std::endl;
+
+        std::ifstream blockchainDump(filePath, std::ios::in | std::ios_base::binary);
+
+        if (!blockchainDump)
+        {
+            return "Failed to open filepath specified: " + std::string(strerror(errno));
+        }
+
+        RawBlock rawBlock;
+        uint64_t startHeight;
+        std::string err;
+        Crypto::Hash previousBlockHash;
+
+        /* Read in first block to figure out start height */
+        std::tie(startHeight, rawBlock, err) = readRawBlock(blockchainDump, 0);
+
+        if (err != "")
+        {
+            return err;
+        }
+
+        /* Blockchain import file starts at a greater height than our database.
+         * Cannot import if there are gaps in the chain. */
+        if (startHeight > currentIndex && currentIndex != 1)
+        {
+            return "Blockchain import file starts at block height of " + std::to_string(startHeight)
+                + ", while database is at block height of " + std::to_string(currentIndex)
+                + ". Cannot import until database is at same height or higher than blockchain import file.";
+        }
+
+        uint64_t blockHeight = startHeight;
+
+        /* Import the first block, if from empty database */
+        if (currentIndex == 1)
+        {
+            std::tie(previousBlockHash, err) = importRawBlock(rawBlock, getBlockHashByIndex(blockHeight - 1), blockHeight, true);
+        }
+
+        if (err != "")
+        {
+            return err;
+        }
+
+        /* Read rest of blocks line by line. */
+        uint64_t topHeight = startHeight;
+
+        while (blockchainDump)
+        {
+            /* Read block */
+            try {
+                std::tie(blockHeight, rawBlock, err) = readRawBlock(blockchainDump, blockHeight);
+                if ((blockHeight <= currentIndex - 1) && currentIndex != 1)
+                {
+                    previousBlockHash = chainsLeaves[0]->getBlockHash(blockHeight);;
+
+                    ++topHeight;
+
+                    if (blockHeight > 1 && (blockHeight +1) % 1000 == 0 
+                    && err != "Empty blockIndexStr or rawBlockLenStr")
+                    {
+                        std::cout << "Skipped block " << (blockHeight) << " previousBlockHash: " << previousBlockHash 
+                                  << std::endl;
+                    }
+
+                    continue;
+                }
+            } catch (const std::exception &e)
+            {
+                break;
+                return err;
+            }
+
+            if (err != "" && err != "Empty blockIndexStr or rawBlockLenStr")
+            {
+                return err;
+            }
+
+            if (err == "Empty blockIndexStr or rawBlockLenStr")
+            {
+                std::cout << "Completed at block " << (topHeight + 1) << std::endl;
+
+                return std::string();
+            }
+
+            if (performExpensiveValidation)
+            {
+                const auto errorCode = addBlock(std::move(rawBlock));
+
+                if (errorCode)
+                {
+                    return "Blockchain import file is invalid, " + errorCode.message();
+                }
+            }
+            else
+            {
+                /* Add block to chain */
+                std::tie(previousBlockHash, err) = importRawBlock(rawBlock, previousBlockHash, blockHeight, false);
+
+                if (err != "")
+                {
+                    return err;
+                }
+            }
+            ++topHeight;
+        }
+
+        if (!blockchainDump.eof())
+        {
+            return "Blockchain import failed, failed to read from file but file has more data to be read.";
+        }
+
+        return std::string();
+    }
+
+    void Core::rewind(const uint64_t blockIndex)
+    {
+        IBlockchainCache *mainChain = chainsLeaves[0];
+
+        if (mainChain->getTopBlockIndex() < blockIndex)
+        {
+            logger(Logging::INFO) << "getTopBlockIndex less than rewound height: " << std::to_string(mainChain->getTopBlockIndex()) << " . Ignored `--rewind-to-height`";
+            return;
+        }
+
+        if (mainChain->getTopBlockIndex() - blockIndex > CryptoNote::parameters::MAX_BLOCK_ALLOWED_TO_REWIND)
+        {
+            logger(Logging::INFO) << "You can only rewind to " << std::to_string(mainChain->getTopBlockIndex() - CryptoNote::parameters::MAX_BLOCK_ALLOWED_TO_REWIND) << ". Skipped rewinding.";
+            return;
+        }
+
+        if (mainChain->getTopBlockIndex() < CryptoNote::parameters::MAX_BLOCK_ALLOWED_TO_REWIND)
+        {
+            logger(Logging::INFO) << "getTopBlockIndex too low: " << std::to_string(mainChain->getTopBlockIndex()) << " . You can try resync instead.";
+            return;
+        }
+
+        mainChain->rewind(blockIndex);
+
+        logger(Logging::INFO) << "Blockchain rewound to: " << blockIndex << std::endl;
     }
 
     void Core::cutSegment(IBlockchainCache &segment, uint32_t startIndex)
@@ -2940,9 +3244,10 @@ bool Core::getRawBlocks(
             nullptr, /* Not used in revalidateAfterHeightChange() */
             currency,
             checkpoints,
-	    m_transactionValidationThreadPool,
+            m_transactionValidationThreadPool,
             blockHeight,
             blockMedianSize,
+            chainsLeaves[0]->getLastTimestamps(1)[0],
             true /* Pool transaction */
         );
 
@@ -2991,7 +3296,7 @@ bool Core::getRawBlocks(
                 }
 
                 /* Make sure that we have not already spent funds in this same block via
-                 another transaction that we've already included in this block template */
+                   another transaction that we've already included in this block template */
                 if (!spentInputsChecker.haveSpentInputs(transaction.getTransaction()))
                 {
                     transactionsSize += transaction.getTransactionBinaryArray().size();
@@ -3586,12 +3891,6 @@ bool Core::getRawBlocks(
 
         blockMedianSize =
             std::max(Common::medianValue(lastBlockSizes), static_cast<uint64_t>(nextBlockGrantedFullRewardZone));
-    }
-
-    uint64_t Core::get_current_blockchain_height() const
-    {
-        // TODO: remove when GetCoreStatistics is implemented
-        return mainChainStorage->getBlockCount();
     }
 
     std::time_t Core::getStartTime() const

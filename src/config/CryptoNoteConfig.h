@@ -259,6 +259,9 @@ namespace CryptoNote
         const char P2P_NET_DATA_FILENAME[] = "p2pstate.bin";
 
         const char MINER_CONFIG_FILE_NAME[] = "miner_conf.json";
+        /* Maximum allowable blocks to rewind from existing chain */
+        const uint64_t MAX_BLOCK_ALLOWED_TO_REWIND = EXPECTED_NUMBER_OF_BLOCKS_PER_DAY * 3;
+
     } // namespace parameters
 
     const char CRYPTONOTE_NAME[] = "DeroGold";
@@ -333,19 +336,16 @@ namespace CryptoNote
     const uint64_t P2P_DEFAULT_INVOKE_TIMEOUT = 60 * 2 * 1000; // 2 minutes
     const size_t P2P_DEFAULT_HANDSHAKE_INVOKE_TIMEOUT = 5000; // 5 seconds
     const char P2P_STAT_TRUSTED_PUB_KEY[] = "";
-#if !defined(USE_LEVELDB)
-    const uint64_t DATABASE_WRITE_BUFFER_MB_DEFAULT_SIZE = 256; // 256 MB
-    const uint64_t DATABASE_READ_BUFFER_MB_DEFAULT_SIZE = 512; // 512 MB
-    const uint32_t DATABASE_DEFAULT_MAX_OPEN_FILES = -1; // 64 max. files. Highend server just use -1 for no limit
-    const uint16_t DATABASE_DEFAULT_BACKGROUND_THREADS_COUNT = 4; // 4 DB IncreaseParallelism
-    const uint64_t DATABASE_MAX_BYTES_FOR_LEVEL_BASE = 20 * DATABASE_WRITE_BUFFER_MB_DEFAULT_SIZE; // Additional tweak testing
-#else
-    const uint64_t DATABASE_WRITE_BUFFER_MB_DEFAULT_SIZE = 64; // 64 MB /using
-    const uint64_t DATABASE_READ_BUFFER_MB_DEFAULT_SIZE = 64; // 64 MB /using -> block_cache size
-    const uint32_t DATABASE_DEFAULT_MAX_OPEN_FILES = 128; // /using
-    const uint16_t DATABASE_DEFAULT_BACKGROUND_THREADS_COUNT = 8; //  /not using
-    const uint64_t DATABASE_MAX_BYTES_FOR_LEVEL_BASE = 20 * DATABASE_WRITE_BUFFER_MB_DEFAULT_SIZE; //  /not using
-#endif
+
+    const uint64_t ROCKSDB_WRITE_BUFFER_MB = 32; // 32 MB
+    const uint64_t ROCKSDB_READ_BUFFER_MB = 256; // 256 MB
+    const uint64_t ROCKSDB_MAX_OPEN_FILES = 512; // 512 files
+    const uint64_t ROCKSDB_BACKGROUND_THREADS = 8; // 4 DB threads
+
+    const uint64_t LEVELDB_WRITE_BUFFER_MB = 4; // 4 MB
+    const uint64_t LEVELDB_READ_BUFFER_MB = 128; // 128 MB
+    const uint64_t LEVELDB_MAX_OPEN_FILES = 512; // 512 files
+    const uint64_t LEVELDB_MAX_FILE_SIZE_MB = 1024; // 1024MB = 1GB
 
     const char LATEST_VERSION_URL[] = "https://github.com/derogold/derogold/releases";
 

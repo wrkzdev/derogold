@@ -106,7 +106,7 @@ std::tuple<uint64_t, uint64_t> SubWallet::getBalance(const uint64_t currentHeigh
 {
     uint64_t unlockedBalance = 0;
     uint64_t lockedBalance = 0;
-    for (const auto input : m_unspentInputs)
+    for (const auto &input : m_unspentInputs)
     {
         /* If an unlock height is present, check if the input is unlocked */
         if (Utilities::isInputUnlocked(input.unlockTime, currentHeight))
@@ -120,19 +120,17 @@ std::tuple<uint64_t, uint64_t> SubWallet::getBalance(const uint64_t currentHeigh
     }
 
     /* Add the locked balance from incoming transactions */
-    for (const auto unconfirmedInput : m_unconfirmedIncomingAmounts)
+    for (const auto &unconfirmedInput : m_unconfirmedIncomingAmounts)
     {
         lockedBalance += unconfirmedInput.amount;
     }
     return {unlockedBalance, lockedBalance};
 }
 
-void SubWallet::reset(
-    const uint64_t startHeight,
-    const uint64_t startTimestamp)
+void SubWallet::reset(const uint64_t scanHeight)
 {
-    m_syncStartTimestamp = startTimestamp;
-    m_syncStartHeight = startHeight;
+    m_syncStartTimestamp = 0;
+    m_syncStartHeight = scanHeight;
     m_lockedInputs.clear();
     m_unconfirmedIncomingAmounts.clear();
     m_unspentInputs.clear();
@@ -339,7 +337,7 @@ void SubWallet::removeCancelledTransactions(const std::unordered_set<Crypto::Has
 std::vector<WalletTypes::TxInputAndOwner> SubWallet::getSpendableInputs(const uint64_t height) const
 {
     std::vector<WalletTypes::TxInputAndOwner> inputs;
-    for (const auto input : m_unspentInputs)
+    for (const auto &input : m_unspentInputs)
     {
         if (Utilities::isInputUnlocked(input.unlockTime, height))
         {

@@ -1,5 +1,6 @@
 // Copyright (c) 2012-2017, The CryptoNote developers, The Bytecoin developers
 // Copyright (c) 2018-2019, The TurtleCoin Developers
+// Copyright (c) 2018-2020, The WrkzCoin developers
 //
 // Please see the included LICENSE file for more information.
 
@@ -15,19 +16,19 @@
 #include "IBlockchainCacheFactory.h"
 #include "ICore.h"
 #include "ICoreInformation.h"
-#include "IMainChainStorage.h"
 #include "ITransactionPool.h"
 #include "ITransactionPoolCleaner.h"
 #include "IUpgradeManager.h"
 #include "MessageQueue.h"
 #include "TransactionValidatiorState.h"
-#include <utilities/ThreadPool.h>
 
 #include <WalletTypes.h>
 #include <ctime>
 #include <logging/LoggerMessage.h>
 #include <system/ContextGroup.h>
 #include <unordered_map>
+#include <utilities/ThreadPool.h>
+#include <utilities/ThreadSafeQueue.h>
 #include <vector>
 
 namespace CryptoNote
@@ -41,8 +42,7 @@ namespace CryptoNote
             Checkpoints &&checkpoints,
             System::Dispatcher &dispatcher,
             std::unique_ptr<IBlockchainCacheFactory> &&blockchainCacheFactory,
-            std::unique_ptr<IMainChainStorage> &&mainChainStorage,
-	    uint32_t transactionValidationThreads);
+            uint32_t transactionValidationThreads);
 
         virtual ~Core();
 
@@ -218,11 +218,25 @@ namespace CryptoNote
 
         virtual std::vector<Crypto::Hash> getTransactionHashesByPaymentId(const Crypto::Hash &paymentId) const override;
 
-        virtual uint64_t get_current_blockchain_height() const;
-
-	static WalletTypes::RawCoinbaseTransaction getRawCoinbaseTransaction(const CryptoNote::Transaction &t);
+        static WalletTypes::RawCoinbaseTransaction getRawCoinbaseTransaction(const CryptoNote::Transaction &t);
 
         static WalletTypes::RawTransaction getRawTransaction(const std::vector<uint8_t> &rawTX);
+
+        virtual std::string exportBlockchain(
+            const std::string filePath,
+            const uint64_t numBlocks) override;
+
+        virtual std::tuple<Crypto::Hash, std::string> importRawBlock(
+            RawBlock &rawBlock,
+            const Crypto::Hash previousBlockHash,
+            const uint64_t height,
+            const bool lastBlock) override;
+
+        virtual std::string importBlockchain(
+            const std::string filePath,
+            const bool performExpensiveValidation) override;
+
+        virtual void rewind(const uint64_t blockIndex) override;
 
       private:
         const Currency &currency;
@@ -251,9 +265,7 @@ namespace CryptoNote
 
         std::unique_ptr<IBlockchainCacheFactory> blockchainCacheFactory;
 
-        std::unique_ptr<IMainChainStorage> mainChainStorage;
-
-	Utilities::ThreadPool<bool> m_transactionValidationThreadPool;
+        Utilities::ThreadPool<bool> m_transactionValidationThreadPool;
 
         bool initialized;
 
@@ -272,9 +284,10 @@ namespace CryptoNote
             const CachedTransaction &transaction,
             TransactionValidatorState &state,
             IBlockchainCache *cache,
-	    Utilities::ThreadPool<bool> &threadPool,
+            Utilities::ThreadPool<bool> &threadPool,
             uint64_t &fee,
             uint32_t blockIndex,
+            uint64_t blockTimestamp,
             const bool isPoolTransaction);
 
         uint32_t findBlockchainSupplement(const std::vector<Crypto::Hash> &remoteBlockIds) const;
@@ -385,10 +398,10 @@ namespace CryptoNote
 
         void copyTransactionsToPool(IBlockchainCache *alt);
 
-	void checkAndRemoveInvalidPoolTransactions(
-	    const TransactionValidatorState blockTransactionsState);
+        void checkAndRemoveInvalidPoolTransactions(
+            const TransactionValidatorState blockTransactionsState);
 
-	bool isTransactionInChain(const Crypto::Hash &txnHash);
+        bool isTransactionInChain(const Crypto::Hash &txnHash);
 
         void transactionPoolCleaningProcedure();
 
@@ -402,14 +415,9 @@ namespace CryptoNote
 
         void initRootSegment();
 
-        void importBlocksFromStorage();
-
         void cutSegment(IBlockchainCache &segment, uint32_t startIndex);
-
-        void switchMainChainStorage(uint32_t splitBlockIndex, IBlockchainCache &newChain);
-
+        
         std::mutex m_submitBlockMutex;
-
     };
 
 } // namespace CryptoNote

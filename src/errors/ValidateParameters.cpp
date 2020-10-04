@@ -59,6 +59,7 @@ Error validateTransaction(
     const std::vector<std::string> subWalletsToTakeFrom,
     const std::string changeAddress,
     const std::shared_ptr<SubWallets> subWallets,
+    const uint64_t unlockTime,
     const uint64_t currentHeight)
 {
     /* Validate the destinations */
@@ -113,7 +114,7 @@ Error validateIntegratedAddresses(
     const std::vector<std::pair<std::string, uint64_t>> destinations,
     std::string paymentID)
 {
-    for (const auto [address, amount] : destinations)
+    for (const auto &[address, amount] : destinations)
     {
         if (address.length() != WalletConfig::integratedAddressLength)
         {
@@ -401,7 +402,7 @@ Error validateOurAddresses(const std::vector<std::string> addresses, const std::
         return error;
     }
 
-    for (const auto address : addresses)
+    for (const auto &address : addresses)
     {
         const auto [spendKey, viewKey] = Utilities::addressToKeys(address);
 
@@ -418,3 +419,4 @@ Error validateOurAddresses(const std::vector<std::string> addresses, const std::
 
     return SUCCESS;
 }
+

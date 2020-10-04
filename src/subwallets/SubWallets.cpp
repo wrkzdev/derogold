@@ -551,7 +551,7 @@ std::tuple<std::vector<WalletTypes::TxInputAndOwner>, uint64_t, uint64_t> SubWal
        requirements */
     std::vector<std::vector<WalletTypes::TxInputAndOwner>> fullBuckets;
 
-    for (const auto [amount, bucket] : buckets)
+    for (const auto &[amount, bucket] : buckets)
     {
         /* Skip the buckets with not enough items */
         if (bucket.size() >= CryptoNote::parameters::FUSION_TX_MIN_INPUT_COUNT)
@@ -574,7 +574,7 @@ std::tuple<std::vector<WalletTypes::TxInputAndOwner>, uint64_t, uint64_t> SubWal
     /* Otherwise just use all buckets */
     else
     {
-        for (const auto [amount, bucket] : buckets)
+        for (const auto &[amount, bucket] : buckets)
         {
             bucketsToTakeFrom.push_back(bucket);
         }
@@ -586,7 +586,7 @@ std::tuple<std::vector<WalletTypes::TxInputAndOwner>, uint64_t, uint64_t> SubWal
 
     /* Loop through each bucket (Remember we're only looping through one if
        we've got a full bucket) */
-    for (const auto bucket : bucketsToTakeFrom)
+    for (const auto &bucket : bucketsToTakeFrom)
     {
         /* Loop through each input in this bucket */
         for (const auto &walletAmount : bucket)
@@ -783,7 +783,7 @@ std::unordered_set<Crypto::Hash> SubWallets::getLockedTransactionsHashes() const
 
     std::unordered_set<Crypto::Hash> result;
 
-    for (const auto transaction : m_lockedTransactions)
+    for (const auto &transaction : m_lockedTransactions)
     {
         result.insert(transaction.hash);
     }
@@ -804,9 +804,7 @@ bool SubWallets::isViewWallet() const
     return m_isViewWallet;
 }
 
-void SubWallets::reset(
-    const uint64_t startHeight,
-    const uint64_t startTimestamp)
+void SubWallets::reset(const uint64_t scanHeight)
 {
     std::scoped_lock lock(m_mutex);
 
@@ -816,7 +814,7 @@ void SubWallets::reset(
 
     for (auto &[pubKey, subWallet] : m_subWallets)
     {
-        subWallet.reset(startHeight, startTimestamp);
+        subWallet.reset(scanHeight);
     }
 }
 

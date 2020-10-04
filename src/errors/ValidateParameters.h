@@ -26,6 +26,7 @@ Error validateTransaction(
     const std::vector<std::string> subWalletsToTakeFrom,
     const std::string changeAddress,
     const std::shared_ptr<SubWallets> subWallets,
+    const uint64_t unlockTime,
     const uint64_t currentHeight);
 
 Error validateIntegratedAddresses(

@@ -1,4 +1,5 @@
 // Copyright (c) 2018-2019, The TurtleCoin Developers
+// Copyright (c) 2018-2020, The WrkzCoin developers
 //
 // Please see the included LICENSE file for more information.
 
@@ -396,15 +397,30 @@ bool WalletBackend::tryUpgradeWalletFormat(
         /* Our connection to turtlecoind */
         std::unique_ptr<CryptoNote::INode> node(new CryptoNote::NodeRpcProxy(daemonHost, daemonPort, 10, logManager));
 
+        /* Save the old wallet to the backup file via simple file copy operation */
+        std::error_code backupError;
+
+        fs::path filepath = filename;
+        fs::path backupFilepath = filepath.parent_path() / "old-version-backup-" += filepath.filename();
+
+        fs::copy(filename, backupFilepath, fs::copy_options::overwrite_existing, backupError);
+
+        /* If we could not backup the file then instantly fail for safety sake */
+        if (backupError)
+        {
+            return false;
+        }
+
         CryptoNote::WalletGreen wallet(*dispatcher, currency, *node, logManager);
 
+        /* Attempt to open the specified file as a wallet */
         wallet.load(filename, password);
 
         /* Cool, it worked. Upgrade to the new format. */
         const std::string json = wallet.toNewFormatJSON();
 
-        /* Save old wallet to backup file */
-        wallet.exportWallet("old-version-backup-" + filename);
+        /* We have to close the wallet before we can overwrite it */
+        wallet.shutdown();
 
         /* Save to disk with the new format. */
         Error error = saveWalletJSONToDisk(json, filename, password);
@@ -697,7 +713,7 @@ Error WalletBackend::save() const
    blockchain synchronizer first (Call save()) */
 Error WalletBackend::unsafeSave() const
 {
-    return WalletBackend::saveWalletJSONToDisk(toJSON(), m_filename, m_password);
+    return WalletBackend::saveWalletJSONToDisk(unsafeToJSON(), m_filename, m_password);
 }
 
 /* Get the balance for one subwallet (error, unlocked, locked) */
@@ -759,6 +775,8 @@ std::tuple<Error, Crypto::Hash> WalletBackend::sendTransactionAdvanced(
 
 std::tuple<Error, Crypto::Hash> WalletBackend::sendFusionTransactionBasic()
 {
+    std::scoped_lock lock(m_transactionMutex);
+
     return SendTransaction::sendFusionTransactionBasic(m_daemon, m_subWallets);
 }
 
@@ -768,19 +786,30 @@ std::tuple<Error, Crypto::Hash> WalletBackend::sendFusionTransactionAdvanced(
     const std::string destination,
     const std::vector<uint8_t> extraData)
 {
+    std::scoped_lock lock(m_transactionMutex);
+
     return SendTransaction::sendFusionTransactionAdvanced(
         mixin, subWalletsToTakeFrom, destination, m_daemon, m_subWallets, extraData);
 }
 
 void WalletBackend::reset(uint64_t scanHeight, uint64_t timestamp)
 {
-    m_syncRAIIWrapper->pauseSynchronizerToRunFunction([this, scanHeight, timestamp]() {
+    m_syncRAIIWrapper->pauseSynchronizerToRunFunction([this, scanHeight, timestamp]() mutable {
+        /* Though the wallet synchronizer can support both a timestamp and a
+           scanheight, we need a fixed scan height to cut transactions from.
+           Since a transaction in block 10 could have a timestamp before a
+           transaction in block 9, we can't rely on timestamps to reset accurately. */
+        if (timestamp != 0)
+        {
+            scanHeight = Utilities::timestampToScanHeight(timestamp);
+            timestamp = 0;
+        }
 
         /* Empty the sync status and reset the start height */
-        m_walletSynchronizer->reset(scanHeight, timestamp);
+        m_walletSynchronizer->reset(scanHeight);
 
         /* Reset transactions, inputs, etc */
-        m_subWallets->reset(scanHeight, timestamp);
+        m_subWallets->reset(scanHeight);
 
         /* Save the resetted wallet - don't need safe save, already stopped wallet
            synchronizer */
@@ -820,10 +849,10 @@ std::tuple<Error, std::string>
             if (currentHeight >= scanHeight)
             {
                 /* Empty the sync status and reset the start height */
-                m_walletSynchronizer->reset(scanHeight, 0);
+                m_walletSynchronizer->reset(scanHeight);
 
                 /* Reset transactions, inputs, etc */
-                m_subWallets->reset(scanHeight, 0);
+                m_subWallets->reset(scanHeight);
             }
         }
 
@@ -853,10 +882,10 @@ std::tuple<Error, std::string>
             if (currentHeight >= scanHeight)
             {
                 /* Empty the sync status and reset the start height */
-                m_walletSynchronizer->reset(scanHeight, 0);
+                m_walletSynchronizer->reset(scanHeight);
 
                 /* Reset transactions, inputs, etc */
-                m_subWallets->reset(scanHeight, 0);
+                m_subWallets->reset(scanHeight);
             }
         }
 
@@ -1031,17 +1060,27 @@ std::vector<WalletTypes::Transaction>
 {
     std::vector<WalletTypes::Transaction> result;
 
-    const auto transactions = getTransactions();
+    try {
+        const auto transactions = getTransactions();
 
-    std::copy_if(
-        transactions.begin(),
-        transactions.end(),
-        std::back_inserter(result),
-        [&startHeight, &endHeight](const auto tx) {
-            return tx.blockHeight >= startHeight && tx.blockHeight < endHeight;
-        });
+        if (!transactions.empty())
+        {
+            std::copy_if(
+                transactions.begin(),
+                transactions.end(),
+                std::back_inserter(result),
+                [&startHeight, &endHeight](const auto tx) {
+                    return tx.blockHeight >= startHeight && tx.blockHeight < endHeight;
+                });
 
-    return result;
+            return result;
+        } else
+        {
+            return std::vector<WalletTypes::Transaction> {};
+        }
+    } catch (const std::exception &e)
+    {
+    }
 }
 
 std::tuple<uint64_t, std::string> WalletBackend::getNodeFee() const
@@ -1100,6 +1139,11 @@ std::vector<std::tuple<std::string, uint64_t, uint64_t>> WalletBackend::getBalan
 }
 
 std::string WalletBackend::toJSON() const
+{
+    return m_syncRAIIWrapper->pauseSynchronizerToRunFunction([this]() { return unsafeToJSON(); });
+}
+
+std::string WalletBackend::unsafeToJSON() const
 {
     StringBuffer sb;
     Writer<StringBuffer> writer(sb);

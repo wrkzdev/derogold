@@ -49,7 +49,8 @@ void transfer(const std::shared_ptr<WalletBackend> walletBackend, const bool sen
 
     if (address == "cancel")
     {
-        return cancel();
+        cancel();
+        return;
     }
 
     std::cout << "\n";
@@ -65,7 +66,8 @@ void transfer(const std::shared_ptr<WalletBackend> walletBackend, const bool sen
 
         if (paymentID == "cancel")
         {
-            return cancel();
+            cancel();
+            return;
         }
 
         std::cout << "\n";
@@ -91,7 +93,8 @@ void transfer(const std::shared_ptr<WalletBackend> walletBackend, const bool sen
 
         if (!success)
         {
-            return cancel();
+            cancel();
+            return;
         }
     }
 
@@ -157,6 +160,8 @@ void sendTransaction(
         if (error == TOO_MANY_INPUTS_TO_FIT_IN_BLOCK)
         {
             splitTX(walletBackend, address, amount, paymentID);
+            cancel();
+
             return;
         }
     }
@@ -164,6 +169,7 @@ void sendTransaction(
     if (error)
     {
         std::cout << WarningMsg("Failed to send transaction: ") << WarningMsg(error) << std::endl;
+        return;
     }
     else
     {
@@ -187,7 +193,8 @@ void splitTX(
 
     if (!Utilities::confirm("Is this OK?"))
     {
-        return cancel();
+        cancel();
+        return;
     }
 
     uint64_t unlockedBalance = walletBackend->getTotalUnlockedBalance();

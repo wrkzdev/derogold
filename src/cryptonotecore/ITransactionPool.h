@@ -24,7 +24,7 @@ namespace CryptoNote
 
         virtual bool removeTransaction(const Crypto::Hash &hash) = 0;
 
-	virtual size_t getFusionTransactionCount() const = 0;
+        virtual size_t getFusionTransactionCount() const = 0;
 
         virtual size_t getTransactionCount() const = 0;
 

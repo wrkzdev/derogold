@@ -98,9 +98,7 @@ class WalletSynchronizer
         const std::shared_ptr<EventHandler> eventHandler,
         unsigned int threadCount);
 
-    void reset(
-        const uint64_t startHeight,
-	const uint64_t startTimestamp);
+    void reset(uint64_t startHeight);
 
     uint64_t getCurrentScanHeight() const;
 

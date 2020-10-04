@@ -35,7 +35,7 @@ namespace CryptoNote
 
         virtual bool removeTransaction(const Crypto::Hash &hash) override;
 
-	virtual size_t getFusionTransactionCount() const override;
+        virtual size_t getFusionTransactionCount() const override;
 
         virtual size_t getTransactionCount() const override;
 

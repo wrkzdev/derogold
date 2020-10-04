@@ -40,6 +40,7 @@ namespace CryptoNote
         {
             throw std::out_of_range("SwappedBlockchainStorage, index < blockCount!");
         }
+
         return blocks[index];
     }
 

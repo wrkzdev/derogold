@@ -276,7 +276,7 @@ std::string Error::getErrorMessage() const
         }
         case INVALID_PRIVATE_KEY:
         {
-            return "The private key given is not a valid ed25519 public key.";
+            return "The private key given is not a valid ed25519 private key.";
         }
         case INVALID_EXTRA_DATA:
         {

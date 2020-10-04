@@ -29,6 +29,7 @@ RawBlock MemoryBlockchainStorage::getBlockByIndex(uint32_t index) const
     {
         throw std::out_of_range("MemoryBlockchainStorage, index < blockCount!");
     }
+
     return blocks[index];
 }
 

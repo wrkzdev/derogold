@@ -2,6 +2,7 @@
 // Copyright (c) 2014-2018, The Monero Project
 // Copyright (c) 2018-2019, The Galaxia Project Developers
 // Copyright (c) 2018-2019, The TurtleCoin Developers
+// Copyright (c) 2018-2020, The WrkzCoin developers
 //
 // Please see the included LICENSE file for more information.
 
@@ -23,6 +24,7 @@ ValidateTransaction::ValidateTransaction(
     Utilities::ThreadPool<bool> &threadPool,
     const uint64_t blockHeight,
     const uint64_t blockSizeMedian,
+    const uint64_t blockTimestamp,
     const bool isPoolTransaction):
     m_cachedTransaction(cachedTransaction),
     m_transaction(cachedTransaction.getTransaction()),
@@ -33,6 +35,7 @@ ValidateTransaction::ValidateTransaction(
     m_blockchainCache(cache),
     m_blockHeight(blockHeight),
     m_blockSizeMedian(blockSizeMedian),
+    m_blockTimestamp(blockTimestamp),
     m_isPoolTransaction(isPoolTransaction)
 {
 }

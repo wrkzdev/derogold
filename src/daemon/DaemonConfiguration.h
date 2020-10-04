@@ -1,5 +1,6 @@
 // Copyright (c) 2018-2019, The TurtleCoin Developers
 // Copyright (c) 2019, The CyprusCoin Developers
+// Copyright (c) 2018-2020, The WrkzCoin developers
 //
 // Please see the included LICENSE file for more information.
 
@@ -28,11 +29,6 @@ namespace DaemonConfig
             checkPoints = "default";
             logFile = logfile.str();
             logLevel = Logging::WARNING;
-            dbMaxOpenFiles = CryptoNote::DATABASE_DEFAULT_MAX_OPEN_FILES;
-            dbReadCacheSizeMB = CryptoNote::DATABASE_READ_BUFFER_MB_DEFAULT_SIZE;
-            dbThreads = CryptoNote::DATABASE_DEFAULT_BACKGROUND_THREADS_COUNT;
-            dbWriteBufferSizeMB = CryptoNote::DATABASE_WRITE_BUFFER_MB_DEFAULT_SIZE;
-            dbMaxByteLevelSizeMB = CryptoNote::DATABASE_MAX_BYTES_FOR_LEVEL_BASE;
             rewindToHeight = 0;
             p2pInterface = "0.0.0.0";
             p2pPort = CryptoNote::P2P_DEFAULT_PORT;
@@ -54,6 +50,10 @@ namespace DaemonConfig
             dumpConfig = false;
             enableDbCompression = false;
             resync = false;
+            enableLevelDB = false;
+            importChain = false;
+            exportChain = false;
+            exportNumBlocks = 0;
         }
 
         std::string dataDirectory;
@@ -76,7 +76,7 @@ namespace DaemonConfig
 
         std::vector<std::string> seedNodes;
 
-        std::vector<std::string> enableCors;
+        std::string enableCors;
 
         int logLevel;
 
@@ -88,17 +88,17 @@ namespace DaemonConfig
 
         int p2pExternalPort;
 
-	uint32_t transactionValidationThreads;
+        uint32_t transactionValidationThreads;
 
-        int dbThreads;
+        uint64_t dbThreads;
 
-        int dbMaxOpenFiles;
+        uint64_t dbMaxOpenFiles;
 
-        int dbWriteBufferSizeMB;
+        uint64_t dbWriteBufferSizeMB;
 
-        int dbMaxByteLevelSizeMB;
+        uint64_t dbReadCacheSizeMB;
 
-        int dbReadCacheSizeMB;
+        uint64_t dbMaxFileSizeMB;
 
         uint32_t rewindToHeight;
 
@@ -117,6 +117,14 @@ namespace DaemonConfig
         bool resync;
 
         bool p2pResetPeerstate;
+
+        bool enableLevelDB;
+
+        bool importChain;
+
+        bool exportChain;
+
+        uint32_t exportNumBlocks;
 
         std::string configFile;
 

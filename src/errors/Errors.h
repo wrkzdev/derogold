@@ -218,11 +218,11 @@ enum ErrorCode
     UNKNOWN_ERROR = 54,
 
     /* The daemon received our request but we timed out before we could figure
-       out if it completed */
+     * out if it completed */
     DAEMON_STILL_PROCESSING = 55,
 
     /* The transaction has more outputs than are permitted for the number
-       inputs that have been provided */
+     * inputs that have been provided */
     OUTPUT_DECOMPOSITION = 56,
 };
 

@@ -175,23 +175,22 @@ namespace Utilities
     uint64_t timestampToScanHeight(const uint64_t timestamp)
     {
         if (timestamp == 0)
-	{
-	    return 0;
-	}
+        {
+            return 0;
+        }
 
-	/* Timestamp is before the chain launched! */
-	if (timestamp <= CryptoNote::parameters::GENESIS_BLOCK_TIMESTAMP)
-	{
-	    return 0;
-	}
+        /* Timestamp is before the chain launched! */
+        if (timestamp <= CryptoNote::parameters::GENESIS_BLOCK_TIMESTAMP)
+        {
+            return 0;
+        }
 
-	/* Find the amount of seconds between launch and the timestamp */
-	uint64_t launchTimestampDelta = timestamp - CryptoNote::parameters::GENESIS_BLOCK_TIMESTAMP;
+        /* Find the amount of seconds between launch and the timestamp */
+        uint64_t launchTimestampDelta = timestamp - CryptoNote::parameters::GENESIS_BLOCK_TIMESTAMP;
 
-	/* Get an estimation of the amount of blocks that have passed before the
-	 timestamp */
-
-	return launchTimestampDelta / CryptoNote::parameters::DIFFICULTY_TARGET;
+        /* Get an estimation of the amount of blocks that have passed before the
+           timestamp */
+        return std::max<uint64_t>(0, (launchTimestampDelta / CryptoNote::parameters::DIFFICULTY_TARGET) - 10000);
     }
 
     uint64_t getCurrentTimestampAdjusted()

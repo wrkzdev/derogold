@@ -1,5 +1,6 @@
 // Copyright (c) 2012-2017, The CryptoNote developers, The Bytecoin developers
 // Copyright (c) 2018-2019, The TurtleCoin Developers
+// Copyright (c) 2018-2020, The WrkzCoin developers
 //
 // Please see the included LICENSE file for more information.
 
@@ -19,28 +20,31 @@ namespace
     const std::string DB_NAME = "DB";
 }
 
-RocksDBWrapper::RocksDBWrapper(std::shared_ptr<Logging::ILogger> logger):
+RocksDBWrapper::RocksDBWrapper(
+    std::shared_ptr<Logging::ILogger> logger,
+    const DataBaseConfig &config):
     logger(logger, "RocksDBWrapper"),
+    m_config(config),
     state(NOT_INITIALIZED)
 {
 }
 
 RocksDBWrapper::~RocksDBWrapper() {}
 
-void RocksDBWrapper::init(const DataBaseConfig &config)
+void RocksDBWrapper::init()
 {
     if (state.load() != NOT_INITIALIZED)
     {
         throw std::system_error(make_error_code(CryptoNote::error::DataBaseErrorCodes::ALREADY_INITIALIZED));
     }
 
-    std::string dataDir = getDataDir(config);
+    std::string dataDir = getDataDir(m_config);
 
     logger(INFO) << "Opening DB in " << dataDir;
 
     rocksdb::DB *dbPtr;
 
-    rocksdb::Options dbOptions = getDBOptions(config);
+    rocksdb::Options dbOptions = getDBOptions(m_config);
     rocksdb::Status status = rocksdb::DB::Open(dbOptions, dataDir, &dbPtr);
     if (status.ok())
     {
@@ -86,18 +90,18 @@ void RocksDBWrapper::shutdown()
     state.store(NOT_INITIALIZED);
 }
 
-void RocksDBWrapper::destroy(const DataBaseConfig &config)
+void RocksDBWrapper::destroy()
 {
     if (state.load() != NOT_INITIALIZED)
     {
         throw std::system_error(make_error_code(CryptoNote::error::DataBaseErrorCodes::ALREADY_INITIALIZED));
     }
 
-    std::string dataDir = getDataDir(config);
+    std::string dataDir = getDataDir(m_config);
 
     logger(WARNING) << "Destroying DB in " << dataDir;
 
-    rocksdb::Options dbOptions = getDBOptions(config);
+    rocksdb::Options dbOptions = getDBOptions(m_config);
     rocksdb::Status status = rocksdb::DestroyDB(dataDir, dbOptions);
 
     if (status.ok())
@@ -156,36 +160,43 @@ std::error_code RocksDBWrapper::read(IReadBatch &batch)
 {
     if (state.load() != INITIALIZED)
     {
-        throw std::runtime_error("Not initialized.");
+        throw std::system_error(make_error_code(CryptoNote::error::DataBaseErrorCodes::NOT_INITIALIZED));
     }
 
     rocksdb::ReadOptions readOptions;
 
     std::vector<std::string> rawKeys(batch.getRawKeys());
-    std::vector<rocksdb::Slice> keySlices;
-    keySlices.reserve(rawKeys.size());
-    for (const std::string &key : rawKeys)
+    if (rawKeys.size() > 0)
     {
-        keySlices.emplace_back(rocksdb::Slice(key));
-    }
-
-    std::vector<std::string> values;
-    values.reserve(rawKeys.size());
-    std::vector<rocksdb::Status> statuses = db->MultiGet(readOptions, keySlices, &values);
-
-    std::error_code error;
-    std::vector<bool> resultStates;
-    for (const rocksdb::Status &status : statuses)
-    {
-        if (!status.ok() && !status.IsNotFound())
+        std::vector<rocksdb::Slice> keySlices;
+        keySlices.reserve(rawKeys.size());
+        for (const std::string &key : rawKeys)
         {
-            return make_error_code(CryptoNote::error::DataBaseErrorCodes::INTERNAL_ERROR);
+            keySlices.emplace_back(rocksdb::Slice(key));
         }
-        resultStates.push_back(status.ok());
-    }
 
-    batch.submitRawResult(values, resultStates);
-    return std::error_code();
+        std::vector<std::string> values;
+        values.reserve(rawKeys.size());
+        std::vector<rocksdb::Status> statuses = db->MultiGet(readOptions, keySlices, &values);
+
+        std::error_code error;
+        std::vector<bool> resultStates;
+        for (const rocksdb::Status &status : statuses)
+        {
+            if (!status.ok() && !status.IsNotFound())
+            {
+                return make_error_code(CryptoNote::error::DataBaseErrorCodes::INTERNAL_ERROR);
+            }
+            resultStates.push_back(status.ok());
+        }
+
+        batch.submitRawResult(values, resultStates);
+        return std::error_code();
+    } else
+    {
+        logger(ERROR) << "RocksDBWrapper::read: detected rawKeys.size() == 0!!!";
+        return make_error_code(CryptoNote::error::DataBaseErrorCodes::INTERNAL_ERROR);
+    }
 }
 
 std::error_code RocksDBWrapper::readThreadSafe(IReadBatch &batch)
@@ -233,16 +244,16 @@ std::error_code RocksDBWrapper::readThreadSafe(IReadBatch &batch)
 rocksdb::Options RocksDBWrapper::getDBOptions(const DataBaseConfig &config)
 {
     rocksdb::DBOptions dbOptions;
-    dbOptions.IncreaseParallelism(config.getBackgroundThreadsCount());
+    dbOptions.IncreaseParallelism(config.backgroundThreadsCount);
     dbOptions.info_log_level = rocksdb::InfoLogLevel::WARN_LEVEL;
-    dbOptions.max_open_files = config.getMaxOpenFiles();
+    dbOptions.max_open_files = config.maxOpenFiles;
     // For spinning disk
     dbOptions.skip_stats_update_on_db_open = true;
     dbOptions.compaction_readahead_size  = 2 * 1024 * 1024;
     dbOptions.new_table_reader_for_compaction_inputs = true;
 
     rocksdb::ColumnFamilyOptions fOptions;
-    fOptions.write_buffer_size = static_cast<size_t>(config.getWriteBufferSize());
+    fOptions.write_buffer_size = static_cast<size_t>(config.writeBufferSize);
     // merge two memtables when flushing to L0
     fOptions.min_write_buffer_number_to_merge = 2;
     // this means we'll use 50% extra memory in the worst case, but will reduce
@@ -256,10 +267,10 @@ rocksdb::Options RocksDBWrapper::getDBOptions(const DataBaseConfig &config)
     fOptions.level0_slowdown_writes_trigger = 30;
     fOptions.level0_stop_writes_trigger = 40;
 
-    // make Level1 size equal to Level0 size, so that L0->L1 compactions are fast
-    fOptions.max_bytes_for_level_base = config.getMaxByteLevelSize();
     // doesn't really matter much, but we don't want to create too many files
-    fOptions.target_file_size_base = config.getMaxByteLevelSize() / 10;
+    fOptions.target_file_size_base = config.writeBufferSize / 10;
+    // make Level1 size equal to Level0 size, so that L0->L1 compactions are fast
+    fOptions.max_bytes_for_level_base = config.writeBufferSize;
     fOptions.num_levels = 10;
     fOptions.target_file_size_multiplier = 2;
     // level style compaction
@@ -267,18 +278,21 @@ rocksdb::Options RocksDBWrapper::getDBOptions(const DataBaseConfig &config)
 
     fOptions.compression_per_level.resize(fOptions.num_levels);
 
-    const auto compressionLevel = config.getCompressionEnabled() ? rocksdb::kZSTD : rocksdb::kNoCompression;
+    const auto compressionLevel = config.compressionEnabled
+        ? rocksdb::kZSTD
+        : rocksdb::kNoCompression;
+
     for (int i = 0; i < fOptions.num_levels; ++i)
     {
         // don't compress l0 & l1
         fOptions.compression_per_level[i] = (i < 2 ? rocksdb::kNoCompression : compressionLevel);
     }
+
     // bottom most use kZSTD
-    fOptions.bottommost_compression =
-        config.getCompressionEnabled() ? rocksdb::kZSTD : rocksdb::kNoCompression;
+    fOptions.bottommost_compression = compressionLevel;
 
     rocksdb::BlockBasedTableOptions tableOptions;
-    tableOptions.block_cache = rocksdb::NewLRUCache(config.getReadCacheSize());
+    tableOptions.block_cache = rocksdb::NewLRUCache(config.readCacheSize);
     std::shared_ptr<rocksdb::TableFactory> tfp(NewBlockBasedTableFactory(tableOptions));
     fOptions.table_factory = tfp;
 
@@ -287,5 +301,16 @@ rocksdb::Options RocksDBWrapper::getDBOptions(const DataBaseConfig &config)
 
 std::string RocksDBWrapper::getDataDir(const DataBaseConfig &config)
 {
-    return config.getDataDir() + '/' + DB_NAME;
+    return config.dataDir + '/' + DB_NAME;
+}
+
+void RocksDBWrapper::recreate()
+{
+    if (state.load() == INITIALIZED)
+    {
+        shutdown();
+    }
+
+    destroy();
+    init();
 }
