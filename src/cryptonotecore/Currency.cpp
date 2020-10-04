@@ -77,6 +77,48 @@ namespace CryptoNote
         return true;
     }
 
+    size_t Currency::difficultyWindowByBlockVersion(uint8_t blockMajorVersion) const
+    {
+        return CryptoNote::parameters::DIFFICULTY_WINDOW;
+    }
+
+    size_t Currency::difficultyLagByBlockVersion(uint8_t blockMajorVersion) const
+    {
+        if (blockMajorVersion >= BLOCK_MAJOR_VERSION_3)
+        {
+            return m_difficultyLag;
+        }
+        else if (blockMajorVersion == BLOCK_MAJOR_VERSION_2)
+        {
+            return CryptoNote::parameters::DIFFICULTY_LAG_V2;
+        }
+        else
+        {
+            return CryptoNote::parameters::DIFFICULTY_LAG_V1;
+        }
+    }
+
+    size_t Currency::difficultyCutByBlockVersion(uint8_t blockMajorVersion) const
+    {
+        if (blockMajorVersion >= BLOCK_MAJOR_VERSION_3)
+        {
+            return m_difficultyCut;
+        }
+        else if (blockMajorVersion == BLOCK_MAJOR_VERSION_2)
+        {
+            return CryptoNote::parameters::DIFFICULTY_CUT_V2;
+        }
+        else
+        {
+            return CryptoNote::parameters::DIFFICULTY_CUT_V1;
+        }
+    }
+
+    size_t Currency::difficultyBlocksCountByBlockVersion(uint8_t blockMajorVersion, uint32_t height) const
+    {
+        return difficultyWindowByBlockVersion(blockMajorVersion) + difficultyLagByBlockVersion(blockMajorVersion);
+    }
+
     size_t Currency::blockGrantedFullRewardZoneByBlockVersion(uint8_t blockMajorVersion) const
     {
         if (blockMajorVersion >= BLOCK_MAJOR_VERSION_3)
@@ -579,7 +621,9 @@ namespace CryptoNote
         m_coin(currency.m_coin),
         m_mininumFee(currency.m_mininumFee),
         m_defaultDustThreshold(currency.m_defaultDustThreshold),
+        m_difficultyTarget(currency.m_difficultyTarget),
         m_difficultyWindow(currency.m_difficultyWindow),
+        m_difficultyLag(currency.m_difficultyLag),
         m_difficultyCut(currency.m_difficultyCut),
         m_maxBlockSizeInitial(currency.m_maxBlockSizeInitial),
         m_maxBlockSizeGrowthSpeedNumerator(currency.m_maxBlockSizeGrowthSpeedNumerator),
@@ -625,7 +669,10 @@ namespace CryptoNote
         mininumFee(parameters::MINIMUM_FEE);
         defaultDustThreshold(parameters::DEFAULT_DUST_THRESHOLD);
 
+        difficultyTarget(parameters::DIFFICULTY_TARGET);
         difficultyWindow(parameters::DIFFICULTY_WINDOW);
+        difficultyLag(parameters::DIFFICULTY_LAG);
+        difficultyCut(parameters::DIFFICULTY_CUT);
 
         maxBlockSizeInitial(parameters::MAX_BLOCK_SIZE_INITIAL);
         maxBlockSizeGrowthSpeedNumerator(parameters::MAX_BLOCK_SIZE_GROWTH_SPEED_NUMERATOR);

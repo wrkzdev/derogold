@@ -124,6 +124,20 @@ namespace CryptoNote
 
         const uint64_t DIFFICULTY_BLOCKS_COUNT = DIFFICULTY_WINDOW + 1;
 
+        const size_t DIFFICULTY_CUT = 0; // timestamps to cut after sorting
+
+        const size_t DIFFICULTY_CUT_V1 = 60;
+
+        const size_t DIFFICULTY_CUT_V2 = 60;
+
+        const size_t DIFFICULTY_LAG = 0; // !!!
+
+        const size_t DIFFICULTY_LAG_V1 = 15;
+
+        const size_t DIFFICULTY_LAG_V2 = 15;
+
+        static_assert(2 * DIFFICULTY_CUT <= DIFFICULTY_WINDOW - 2, "Bad DIFFICULTY_WINDOW or DIFFICULTY_CUT");
+
         const size_t MAX_BLOCK_SIZE_INITIAL = 100000;
 
         const uint64_t MAX_BLOCK_SIZE_V1_HEIGHT = 2361823;
