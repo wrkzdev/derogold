@@ -188,9 +188,9 @@ namespace CryptoNote
             at any given time. Incoming fusion transactions that attempt to exceed this limit
             will be rejected from the pool and will not be added. This mechanism is in place
             to help curtail fusion transaction spam. */
-        const size_t FUSION_TX_MAX_POOL_COUNT = 50;
+        const size_t FUSION_TX_MAX_POOL_COUNT = 30;
 
-        const size_t TX_MAX_POOL_COUNT = 120;
+        const size_t TX_MAX_POOL_COUNT = 60;
 
         /* Pass tx fee pool - if you want your node handle only txs above certain node fee */
 
