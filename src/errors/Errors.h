@@ -125,13 +125,15 @@ enum ErrorCode
        error. */
     INVALID_GENERATED_KEYIMAGE = 29,
 
-    /* Could not contact the daemon to complete the request. Ensure it is
-       online and not frozen */
+    /* We were not able to submit our request to the node.
+       It could be the network is busy processing other requests.
+       If this problem persists for a longer time, check if the node is not frozen. */
     DAEMON_OFFLINE = 30,
 
-    /* An error occured whilst the daemon processed the request. Possibly our
-       software is outdated, the daemon is faulty, or there is a programmer
-       error. Check your daemon logs for more info (set_log 4) */
+    /* The node was not able to process our request.
+       It could be the network is busy processing other requests
+       If this problem persists for a longer time, check if the node is not frozen,
+       and check the node's log for details. (set_log 4) */
     DAEMON_ERROR = 31,
 
     /* The transction is too large (in BYTES, not AMOUNT) to fit in a block.
