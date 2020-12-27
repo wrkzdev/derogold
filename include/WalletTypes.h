@@ -8,6 +8,7 @@
 #include "rapidjson/writer.h"
 
 #include <CryptoNote.h>
+#include <errors/Errors.h>
 #include <JsonHelper.h>
 #include <optional>
 #include <string>

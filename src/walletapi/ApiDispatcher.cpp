@@ -1322,7 +1322,7 @@ std::tuple<Error, uint16_t> ApiDispatcher::getTransactionDetails(
 
     Common::podFromHex(hashStr, hash.data);
 
-    for (const auto tx : m_walletBackend->getTransactions())
+    for (const auto &tx : m_walletBackend->getTransactions())
     {
         if (tx.hash == hash)
         {
@@ -1394,7 +1394,7 @@ std::tuple<Error, uint16_t>
 
     nlohmann::json j;
 
-    for (const auto [address, unlocked, locked] : balances)
+    for (const auto &[address, unlocked, locked] : balances)
     {
         j.push_back({{"address", address}, {"unlocked", unlocked}, {"locked", locked}});
     }

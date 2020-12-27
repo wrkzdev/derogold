@@ -2,6 +2,7 @@
 // Copyright (c) 2014-2018, The Monero Project
 // Copyright (c) 2018-2019, The Galaxia Project Developers
 // Copyright (c) 2018-2019, The TurtleCoin Developers
+// Copyright (c) 2018-2020, The WrkzCoin developers
 //
 // Please see the included LICENSE file for more information.
 
@@ -46,9 +47,10 @@ class ValidateTransaction
             CryptoNote::IBlockchainCache *cache,
             const CryptoNote::Currency &currency,
             const CryptoNote::Checkpoints &checkpoints,
-	    Utilities::ThreadPool<bool> &threadPool,
+            Utilities::ThreadPool<bool> &threadPool,
             const uint64_t blockHeight,
             const uint64_t blockSizeMedian,
+            const uint64_t blockTimestamp,
             const bool isPoolTransaction);
 
         /////////////////////////////
@@ -99,6 +101,8 @@ class ValidateTransaction
 
         const uint64_t m_blockHeight;
 
+        const uint64_t m_blockTimestamp;
+
         const uint64_t m_blockSizeMedian;
 
         const bool m_isPoolTransaction;
@@ -108,7 +112,7 @@ class ValidateTransaction
         uint64_t m_sumOfOutputs = 0;
         uint64_t m_sumOfInputs = 0;
 
-	Utilities::ThreadPool<bool> &m_threadPool;
+        Utilities::ThreadPool<bool> &m_threadPool;
 
         std::mutex m_mutex;
 };

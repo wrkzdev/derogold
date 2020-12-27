@@ -1,11 +1,11 @@
 // Copyright (c) 2012-2017, The CryptoNote developers, The Bytecoin developers
 // Copyright (c) 2018-2019, The TurtleCoin Developers
+// Copyright (c) 2018-2020, The WrkzCoin developers
 //
 // Please see the included LICENSE file for more information.
 
 #pragma once
 
-#include "DataBaseConfig.h"
 #include "IDataBase.h"
 #include "rocksdb/db.h"
 
@@ -19,7 +19,9 @@ namespace CryptoNote
     class RocksDBWrapper : public IDataBase
     {
       public:
-        RocksDBWrapper(std::shared_ptr<Logging::ILogger> logger);
+        RocksDBWrapper(
+            std::shared_ptr<Logging::ILogger> logger,
+            const DataBaseConfig &config);
 
         virtual ~RocksDBWrapper();
 
@@ -31,17 +33,19 @@ namespace CryptoNote
 
         RocksDBWrapper &operator=(RocksDBWrapper &&) = delete;
 
-        void init(const DataBaseConfig &config);
+        void init();
 
-        void shutdown();
+        void shutdown() override;
 
-        void destroy(const DataBaseConfig &config); // Be careful with this method!
+        void destroy(); // Be careful with this method!
 
         std::error_code write(IWriteBatch &batch) override;
 
         std::error_code read(IReadBatch &batch) override;
 
         std::error_code readThreadSafe(IReadBatch &batch) override;
+        
+        void recreate() override;
 
       private:
         std::error_code write(IWriteBatch &batch, bool sync);
@@ -61,5 +65,7 @@ namespace CryptoNote
         std::unique_ptr<rocksdb::DB> db;
 
         std::atomic<State> state;
+        
+        const DataBaseConfig m_config;
     };
 } // namespace CryptoNote

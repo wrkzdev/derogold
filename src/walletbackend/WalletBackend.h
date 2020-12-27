@@ -1,4 +1,5 @@
 // Copyright (c) 2018-2019, The TurtleCoin Developers
+// Copyright (c) 2018-2020, The WrkzCoin developers
 //
 // Please see the included LICENSE file for more information.
 
@@ -249,6 +250,12 @@ class WalletBackend
 
     std::vector<std::tuple<std::string, uint64_t, uint64_t>> getBalances() const;
 
+    static bool tryUpgradeWalletFormat(
+        const std::string filename,
+        const std::string password,
+        const std::string daemonHost,
+        const uint16_t daemonPort);
+
     /////////////////////////////
     /* Public member variables */
     /////////////////////////////
@@ -291,13 +298,9 @@ class WalletBackend
 
     Error unsafeSave() const;
 
-    void init();
+    std::string unsafeToJSON() const;
 
-    static bool tryUpgradeWalletFormat(
-        const std::string filename,
-        const std::string password,
-        const std::string daemonHost,
-        const uint16_t daemonPort);
+    void init();
 
     //////////////////////////////
     /* Private member variables */
@@ -321,4 +324,6 @@ class WalletBackend
     std::shared_ptr<WalletSynchronizerRAIIWrapper> m_syncRAIIWrapper;
 
     unsigned int m_syncThreadCount;
+    /* Ensure we only send one transaction in parallel, otherwise txs will likely fail. */
+    std::mutex m_transactionMutex;
 };

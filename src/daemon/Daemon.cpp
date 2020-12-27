@@ -2,6 +2,7 @@
 // Copyright (c) 2018, The Karai Developers
 // Copyright (c) 2018-2019, The TurtleCoin Developers
 // Copyright (c) 2019, The CyprusCoin Developers
+// Copyright (c) 2018-2020, The WrkzCoin developers
 //
 // Please see the included LICENSE file for more information.
 
@@ -20,12 +21,8 @@
 #include "cryptonotecore/Currency.h"
 #include "cryptonotecore/DatabaseBlockchainCache.h"
 #include "cryptonotecore/DatabaseBlockchainCacheFactory.h"
-#include "cryptonotecore/MainChainStorage.h"
-#if defined (USE_LEVELDB)
 #include "cryptonotecore/LevelDBWrapper.h"
-#else
 #include "cryptonotecore/RocksDBWrapper.h"
-#endif
 #include "cryptonoteprotocol/CryptoNoteProtocolHandler.h"
 #include "p2p/NetNode.h"
 #include "p2p/NetNodeConfig.h"
@@ -183,15 +180,14 @@ int main(int argc, char *argv[])
     {
         std::error_code ec;
 
-        std::vector<std::string> removablePaths = {
-            config.dataDirectory + "/" + CryptoNote::parameters::CRYPTONOTE_BLOCKS_FILENAME,
-            config.dataDirectory + "/" + CryptoNote::parameters::CRYPTONOTE_BLOCKINDEXES_FILENAME,
-            config.dataDirectory + "/" + CryptoNote::parameters::P2P_NET_DATA_FILENAME,
-            config.dataDirectory + "/DB"};
+        std::vector<fs::path> removablePaths = {
+            fs::path(config.dataDirectory) / CryptoNote::parameters::P2P_NET_DATA_FILENAME,
+            fs::path(config.dataDirectory) / "DB"
+        };
 
-        for (const auto path : removablePaths)
+        for (const auto &path : removablePaths)
         {
-            fs::remove_all(fs::path(path), ec);
+            fs::remove_all(path, ec);
 
             if (ec)
             {
@@ -302,28 +298,15 @@ int main(int argc, char *argv[])
         }
         CryptoNote::Currency currency = currencyBuilder.currency();
 
-        DataBaseConfig dbConfig;
-        dbConfig.init(
+        DataBaseConfig dbConfig(
             config.dataDirectory,
             config.dbThreads,
             config.dbMaxOpenFiles,
             config.dbWriteBufferSizeMB,
             config.dbReadCacheSizeMB,
-            config.dbMaxByteLevelSizeMB,
-            config.enableDbCompression);
-
-        /* If we were told to rewind the blockchain to a certain height
-           we will remove blocks until we're back at the height specified */
-        if (config.rewindToHeight > 0)
-        {
-            logger(INFO) << "Rewinding blockchain to: " << config.rewindToHeight << std::endl;
-
-            std::unique_ptr<IMainChainStorage> mainChainStorage = createSwappedMainChainStorage(config.dataDirectory, currency);
-
-            mainChainStorage->rewindTo(config.rewindToHeight);
-
-            logger(INFO) << "Blockchain rewound to: " << config.rewindToHeight << std::endl;
-        }
+            config.dbMaxFileSizeMB,
+            config.enableDbCompression
+        );
 
         bool use_checkpoints = !config.checkPoints.empty();
         CryptoNote::Checkpoints checkpoints(logManager);
@@ -363,46 +346,107 @@ int main(int argc, char *argv[])
             config.seedNodes,
             config.p2pResetPeerstate);
 
-        if (!Tools::create_directories_if_necessary(dbConfig.getDataDir()))
+        if (!Tools::create_directories_if_necessary(dbConfig.dataDir))
         {
-            throw std::runtime_error("Can't create directory: " + dbConfig.getDataDir());
+            throw std::runtime_error("Can't create directory: " + dbConfig.dataDir);
         }
-#if defined (USE_LEVELDB)
-        LevelDBWrapper database(logManager);
-#else
-        RocksDBWrapper database(logManager);
-#endif
-        database.init(dbConfig);
-        Tools::ScopeExit dbShutdownOnExit([&database]() { database.shutdown(); });
 
-        if (!DatabaseBlockchainCache::checkDBSchemeVersion(database, logManager))
+        std::shared_ptr<IDataBase> database;
+
+        if (config.enableLevelDB)
+        {
+            database = std::make_shared<LevelDBWrapper>(logManager, dbConfig);
+        }
+        else
+        {
+            database = std::make_shared<RocksDBWrapper>(logManager, dbConfig);
+        }
+
+        database->init();
+        Tools::ScopeExit dbShutdownOnExit([&database]() { database->shutdown(); });
+
+        if (!DatabaseBlockchainCache::checkDBSchemeVersion(*database, logManager))
         {
             dbShutdownOnExit.cancel();
-            database.shutdown();
 
-            database.destroy(dbConfig);
+            database->shutdown();
+            database->destroy();
+            database->init();
 
-            database.init(dbConfig);
             dbShutdownOnExit.resume();
         }
 
         System::Dispatcher dispatcher;
         logger(INFO) << "Initializing core...";
 
-        std::unique_ptr<IMainChainStorage> tmainChainStorage = createSwappedMainChainStorage(config.dataDirectory, currency);
-
         const auto ccore = std::make_shared<CryptoNote::Core>(
             currency,
             logManager,
             std::move(checkpoints),
             dispatcher,
-            std::unique_ptr<IBlockchainCacheFactory>(new DatabaseBlockchainCacheFactory(database, logger.getLogger())),
-            std::move(tmainChainStorage),
-            config.transactionValidationThreads);
+            std::unique_ptr<IBlockchainCacheFactory>(new DatabaseBlockchainCacheFactory(*database, logger.getLogger())),
+            config.transactionValidationThreads
+        );
 
         ccore->load();
 
         logger(INFO) << "Core initialized OK";
+
+        std::string error;
+        std::string filepath = "blockchain.dump";
+
+        auto startTimer = std::chrono::high_resolution_clock::now();
+
+        const bool performExpensiveValidation = false;
+        auto elapsedTime = std::chrono::high_resolution_clock::now() - startTimer;
+        if (config.importChain)
+        {
+            logger(INFO) << "Importing blockchain...";
+            error = ccore->importBlockchain(filepath, performExpensiveValidation);
+            elapsedTime = std::chrono::high_resolution_clock::now() - startTimer;
+            if (error != "")
+            {
+                logger(ERROR) << "Failed to import "
+                              << "blockchain: " << error;
+                exit(1);
+            }
+            else
+            {
+                std::cout << "Time to import "
+                          << std::chrono::duration_cast<std::chrono::seconds>(elapsedTime).count()
+                          << " seconds." << std::endl
+                          << std::endl;
+                exit(0);
+            }
+        } else if (config.exportChain)
+        {
+            logger(INFO) << "Exporting blockchain...";
+            error = ccore->exportBlockchain(filepath, config.exportNumBlocks);
+            elapsedTime = std::chrono::high_resolution_clock::now() - startTimer;
+            if (error != "")
+            {
+                logger(ERROR) << "Failed to export "
+                              << "blockchain: " << error;
+                exit(1);
+            }
+            else
+            {
+                std::cout << "Time to export "
+                          << std::chrono::duration_cast<std::chrono::seconds>(elapsedTime).count()
+                          << " seconds." << std::endl
+                          << std::endl;
+                exit(0);
+            }
+        }
+
+        /* If we were told to rewind the blockchain to a certain height
+           we will remove blocks until we're back at the height specified */
+        if (config.rewindToHeight > 0)
+        {
+            logger(INFO) << "Rewinding blockchain to: " << config.rewindToHeight << std::endl;
+
+            ccore->rewind(config.rewindToHeight);
+        }
 
         const auto cprotocol = std::make_shared<CryptoNote::CryptoNoteProtocolHandler>(
             currency,
@@ -418,13 +462,6 @@ int main(int argc, char *argv[])
             logManager
         );
 
-        std::string corsDomain;
-
-        /* TODO: enable cors should not be a vector */
-        if (!config.enableCors.empty()) {
-            corsDomain = config.enableCors[0];
-        }
-
         RpcMode rpcMode = RpcMode::Default;
 
         if (config.enableBlockExplorerDetailed)
@@ -439,7 +476,7 @@ int main(int argc, char *argv[])
         RpcServer rpcServer(
             config.rpcPort,
             config.rpcInterface,
-            corsDomain,
+            config.enableCors,
             config.feeAddress,
             config.feeAmount,
             rpcMode,
@@ -474,7 +511,7 @@ int main(int argc, char *argv[])
             ip = "127.0.0.1";
         }
 
-        DaemonCommandsHandler dch(*ccore, *p2psrv, logManager, ip, port);
+        DaemonCommandsHandler dch(*ccore, *p2psrv, logManager, ip, port, config);
 
         if (!config.noConsole)
         {

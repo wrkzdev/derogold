@@ -59,7 +59,7 @@ class SubWallet
 
     std::tuple<uint64_t, uint64_t> getBalance(const uint64_t currentHeight) const;
 
-    void reset(const uint64_t startHeight, const uint64_t startTimestamp);
+    void reset(const uint64_t scanHeight);
 
     bool isPrimaryAddress() const;
 

@@ -17,7 +17,7 @@ endif ()
 
 set(CMAKE_CONFIGURATION_TYPES Debug RelWithDebInfo Release CACHE TYPE INTERNAL)
 set(ARCH native CACHE STRING "CPU to build for: -march value or native")
-set(WITH_LEVELDB OFF CACHE STRING "Enable LevelDB")
+
 
 # Required for finding Threads on ARM
 enable_language(C)
@@ -64,9 +64,6 @@ set(FORCE_USE_HEAP ON CACHE BOOL "Force the use of heap memory allocation")
 set(NO_AES OFF CACHE BOOL "Turn off Hardware AES instructions?")
 set(NO_OPTIMIZED_MULTIPLY_ON_ARM OFF CACHE BOOL "Turn off Optimized Multiplication on ARM?")
 
-## This section defines a few parameters that we open up for use with RocksDB
-set(WITH_ZSTD ON CACHE STRING "Enable zstd compression")
-
 message(STATUS "Building for target architecture: ${ARCH}")
 
 if (FORCE_USE_HEAP)
@@ -88,14 +85,6 @@ if (NO_OPTIMIZED_MULTIPLY_ON_ARM)
     message(STATUS "OPTIMIZED_ARM_MULTIPLICATION: DISABLED")
 else ()
     message(STATUS "OPTIMIZED_ARM_MULTIPLICATION: ENABLED")
-endif ()
-
-if (WITH_LEVELDB)
-    add_definitions(-DUSE_LEVELDB)
-endif ()
-
-if ((WITH_ZSTD) AND (NOT WITH_LEVELDB))
-    add_definitions(-DENABLE_ZSTD_COMPRESSION)
 endif ()
 
 # We need to set the label and import it into CMake if it exists
@@ -192,7 +181,16 @@ if (NOT MSVC)
     if (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "aarch64" OR "${LABEL}" STREQUAL "aarch64")
         set(MAES_FLAG "")
         set(CRYPTOPP_AARCH64 ON CACHE BOOL FORCE "Tell CryptoPP that we are building for aarch64")
-    elseif (${CMAKE_SYSTEM_PROCESSOR} MATCHES "x86_64" AND NOT "${LABEL}" STREQUAL "aarch64")
+    elseif (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "arm" OR "${LABEL}" STREQUAL "aarch32-linux-gnueabihf")
+        set(MAES_FLAG "")
+        set(CRYPTOPP_ARMHF ON CACHE BOOL FORCE "Tell CryptoPP that we are building for aarch32-linux-gnueabihf")
+    elseif (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "arm" OR "${LABEL}" STREQUAL "aarch32-linux-gnueabi")
+        set(MAES_FLAG "")
+        set(CRYPTOPP_ARM ON CACHE BOOL FORCE "Tell CryptoPP that we are building for aarch32-linux-gnueabi")
+    elseif (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64" AND "${LABEL}" STREQUAL "Ubuntu GCC 8 x86")
+        set(MAES_FLAG "")
+        set(CRYPTOPP_I386 ON CACHE BOOL FORCE "Tell CryptoPP that we are building for i386")
+    elseif (${CMAKE_SYSTEM_PROCESSOR} MATCHES "x86_64" AND NOT "${LABEL}" STREQUAL "aarch64" AND NOT "${LABEL}" STREQUAL "aarch32-linux-gnueabihf" AND NOT "${LABEL}" STREQUAL "aarch32-linux-gnueabi")
         set(MAES_FLAG "-maes")
     else ()
         set(MAES_FLAG "")
@@ -313,15 +311,13 @@ add_subdirectory(src)
 
 ## We need to setup the RocksDB build environment to match our system
 if (NOT MSVC)
-    if (WITH_LEVELDB)
-        execute_process(
-            COMMAND ${CMAKE_COMMAND} ${CMAKE_CURRENT_SOURCE_DIR}/external/leveldb -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DLEVELDB_BUILD_TESTS=OFF -DLEVELDB_BUILD_BENCHMARKS=OFF -DLEVELDB_INSTALL=OFF -B${PROJECT_BINARY_DIR}/leveldb
-        )
-        set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "${PROJECT_BINARY_DIR}/leveldb/libleveldb.a")
-    else ()
-        execute_process(
-            COMMAND ${CMAKE_COMMAND} ${CMAKE_CURRENT_SOURCE_DIR}/external/rocksdb -DARCH=${ARCH} -DWITH_ZSTD=${WITH_ZSTD} -DWITH_GFLAGS=0 -DCMAKE_BUILD_TYPE=MinSizeRel -DWITH_TESTS=OFF -DWITH_TOOLS=OFF -DPORTABLE=ON -B${PROJECT_BINARY_DIR}/rocksdb
-        )
-        set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "${PROJECT_BINARY_DIR}/rocksdb/librocksdb.a")
-    endif ()
+    execute_process(
+         COMMAND ${CMAKE_COMMAND} ${CMAKE_CURRENT_SOURCE_DIR}/external/leveldb -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DLEVELDB_BUILD_TESTS=OFF -DLEVELDB_BUILD_BENCHMARKS=OFF -DLEVELDB_INSTALL=OFF -B${PROJECT_BINARY_DIR}/leveldb
+    )
+    set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "${PROJECT_BINARY_DIR}/leveldb/libleveldb.a")
+
+    execute_process(
+        COMMAND ${CMAKE_COMMAND} ${CMAKE_CURRENT_SOURCE_DIR}/external/rocksdb -DARCH=${ARCH} -DWITH_ZSTD=ON -DWITH_GFLAGS=0 -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DWITH_TESTS=OFF -DWITH_TOOLS=OFF -DPORTABLE=ON -DUSE_RTTI=ON -B${PROJECT_BINARY_DIR}/rocksdb
+    )
+    set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "${PROJECT_BINARY_DIR}/rocksdb/librocksdb.a")
 endif ()

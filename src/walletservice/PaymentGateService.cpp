@@ -1,5 +1,6 @@
 // Copyright (c) 2012-2017, The CryptoNote developers, The Bytecoin developers
 // Copyright (c) 2018-2019, The TurtleCoin Developers
+// Copyright (c) 2018-2020, The WrkzCoin developers
 //
 // Please see the included LICENSE file for more information.
 
@@ -165,7 +166,7 @@ void PaymentGateService::runWalletService(const CryptoNote::Currency &currency, 
     std::unique_ptr<CryptoNote::WalletGreen> wallet(new CryptoNote::WalletGreen(*dispatcher, currency, node, logger));
 
     service =
-        new PaymentService::WalletService(currency, *dispatcher, node, *wallet, *wallet, walletConfiguration, logger);
+        new PaymentService::WalletService(currency, *dispatcher, node, *wallet, walletConfiguration, logger);
     std::unique_ptr<PaymentService::WalletService> serviceGuard(service);
     try
     {

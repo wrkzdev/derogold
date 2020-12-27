@@ -1,11 +1,13 @@
 // Copyright (c) 2012-2017, The CryptoNote developers, The Bytecoin developers
 // Copyright (c) 2018-2019, The TurtleCoin Developers
+// Copyright (c) 2018-2020, The WrkzCoin developers
 //
 // Please see the included LICENSE file for more information.
 
 #pragma once
 
 #include "common/ConsoleHandler.h"
+#include "daemon/DaemonConfiguration.h"
 #include "rpc/CoreRpcServerCommandsDefinitions.h"
 #include "rpc/JsonRpc.h"
 #include "rpc/RpcServer.h"
@@ -28,7 +30,8 @@ class DaemonCommandsHandler
         CryptoNote::NodeServer &srv,
         std::shared_ptr<Logging::LoggerManager> log,
         const std::string ip,
-        const uint32_t port);
+        const uint32_t port,
+        const DaemonConfig::DaemonConfiguration &config);
 
     bool start_handling()
     {
@@ -53,6 +56,8 @@ class DaemonCommandsHandler
     httplib::Client m_rpcServer;
 
     Logging::LoggerRef logger;
+
+    DaemonConfig::DaemonConfiguration m_config;
 
     std::shared_ptr<Logging::LoggerManager> m_logManager;
 
@@ -79,5 +84,4 @@ class DaemonCommandsHandler
     bool print_pool_sh(const std::vector<std::string> &args);
 
     bool status(const std::vector<std::string> &args);
-
 };

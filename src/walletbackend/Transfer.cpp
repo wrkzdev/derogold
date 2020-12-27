@@ -1,4 +1,5 @@
 // Copyright (c) 2018-2019, The TurtleCoin Developers
+// Copyright (c) 2018-2020, The WrkzCoin developers
 //
 // Please see the included LICENSE file for more information.
 
@@ -11,11 +12,13 @@
 #include <common/CheckDifficulty.h>
 #include <common/Varint.h>
 #include <errors/ValidateParameters.h>
+#include <logger/Logger.h>
 #include <utilities/Addresses.h>
 #include <utilities/FormatTools.h>
 #include <utilities/Mixins.h>
 #include <utilities/Utilities.h>
 #include <walletbackend/WalletBackend.h>
+#include <ctime> // time_t
 
 namespace SendTransaction
 {
@@ -192,7 +195,7 @@ namespace SendTransaction
         subWallets->storeTxPrivateKey(txKeyPair.secretKey, txHash);
 
         /* Lock the input for spending till it is confirmed as spent in a block */
-        for (const auto input : ourInputs)
+        for (const auto &input : ourInputs)
         {
             subWallets->markInputAsLocked(input.input.keyImage, input.publicSpendKey);
         }
@@ -267,6 +270,7 @@ namespace SendTransaction
             addressesToTakeFrom,
             changeAddress,
             subWallets,
+            unlockTime,
             daemon->networkBlockCount());
 
         if (error)
@@ -439,7 +443,7 @@ namespace SendTransaction
         std::unordered_map<Crypto::PublicKey, int64_t> transfers;
 
         /* Loop through each input, and minus that from the transfers array */
-        for (const auto input : ourInputs)
+        for (const auto &input : ourInputs)
         {
             transfers[input.publicSpendKey] -= input.input.amount;
         }
@@ -469,7 +473,7 @@ namespace SendTransaction
     std::tuple<Error, Crypto::Hash>
         relayTransaction(const CryptoNote::Transaction tx, const std::shared_ptr<Nigel> daemon)
     {
-        const auto [success, connectionError] = daemon->sendTransaction(tx);
+        const auto [success, connectionError, error] = daemon->sendTransaction(tx);
 
         if (connectionError)
         {
@@ -1133,12 +1137,12 @@ namespace SendTransaction
         uint64_t inputTotal = 0;
         uint64_t outputTotal = 0;
 
-        for (const auto input : tx.inputs)
+        for (const auto &input : tx.inputs)
         {
             inputTotal += boost::get<CryptoNote::KeyInput>(input).amount;
         }
 
-        for (const auto output : tx.outputs)
+        for (const auto &output : tx.outputs)
         {
             outputTotal += output.amount;
         }

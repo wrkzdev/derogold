@@ -1,5 +1,6 @@
 // Copyright (c) 2012-2017, The CryptoNote developers, The Bytecoin developers
 // Copyright (c) 2018-2019, The TurtleCoin Developers
+// Copyright (c) 2018-2020, The WrkzCoin developers
 //
 // Please see the included LICENSE file for more information.
 
@@ -55,12 +56,14 @@ DaemonCommandsHandler::DaemonCommandsHandler(
     CryptoNote::NodeServer &srv,
     std::shared_ptr<Logging::LoggerManager> log,
     const std::string ip,
-    const uint32_t port):
+    const uint32_t port,
+    const DaemonConfig::DaemonConfiguration &config):
     m_core(core),
     m_srv(srv),
     logger(log, "daemon"),
     m_logManager(log),
-    m_rpcServer(ip.c_str(), port)
+    m_rpcServer(ip.c_str(), port),
+    m_config(config)
 {
     m_consoleHandler.setHandler(
         "?",
@@ -304,6 +307,8 @@ bool DaemonCommandsHandler::print_pool_sh(const std::vector<std::string> &args)
 {
     const auto pool = m_core.getPoolTransactions();
 
+    const uint64_t height = m_core.getTopBlockIndex();
+
     if (pool.size() == 0)
     {
         std::cout << InformationMsg("\nPool state: ") << SuccessMsg("Empty.") << std::endl;
@@ -400,19 +405,15 @@ bool DaemonCommandsHandler::status(const std::vector<std::string> &args)
     statusTable.push_back({"Fork Status",           Utilities::get_update_status(forkStatus)});
     statusTable.push_back({"Next Fork",             Utilities::get_fork_time(networkHeight, upgradeHeights)});
     statusTable.push_back({"Transaction Pool Size", std::to_string(m_core.getPoolTransactionHashes().size())});
-    statusTable.push_back({"Alt Block Count", std::to_string(m_core.getAlternativeBlockCount())});
-#if defined (USE_LEVELDB)
-    statusTable.push_back({"DB Engine",             "LevelDB"});
-#else
-    statusTable.push_back({"DB Engine",             "RocksDB"});
-#endif
+    statusTable.push_back({"Alternative Block Count", std::to_string(m_core.getAlternativeBlockCount())});
+    statusTable.push_back({"DB Engine",             m_config.enableLevelDB ? "LevelDB" : "RocksDB"});
     statusTable.push_back({"Version", PROJECT_VERSION_WITH_BUILD});
 
     size_t longestValue = 0;
     size_t longestDescription = 0;
 
     /* Figure out the dimensions of the table */
-    for (const auto [value, description] : statusTable)
+    for (const auto &[value, description] : statusTable)
     {
         if (value.length() > longestValue)
         {
@@ -433,7 +434,7 @@ bool DaemonCommandsHandler::status(const std::vector<std::string> &args)
     std::cout << std::string(totalTableWidth, '-') << std::endl;
 
     /* Output the table itself */
-    for (const auto [value, description] : statusTable)
+    for (const auto &[value, description] : statusTable)
     {
         std::cout << "| " << InformationMsg(value, longestValue) << " ";
         std::cout << "| " << SuccessMsg(description, longestDescription) << " |" << std::endl;

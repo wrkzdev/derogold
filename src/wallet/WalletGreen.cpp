@@ -411,7 +411,7 @@ namespace CryptoNote
         }
         else
         {
-            creationTimestamp = Utilities::scanHeightToTimestamp(scanHeight);
+            creationTimestamp = scanHeightToTimestamp(scanHeight);
         }
 
         prefix->encryptedViewKeys =
@@ -1218,7 +1218,7 @@ namespace CryptoNote
      lower height to get the blocks we need. */
         if (!walletsIndex.empty() && !newAddress)
         {
-            uint64_t timestamp = Utilities::scanHeightToTimestamp(scanHeight);
+            uint64_t timestamp = scanHeightToTimestamp(scanHeight);
 
             time_t minTimestamp = std::numeric_limits<time_t>::max();
 
@@ -1330,7 +1330,7 @@ namespace CryptoNote
             }
             else
             {
-                sub.syncStart.timestamp = Utilities::scanHeightToTimestamp(scanHeight);
+                sub.syncStart.timestamp = scanHeightToTimestamp(scanHeight);
             }
 
             m_containerStorage.push_back(encryptKeyPair(spendPublicKey, spendSecretKey, sub.syncStart.timestamp));
@@ -1376,6 +1376,32 @@ namespace CryptoNote
         }
     }
 
+    uint64_t WalletGreen::scanHeightToTimestamp(const uint64_t scanHeight)
+    {
+        if (scanHeight == 0)
+        {
+            return 0;
+        }
+
+        /* Get the amount of seconds since the blockchain launched */
+        uint64_t secondsSinceLaunch = scanHeight * CryptoNote::parameters::DIFFICULTY_TARGET;
+
+        /* Add a bit of a buffer in case of difficulty weirdness, blocks coming
+       out too fast */
+        secondsSinceLaunch *= 0.95;
+
+        /* Get the genesis block timestamp and add the time since launch */
+        const uint64_t timestamp = CryptoNote::parameters::GENESIS_BLOCK_TIMESTAMP + secondsSinceLaunch;
+
+        /* Timestamp in the future */
+        if (timestamp >= static_cast<uint64_t>(std::time(nullptr)))
+        {
+            return getCurrentTimestampAdjusted();
+        }
+
+        return timestamp;
+    }
+
     uint64_t WalletGreen::getCurrentTimestampAdjusted()
     {
         /* Get the current time as a unix timestamp */
@@ -1402,7 +1428,7 @@ namespace CryptoNote
         /* Grab the wallet encrypted prefix */
         auto *prefix = reinterpret_cast<ContainerStoragePrefix *>(m_containerStorage.prefix());
 
-        uint64_t newTimestamp = Utilities::scanHeightToTimestamp(scanHeight);
+        uint64_t newTimestamp = scanHeightToTimestamp(scanHeight);
 
         /* Reencrypt with the new creation timestamp so we rescan from here when we relaunch */
         prefix->encryptedViewKeys = encryptKeyPair(m_viewPublicKey, m_viewSecretKey, newTimestamp);
@@ -1606,7 +1632,7 @@ namespace CryptoNote
         return id;
     }
 
-    size_t WalletGreen::transfer(const TransactionParameters &transactionParameters)
+    size_t WalletGreen::transfer(TransactionParameters &transactionParameters)
     {
         size_t id = WALLET_INVALID_TRANSACTION_ID;
         Tools::ScopeExit releaseContext([this, &id] {
@@ -1634,8 +1660,7 @@ namespace CryptoNote
                                      << Common::makeContainerFormatter(transactionParameters.sourceAddresses) << ", to "
                                      << WalletOrderListFormatter(m_currency, transactionParameters.destinations)
                                      << ", change address '" << transactionParameters.changeDestination << '\''
-                                     << ", fee " << m_currency.formatAmount(transactionParameters.fee) << ", mixin "
-                                     << transactionParameters.mixIn << ", unlockTimestamp "
+                                     << ", mixin " << transactionParameters.mixIn << ", unlockTimestamp "
                                      << transactionParameters.unlockTimestamp;
 
         id = doTransfer(transactionParameters);
@@ -2058,7 +2083,7 @@ namespace CryptoNote
         return preparedTransaction;
     }
 
-    size_t WalletGreen::makeTransaction(const TransactionParameters &sendingTransaction)
+    size_t WalletGreen::makeTransaction(TransactionParameters &sendingTransaction)
     {
         size_t id = WALLET_INVALID_TRANSACTION_ID;
         Tools::ScopeExit releaseContext([this, &id] {
@@ -3025,7 +3050,7 @@ namespace CryptoNote
         ReceiverAmounts receiverAmounts;
 
         receiverAmounts.receiver = destination;
-        decomposeAmount(amount, dustThreshold, receiverAmounts.amounts);
+        receiverAmounts.amounts = SendTransaction::splitAmountIntoDenominations(amount);
         return receiverAmounts;
     }
 
@@ -3922,9 +3947,10 @@ namespace CryptoNote
         WalletGreen::decomposeFusionOutputs(const AccountPublicAddress &address, uint64_t inputsAmount)
     {
         WalletGreen::ReceiverAmounts outputs;
-        outputs.receiver = address;
 
-        decomposeAmount(inputsAmount, 0, outputs.amounts);
+        outputs.receiver = address;
+        outputs.amounts = SendTransaction::splitAmountIntoDenominations(inputsAmount);
+
         std::sort(outputs.amounts.begin(), outputs.amounts.end());
 
         return outputs;

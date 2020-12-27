@@ -42,6 +42,11 @@ namespace CryptoNote
             return m_publicAddressBase58Prefix;
         }
 
+        uint32_t minedMoneyUnlockWindow() const
+        {
+            return m_minedMoneyUnlockWindow;
+        }
+
         size_t timestampCheckWindow(uint32_t blockHeight) const
         {
                 return m_timestampCheckWindow;
@@ -99,15 +104,38 @@ namespace CryptoNote
             return m_defaultDustThreshold;
         }
 
+        uint64_t difficultyTarget() const
+        {
+            return m_difficultyTarget;
+        }
+
         size_t difficultyWindow() const
         {
             return m_difficultyWindow;
         }
 
+        size_t difficultyWindowByBlockVersion(uint8_t blockMajorVersion) const;
+
+        size_t difficultyLag() const
+        {
+            return m_difficultyLag;
+        }
+
+        size_t difficultyLagByBlockVersion(uint8_t blockMajorVersion) const;
+
         size_t difficultyCut() const
         {
             return m_difficultyCut;
         }
+
+        size_t difficultyCutByBlockVersion(uint8_t blockMajorVersion) const;
+
+        size_t difficultyBlocksCount() const
+        {
+            return m_difficultyWindow + m_difficultyLag;
+        }
+
+        size_t difficultyBlocksCountByBlockVersion(uint8_t blockMajorVersion, uint32_t height) const;
 
         size_t maxBlockSizeInitial() const
         {
@@ -194,21 +222,6 @@ namespace CryptoNote
         uint32_t calculateUpgradeHeight(uint32_t voteCompleteHeight) const
         {
             return voteCompleteHeight + m_upgradeWindow;
-        }
-
-        const std::string &blocksFileName() const
-        {
-            return m_blocksFileName;
-        }
-
-        const std::string &blockIndexesFileName() const
-        {
-            return m_blockIndexesFileName;
-        }
-
-        const std::string &txPoolFileName() const
-        {
-            return m_txPoolFileName;
         }
 
         bool isBlockexplorer() const
@@ -309,6 +322,8 @@ namespace CryptoNote
 
         uint64_t m_publicAddressBase58Prefix;
 
+        uint32_t m_minedMoneyUnlockWindow;
+
         size_t m_timestampCheckWindow;
 
         uint64_t m_moneySupply;
@@ -329,7 +344,11 @@ namespace CryptoNote
 
         uint64_t m_defaultDustThreshold;
 
+        uint64_t m_difficultyTarget;
+
         size_t m_difficultyWindow;
+
+        size_t m_difficultyLag;
 
         size_t m_difficultyCut;
 
@@ -370,12 +389,6 @@ namespace CryptoNote
         uint32_t m_upgradeVotingWindow;
 
         uint32_t m_upgradeWindow;
-
-        std::string m_blocksFileName;
-
-        std::string m_blockIndexesFileName;
-
-        std::string m_txPoolFileName;
 
         bool m_isBlockexplorer;
 
@@ -429,6 +442,12 @@ namespace CryptoNote
             return *this;
         }
 
+        CurrencyBuilder &minedMoneyUnlockWindow(uint32_t val)
+        {
+            m_currency.m_minedMoneyUnlockWindow = val;
+            return *this;
+        }
+
         CurrencyBuilder &timestampCheckWindow(size_t val)
         {
             m_currency.m_timestampCheckWindow = val;
@@ -479,7 +498,19 @@ namespace CryptoNote
             return *this;
         }
 
+        CurrencyBuilder &difficultyTarget(uint64_t val)
+        {
+            m_currency.m_difficultyTarget = val;
+            return *this;
+        }
+
         CurrencyBuilder &difficultyWindow(size_t val);
+
+        CurrencyBuilder &difficultyLag(size_t val)
+        {
+            m_currency.m_difficultyLag = val;
+            return *this;
+        }
 
         CurrencyBuilder &difficultyCut(size_t val)
         {
@@ -592,24 +623,6 @@ namespace CryptoNote
         }
 
         CurrencyBuilder &upgradeWindow(uint32_t val);
-
-        CurrencyBuilder &blocksFileName(const std::string &val)
-        {
-            m_currency.m_blocksFileName = val;
-            return *this;
-        }
-
-        CurrencyBuilder &blockIndexesFileName(const std::string &val)
-        {
-            m_currency.m_blockIndexesFileName = val;
-            return *this;
-        }
-
-        CurrencyBuilder &txPoolFileName(const std::string &val)
-        {
-            m_currency.m_txPoolFileName = val;
-            return *this;
-        }
 
         CurrencyBuilder &isBlockexplorer(const bool val)
         {
