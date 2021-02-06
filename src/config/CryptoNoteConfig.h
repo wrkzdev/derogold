@@ -224,9 +224,11 @@ namespace CryptoNote
 
         const uint32_t UPGRADE_HEIGHT_V5 = 4; // Upgrade height for CN-Turtle Variant 2 switch.
 
-	const uint32_t UPGRADE_HEIGHT_V6 = 2325000; // Upgrade height for DIFFICULTY_TARGET_V3
+	const uint32_t UPGRADE_HEIGHT_V6 = 5; // Upgrade height for DIFFICULTY_TARGET_V3
+    
+        const uint32_t UPGRADE_HEIGHT_V7 = 6; // Upgrade height for CN-UPX switch
 
-        const uint32_t UPGRADE_HEIGHT_CURRENT = UPGRADE_HEIGHT_V6;
+        const uint32_t UPGRADE_HEIGHT_CURRENT = UPGRADE_HEIGHT_V7;
 
         const unsigned UPGRADE_VOTING_THRESHOLD = 90; // percent
         const uint32_t UPGRADE_VOTING_WINDOW = EXPECTED_NUMBER_OF_BLOCKS_PER_DAY; // blocks
@@ -236,18 +238,19 @@ namespace CryptoNote
 
         /* Block heights we are going to have hard forks at */
         const uint64_t FORK_HEIGHTS[] = {
-            700000, // 0
-            1470000, // 1
-            1980000, // 2
-	    2325000, // 3
-	    2361823, // 4
-	    2370000, // 5
-	    2600000, // 6
-	    2700000, // 7
+            1, // 0
+            2, // 1
+            3, // 2
+	    4, // 3
+	    5, // 4
+	    6, // 5
+	    7, // 6
+	    420, // 7
+            6969, // 8
         };
 
         /* MAKE SURE TO UPDATE THIS VALUE WITH EVERY MAJOR RELEASE BEFORE A FORK */
-        const uint64_t SOFTWARE_SUPPORTED_FORK_INDEX = 5;
+        const uint64_t SOFTWARE_SUPPORTED_FORK_INDEX = 6;
 
         const uint64_t FORK_HEIGHTS_SIZE = sizeof(FORK_HEIGHTS) / sizeof(*FORK_HEIGHTS);
 
@@ -292,6 +295,7 @@ namespace CryptoNote
     const uint8_t BLOCK_MAJOR_VERSION_4 = 4; /* UPGRADE_HEIGHT_V4 */
     const uint8_t BLOCK_MAJOR_VERSION_5 = 5; /* UPGRADE_HEIGHT_V5 */
     const uint8_t BLOCK_MAJOR_VERSION_6 = 6; /* UPGRADE_HEIGHT_V6 */
+    const uint8_t BLOCK_MAJOR_VERSION_7 = 7; /* UPGRADE_HEIGHT_V7 */
 
     const uint8_t BLOCK_MINOR_VERSION_0 = 0;
 
@@ -305,6 +309,7 @@ namespace CryptoNote
             {BLOCK_MAJOR_VERSION_4, Crypto::cn_lite_slow_hash_v1}, /* UPGRADE_HEIGHT_V4 */
             {BLOCK_MAJOR_VERSION_5, Crypto::cn_turtle_lite_slow_hash_v2}, /* UPGRADE_HEIGHT_V5 */
             {BLOCK_MAJOR_VERSION_6, Crypto::cn_turtle_lite_slow_hash_v2}, /* UPGRADE_HEIGHT_V6 */
+            {BLOCK_MAJOR_VERSION_7, Crypto::cn_upx}, /* UPGRADE_HEIGHT_V7 */
     };
 
     const size_t BLOCKS_IDS_SYNCHRONIZING_DEFAULT_COUNT = 1000; // by default, blocks ids count in synchronizing

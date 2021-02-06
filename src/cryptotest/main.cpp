@@ -60,6 +60,8 @@ const std::string CN_TURTLE_LITE_SLOW_HASH_V1 = "ae7f864a7a2f2b07dcef253581e60a0
 
 const std::string CN_TURTLE_LITE_SLOW_HASH_V2 = "b2172ec9466e1aee70ec8572a14c233ee354582bcb93f869d429744de5726a26";
 
+const std::string CN_UPX = "38591572f820d4de253cf55a2192b622b0289e2e5c3616e61e787a8fe462ec5a";
+
 const std::string CN_SOFT_SHELL_V0[] = {"5e1891a15d5d85c09baf4a3bbe33675cfa3f77229c8ad66c01779e590528d6d3",
                                         "e1239347694df77cab780b7ec8920ec6f7e48ecef1d8c368e06708c08e1455f1",
                                         "118a03801c564d12f7e68972419303fe06f7a54ab8f44a8ce7deafbc6b1b5183",
@@ -365,6 +367,10 @@ int main(int argc, char **argv)
 
         std::cout << std::endl;
 
+        TEST_HASH_FUNCTION(cn_upx, CN_UPX);
+
+        std::cout << std::endl;
+
         for (uint64_t height = 0; height <= 8192; height += 512)
         {
             TEST_HASH_FUNCTION_WITH_HEIGHT(cn_soft_shell_slow_hash_v0, CN_SOFT_SHELL_V0[height / 512], height);
@@ -414,6 +420,8 @@ int main(int argc, char **argv)
             BENCHMARK(cn_turtle_lite_slow_hash_v0, o_iterations_long);
             BENCHMARK(cn_turtle_lite_slow_hash_v1, o_iterations_long);
             BENCHMARK(cn_turtle_lite_slow_hash_v2, o_iterations_long);
+
+            BENCHMARK(cn_upx, o_iterations_long);
         }
     }
     catch (std::exception &e)
