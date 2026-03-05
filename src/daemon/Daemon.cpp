@@ -40,6 +40,7 @@
 #endif
 #include <atomic>
 #include <chrono>
+#include <cstdlib>
 #include <ctime>
 #include <future>
 #include <thread>
@@ -709,6 +710,12 @@ int main(int argc, char *argv[])
         Tools::SignalHandler::install(
             [&dch]
             {
+                static std::atomic<bool> s_alreadyShuttingDown(false);
+                if (s_alreadyShuttingDown.exchange(true))
+                {
+                    // Second signal while shutdown is already in progress: force-exit immediately.
+                    std::_Exit(1);
+                }
                 dch.exit({});
                 dch.stop_handling();
             });
