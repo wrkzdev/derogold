@@ -614,7 +614,9 @@ int main(int argc, char *argv[])
 
             pruneWorker = std::thread([&, prunePassInterval, prunePollInterval]
                                       {
-                                          auto nextRun = std::chrono::steady_clock::now() + prunePassInterval;
+                                          // Start immediately on first run to catch up any blocks skipped
+                                          // by previous daemon runs where prune was enabled but non-functional.
+                                          auto nextRun = std::chrono::steady_clock::now();
                                           std::future<void> prunePassTask;
                                           // Tracks progress across passes; resets to 0 on restart (safe: re-deleting
                                           // already-pruned keys is a no-op in RocksDB, so existing DBs are handled).

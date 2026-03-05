@@ -79,7 +79,7 @@ namespace DaemonConfig
         uint64_t dbWriteBufferSizeMB = CryptoNote::ROCKSDB_WRITE_BUFFER_MB;
         bool dbOptimize = false;
 
-        bool prune = false;
+        bool prune = true;
         bool backgroundPrune = true;
         uint32_t pruneDepth = DEFAULT_PRUNE_DEPTH;
 
