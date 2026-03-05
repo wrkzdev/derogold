@@ -295,8 +295,14 @@ namespace CryptoNote
 
         rocksdb::Status compactStatus = rocksDb->CompactRange(compactRangeOptions, nullptr, nullptr);
 
+        // If cancel was requested via DisableManualCompaction(), re-enable before any further DB operations.
+        if (optimizeCancelRequested.load())
+        {
+            rocksDb->EnableManualCompaction();
+        }
+
         auto waitForCompactOptions = rocksdb::WaitForCompactOptions();
-        waitForCompactOptions.flush = true;
+        waitForCompactOptions.flush = !optimizeCancelRequested.load();
         waitForCompactOptions.close_db = ownsDbHandle;
         const rocksdb::Status waitStatus = rocksDb->WaitForCompact(waitForCompactOptions);
 
@@ -339,6 +345,13 @@ namespace CryptoNote
         }
 
         optimizeCancelRequested.store(true);
+
+        // Signal RocksDB to abort the ongoing CompactRange immediately.
+        std::lock_guard<std::mutex> lock(optimizeMutex);
+        if (optimizeDbHandle)
+        {
+            optimizeDbHandle->DisableManualCompaction();
+        }
 
         return true;
     }

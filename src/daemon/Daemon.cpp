@@ -500,11 +500,15 @@ int main(int argc, char *argv[])
         {
             constexpr auto prunePassInterval = std::chrono::seconds(60);
             constexpr auto prunePollInterval = std::chrono::seconds(1);
+            constexpr uint64_t PRUNE_BATCH_SIZE = 500;
 
             pruneWorker = std::thread([&, prunePassInterval, prunePollInterval]
                                       {
                                           auto nextRun = std::chrono::steady_clock::now() + prunePassInterval;
                                           std::future<void> prunePassTask;
+                                          // Tracks progress across passes; resets to 0 on restart (safe: re-deleting
+                                          // already-pruned keys is a no-op in RocksDB, so existing DBs are handled).
+                                          uint64_t lastPrunedBelow = 0;
 
                                           while (!stopPruneWorker)
                                           {
@@ -522,34 +526,66 @@ int main(int argc, char *argv[])
                                                   continue;
                                               }
 
-                                              prunePassTask = std::async(std::launch::async,
-                                                                         [&, depth = config.pruneDepth]
-                                                                         {
-                                                                             logger(INFO)
-                                                                                 << "Starting periodic prune pass in "
-                                                                                    "background (depth "
-                                                                                 << depth << ").";
+                                              prunePassTask = std::async(
+                                                  std::launch::async,
+                                                  [&, depth = config.pruneDepth]
+                                                  {
+                                                      if (!config.prune)
+                                                      {
+                                                          return;
+                                                      }
 
-                                                                             uint64_t rawBlockSlotsProcessed = 0;
-                                                                             try
-                                                                             {
-                                                                                 const uint64_t height =
-                                                                                     ccore->getTopBlockIndex() + 1;
-                                                                                 rawBlockSlotsProcessed =
-                                                                                     height > depth
-                                                                                         ? height - depth
-                                                                                         : 0;
-                                                                             }
-                                                                             catch (const std::exception &)
-                                                                             {
-                                                                                 return;
-                                                                             }
+                                                      uint64_t pruneFloor = 0;
+                                                      try
+                                                      {
+                                                          const uint64_t height = ccore->getTopBlockIndex() + 1;
+                                                          pruneFloor = height > depth ? height - depth : 0;
+                                                      }
+                                                      catch (const std::exception &)
+                                                      {
+                                                          return;
+                                                      }
 
-                                                                             logger(INFO)
-                                                                                 << "Periodic prune pass completed. "
-                                                                                    "Raw block slots processed: "
-                                                                                 << rawBlockSlotsProcessed;
-                                                                         });
+                                                      if (pruneFloor <= lastPrunedBelow)
+                                                      {
+                                                          return;
+                                                      }
+
+                                                      logger(INFO)
+                                                          << "Starting periodic prune pass (depth " << depth
+                                                          << ", pruning raw blocks [" << lastPrunedBelow
+                                                          << ", " << pruneFloor << ")).";
+
+                                                      uint64_t deletedCount = 0;
+                                                      for (uint64_t i = lastPrunedBelow;
+                                                           i < pruneFloor && !stopPruneWorker;
+                                                           i += PRUNE_BATCH_SIZE)
+                                                      {
+                                                          const uint64_t batchEnd =
+                                                              std::min(i + PRUNE_BATCH_SIZE, pruneFloor);
+                                                          CryptoNote::BlockchainWriteBatch batch;
+                                                          for (uint64_t j = i; j < batchEnd; ++j)
+                                                          {
+                                                              batch.removeRawBlock(static_cast<uint32_t>(j));
+                                                          }
+
+                                                          if (const auto err = database->write(batch); err)
+                                                          {
+                                                              logger(WARNING)
+                                                                  << "Prune pass: DB write failed at block " << i
+                                                                  << ": " << err.message();
+                                                              return;
+                                                          }
+
+                                                          deletedCount += batchEnd - i;
+                                                          lastPrunedBelow = batchEnd;
+                                                      }
+
+                                                      logger(INFO)
+                                                          << "Periodic prune pass completed. Raw blocks pruned: "
+                                                          << deletedCount
+                                                          << " (pruned below block " << lastPrunedBelow << ").";
+                                                  });
 
                                               nextRun = std::chrono::steady_clock::now() + prunePassInterval;
                                           }
