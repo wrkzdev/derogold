@@ -588,7 +588,8 @@ int main(int argc, char *argv[])
             ip = "127.0.0.1";
         }
 
-        DaemonCommandsHandler dch(*ccore, *p2psrv, cprotocol, logManager, ip, port, database, config);
+        auto pruneTrigger = std::make_shared<std::atomic<bool>>(false);
+        DaemonCommandsHandler dch(*ccore, *p2psrv, cprotocol, logManager, ip, port, database, config, pruneTrigger);
 
         if (!config.noConsole)
         {
@@ -612,7 +613,7 @@ int main(int argc, char *argv[])
             constexpr auto prunePollInterval = std::chrono::seconds(1);
             constexpr uint64_t PRUNE_BATCH_SIZE = 500;
 
-            pruneWorker = std::thread([&, prunePassInterval, prunePollInterval]
+            pruneWorker = std::thread([&, prunePassInterval, prunePollInterval, pruneTrigger]
                                       {
                                           // Start immediately on first run to catch up any blocks skipped
                                           // by previous daemon runs where prune was enabled but non-functional.
@@ -630,6 +631,12 @@ int main(int argc, char *argv[])
                                               {
                                                   std::this_thread::sleep_for(prunePollInterval);
                                                   continue;
+                                              }
+
+                                              // Manual trigger from 'prune_status start' console command.
+                                              if (pruneTrigger->exchange(false))
+                                              {
+                                                  nextRun = std::chrono::steady_clock::now();
                                               }
 
                                               if (std::chrono::steady_clock::now() < nextRun)

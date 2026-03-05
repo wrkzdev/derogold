@@ -41,7 +41,8 @@ public:
                           const std::string &ip,
                           uint32_t port,
                           const std::shared_ptr<CryptoNote::IDataBase> &database,
-                          DaemonConfig::DaemonConfiguration config);
+                          DaemonConfig::DaemonConfiguration config,
+                          std::shared_ptr<std::atomic<bool>> pruneTrigger = nullptr);
 
     bool start_handling()
     {
@@ -73,6 +74,7 @@ private:
 
     std::shared_ptr<Logging::LoggerManager> m_logManager;
     std::shared_ptr<CryptoNote::IDataBase> m_database;
+    std::shared_ptr<std::atomic<bool>> m_pruneTrigger;
 
     std::unordered_map<std::string, std::chrono::system_clock::time_point> m_bannedHosts;
     std::future<void> m_compactDbTask;
