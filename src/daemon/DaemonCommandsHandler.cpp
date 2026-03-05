@@ -94,7 +94,8 @@ DaemonCommandsHandler::DaemonCommandsHandler(
     const std::string &ip,
     const uint32_t port,
     const std::shared_ptr<CryptoNote::IDataBase> &database,
-    DaemonConfig::DaemonConfiguration config
+    DaemonConfig::DaemonConfiguration config,
+    std::shared_ptr<std::atomic<bool>> pruneTrigger
 ) :
     m_core(core),
     m_srv(srv),
@@ -103,7 +104,8 @@ DaemonCommandsHandler::DaemonCommandsHandler(
     logger(log, "daemon"),
     m_config(std::move(config)),
     m_logManager(log),
-    m_database(database)
+    m_database(database),
+    m_pruneTrigger(std::move(pruneTrigger))
 {
     m_consoleHandler
         .setHandler("?", [this](const std::vector<std::string> &args) { return help(args); }, "Show this help");
@@ -159,7 +161,7 @@ DaemonCommandsHandler::DaemonCommandsHandler(
     m_consoleHandler.setHandler(
         "prune_status",
         [this](const std::vector<std::string> &args) { return prune_status(args); },
-        "Show prune mode and capability status"
+        "Prune control: prune_status [start|status]"
     );
     m_consoleHandler.setHandler(
         "save",
@@ -941,6 +943,35 @@ bool DaemonCommandsHandler::db_status(const std::vector<std::string> &args)
 
 bool DaemonCommandsHandler::prune_status(const std::vector<std::string> &args)
 {
+    std::string action = args.empty() ? "status" : args[0];
+    std::transform(action.begin(), action.end(), action.begin(), [](unsigned char c)
+                   { return static_cast<char>(std::tolower(c)); });
+
+    if (action == "start")
+    {
+        if (!m_config.prune)
+        {
+            std::cout << WarningMsg("Prune mode is disabled. Enable with --prune.") << std::endl;
+            return true;
+        }
+
+        if (!m_config.backgroundPrune || !m_pruneTrigger)
+        {
+            std::cout << WarningMsg("Background prune task is not running.") << std::endl;
+            return true;
+        }
+
+        m_pruneTrigger->store(true);
+        std::cout << SuccessMsg("Prune pass triggered. It will start within the next poll cycle (up to 1s).") << std::endl;
+        return true;
+    }
+
+    if (action != "status")
+    {
+        std::cout << "usage: prune_status [start|status]" << std::endl;
+        return true;
+    }
+
     const uint64_t height = m_core.getTopBlockIndex() + 1;
     const uint64_t pruneDepth = m_config.pruneDepth;
     const uint64_t pruneFloor = height > pruneDepth ? height - pruneDepth : 0;
