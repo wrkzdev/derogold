@@ -185,6 +185,15 @@ DaemonCommandsHandler::DaemonCommandsHandler(
 DaemonCommandsHandler::~DaemonCommandsHandler()
 {
     m_stopCompactDbScheduler = true;
+
+    // Cancel any running compaction before joining the scheduler thread.
+    // Without this, ~m_compactDbTask() would block indefinitely waiting for
+    // CompactRange to finish, stalling the shutdown sequence.
+    if (m_database)
+    {
+        m_database->cancelOptimize();
+    }
+
     if (m_compactDbSchedulerThread.joinable())
     {
         m_compactDbSchedulerThread.join();
