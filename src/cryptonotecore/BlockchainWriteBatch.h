@@ -11,6 +11,8 @@
 #include "DatabaseCacheData.h"
 #include "IWriteBatch.h"
 
+#include <WalletTypes.h>
+
 namespace CryptoNote
 {
     class BlockchainWriteBatch final : public IWriteBatch
@@ -68,6 +70,14 @@ namespace CryptoNote
 
         BlockchainWriteBatch &removeKeyOutputInfo(IBlockchainCache::Amount amount,
                                                   IBlockchainCache::GlobalOutputIndex globalIndex);
+
+        BlockchainWriteBatch &insertTransactionPublicKey(const Crypto::Hash &txHash,
+                                                         const Crypto::PublicKey &pubKey);
+
+        /* Store a compact WalletBlockInfo under BLOCK_INDEX_TO_WALLET_SYNC_PREFIX.
+           Serialized as JSON — small enough (~200-500 bytes) and never pruned. */
+        BlockchainWriteBatch &insertWalletSyncBlock(uint32_t blockIndex,
+                                                    const WalletTypes::WalletBlockInfo &block);
 
         std::vector<std::pair<std::string, std::string>> extractRawDataToInsert() override;
 

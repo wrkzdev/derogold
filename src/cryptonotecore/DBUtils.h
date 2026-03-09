@@ -38,6 +38,18 @@ namespace CryptoNote::DB
     const std::string KEY_OUTPUT_AMOUNTS_COUNT_PREFIX = "h";
     const std::string KEY_OUTPUT_KEY_PREFIX = "j";
 
+    /* Maps tx hash → transaction public key (from tx extra).
+       Stored at block-push time so it survives raw-block pruning. */
+    const std::string TX_HASH_TO_PUBLIC_KEY_PREFIX = "k";
+
+    /* Compact WalletBlockInfo record stored at block-push time (before any pruning).
+       Contains everything a wallet needs to scan a block: tx public keys, output
+       keys + amounts + global indexes, key images of inputs, and payment IDs.
+       Never deleted by the prune pass — only BLOCK_INDEX_TO_RAW_BLOCK_PREFIX ("4")
+       is pruned.  At ~200-500 bytes per block vs ~10-50 KB for raw blocks, this
+       costs ~2% of the raw-block storage and survives forever. */
+    const std::string BLOCK_INDEX_TO_WALLET_SYNC_PREFIX = "w";
+
     const std::string LAST_BLOCK_INDEX_KEY = "last_block_index";
     const std::string KEY_OUTPUT_AMOUNTS_COUNT_KEY = "key_amounts_count";
     const std::string TRANSACTIONS_COUNT_KEY = "txs_count";

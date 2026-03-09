@@ -9,6 +9,7 @@
 #include "DBUtils.h"
 
 #include <boost/serialization/unordered_set.hpp>
+#include <json.hpp>
 
 using namespace CryptoNote;
 
@@ -233,6 +234,22 @@ BlockchainWriteBatch &BlockchainWriteBatch::removeKeyOutputInfo(IBlockchainCache
                                                                 IBlockchainCache::GlobalOutputIndex globalIndex)
 {
     rawKeysToRemove.emplace_back(DB::serializeKey(DB::KEY_OUTPUT_KEY_PREFIX, std::make_pair(amount, globalIndex)));
+    return *this;
+}
+
+BlockchainWriteBatch &BlockchainWriteBatch::insertTransactionPublicKey(const Crypto::Hash &txHash,
+                                                                       const Crypto::PublicKey &pubKey)
+{
+    rawDataToInsert.emplace_back(DB::serialize(DB::TX_HASH_TO_PUBLIC_KEY_PREFIX, txHash, pubKey));
+    return *this;
+}
+
+BlockchainWriteBatch &BlockchainWriteBatch::insertWalletSyncBlock(uint32_t blockIndex,
+                                                                   const WalletTypes::WalletBlockInfo &block)
+{
+    const std::string key = DB::serializeKey(DB::BLOCK_INDEX_TO_WALLET_SYNC_PREFIX, blockIndex);
+    const std::string value = nlohmann::json(block).dump();
+    rawDataToInsert.emplace_back(key, value);
     return *this;
 }
 

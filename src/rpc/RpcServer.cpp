@@ -5,6 +5,8 @@
 
 //////////////////////////
 #include <rpc/RpcServer.h>
+
+#include <json.hpp>
 //////////////////////////
 
 #include <iostream>
@@ -4933,13 +4935,37 @@ std::tuple<Error, uint16_t> RpcServer::getRawBlocks(
         return {SUCCESS, 500};
     }
 
-    /* If the returned blocks start above the requested startHeight, the gap is
-       due to pruning. Report pruneFloor so the wallet can advance m_startHeight
-       directly to the prune floor on its next request. */
-    const uint64_t pruneFloor =
-        (!blocks.empty() && startHeight > 0 && blocks.front().blockHeight > startHeight)
-        ? blocks.front().blockHeight
-        : 0;
+    /* If the returned blocks start above the requested startHeight, the gap is due to pruning.
+       Detect the prune floor and serve synthetic WalletBlockInfo for the pruned range.
+       RawBlock has no blockHeight field — deserialize the first block to read it. */
+    uint64_t pruneFloor = 0;
+
+    if (!blocks.empty() && !blocks.front().block.empty())
+    {
+        try
+        {
+            CryptoNote::BlockTemplate blockTemplate;
+            fromBinaryArray(blockTemplate, blocks.front().block);
+            const uint64_t firstBlockHeight = CryptoNote::CachedBlock(blockTemplate).getBlockIndex();
+
+            if (firstBlockHeight > startHeight)
+            {
+                pruneFloor = firstBlockHeight;
+            }
+        }
+        catch (...)
+        {
+            /* Deserialization failed; skip pruneFloor detection */
+        }
+    }
+
+    /* Build synthetic wallet data for the pruned range [startHeight, pruneFloor) so the wallet
+       can detect transactions in pruned blocks using cached metadata and tx public keys. */
+    std::vector<WalletTypes::WalletBlockInfo> prunedItems;
+    if (pruneFloor > 0)
+    {
+        prunedItems = m_core->getPrunedWalletBlocks(startHeight, pruneFloor, skipCoinbaseTransactions);
+    }
 
     writer.Key("items");
     writer.StartArray();
@@ -4982,6 +5008,16 @@ std::tuple<Error, uint16_t> RpcServer::getRawBlocks(
     {
         writer.Key("pruneFloor");
         writer.Uint64(pruneFloor);
+    }
+
+    /* Emit pre-parsed wallet data for the pruned range so the wallet can detect
+       transactions in heights that no longer have raw block data. */
+    if (!prunedItems.empty())
+    {
+        const nlohmann::json prunedJson = prunedItems;
+        const std::string prunedStr = prunedJson.dump();
+        writer.Key("prunedItems");
+        writer.RawValue(prunedStr.c_str(), static_cast<rapidjson::SizeType>(prunedStr.size()), rapidjson::kArrayType);
     }
 
     writer.Key("synced");

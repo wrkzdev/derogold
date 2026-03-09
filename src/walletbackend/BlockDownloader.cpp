@@ -288,21 +288,25 @@ bool BlockDownloader::downloadBlocks()
        bit before */
     m_daemon->resetRequestedBlockCount();
 
-    /* The daemon skipped a pruned range. Advance m_startHeight so future
-       requests start directly at the prune floor instead of re-requesting
-       the pruned range on every sync attempt. */
+    /* Daemon has a prune floor. If prunedItems were provided by the daemon, the first
+       returned block's height will be <= m_startHeight so the gap is already covered.
+       Only advance m_startHeight to skip the pruned range when no prunedItems exist. */
     if (pruneFloor > 0 && pruneFloor > m_startHeight)
     {
-        Logger::logger.log(
-            "Daemon prune floor detected at height " + std::to_string(pruneFloor) +
-            ". Blocks " + std::to_string(m_startHeight) + " to " +
-            std::to_string(pruneFloor - 1) + " are not available on this node. "
-            "Transactions in this range will not be detected.",
-            Logger::WARNING, {Logger::SYNC, Logger::DAEMON});
-
         m_pruneFloor.store(pruneFloor);
 
-        m_startHeight = pruneFloor;
+        const bool prunedItemsCovered = !blocks.empty() && blocks.front().blockHeight < pruneFloor;
+
+        if (!prunedItemsCovered)
+        {
+            Logger::logger.log(
+                "Daemon prune floor at height " + std::to_string(pruneFloor) +
+                ". No wallet data for blocks " + std::to_string(m_startHeight) +
+                " to " + std::to_string(pruneFloor - 1) + ".",
+                Logger::WARNING, {Logger::SYNC, Logger::DAEMON});
+
+            m_startHeight = pruneFloor;
+        }
     }
 
     /* Timestamp is transient and can change - block height is constant. */

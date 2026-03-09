@@ -11,6 +11,7 @@
 #include "DatabaseCacheData.h"
 #include "IReadBatch.h"
 
+#include <WalletTypes.h>
 #include <boost/functional/hash.hpp>
 
 namespace std
@@ -80,6 +81,11 @@ namespace CryptoNote
 
         KeyOutputKeyResult keyOutputKeys;
 
+        std::unordered_map<Crypto::Hash, Crypto::PublicKey> transactionPublicKeys;
+
+        /* Compact wallet-sync records stored at push time — never pruned. */
+        std::unordered_map<uint32_t, WalletTypes::WalletBlockInfo> walletSyncBlocks;
+
         std::pair<uint32_t, bool> lastBlockIndex = {0, false};
 
         std::pair<uint32_t, bool> keyOutputAmountsCount = {{}, false};
@@ -140,6 +146,10 @@ namespace CryptoNote
 
         const KeyOutputKeyResult &getKeyOutputInfo() const;
 
+        const std::unordered_map<Crypto::Hash, Crypto::PublicKey> &getTransactionPublicKeys() const;
+
+        const std::unordered_map<uint32_t, WalletTypes::WalletBlockInfo> &getWalletSyncBlocks() const;
+
       private:
         BlockchainReadState state;
     };
@@ -191,6 +201,12 @@ namespace CryptoNote
 
         BlockchainReadBatch &
             requestKeyOutputInfo(IBlockchainCache::Amount amount, IBlockchainCache::GlobalOutputIndex globalIndex);
+
+        BlockchainReadBatch &requestTransactionPublicKey(const Crypto::Hash &txHash);
+
+        BlockchainReadBatch &requestTransactionPublicKeys(const std::vector<Crypto::Hash> &txHashes);
+
+        BlockchainReadBatch &requestWalletSyncBlocks(uint64_t startHeight, uint64_t endHeight);
 
         std::vector<std::string> getRawKeys() const override;
 

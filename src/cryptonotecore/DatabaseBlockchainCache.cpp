@@ -1065,7 +1065,8 @@ namespace CryptoNote
     void DatabaseBlockchainCache::pushTransaction(const CachedTransaction &cachedTransaction,
                                                   uint32_t blockIndex,
                                                   uint16_t transactionBlockIndex,
-                                                  BlockchainWriteBatch &batch)
+                                                  BlockchainWriteBatch &batch,
+                                                  WalletTypes::RawTransaction *walletTxOut)
     {
         logger(Logging::DEBUGGING) << "push transaction with hash " << cachedTransaction.getTransactionHash();
         const auto &tx = cachedTransaction.getTransaction();
@@ -1116,6 +1117,16 @@ namespace CryptoNote
                 outputInfo.outputIndex = poi.outputIndex;
 
                 batch.insertKeyOutputInfo(output.amount, globalIndex, outputInfo);
+
+                /* Populate compact wallet sync data if requested */
+                if (walletTxOut)
+                {
+                    WalletTypes::KeyOutput keyOut;
+                    keyOut.key = outputInfo.publicKey;
+                    keyOut.amount = output.amount;
+                    keyOut.globalOutputIndex = globalIndex;
+                    walletTxOut->keyOutputs.push_back(keyOut);
+                }
             }
         }
 
@@ -1133,9 +1144,36 @@ namespace CryptoNote
         }
 
         Crypto::Hash paymentId;
-        if (getPaymentIdFromTxExtra(cachedTransaction.getTransaction().extra, paymentId))
+        const bool hasPaymentId = getPaymentIdFromTxExtra(cachedTransaction.getTransaction().extra, paymentId);
+        if (hasPaymentId)
         {
             insertPaymentId(batch, cachedTransaction.getTransactionHash(), paymentId);
+        }
+
+        /* Store the transaction public key so wallet sync can work even after raw blocks are pruned. */
+        const Crypto::PublicKey txPublicKey =
+            getTransactionPublicKeyFromExtra(cachedTransaction.getTransaction().extra);
+        batch.insertTransactionPublicKey(cachedTransaction.getTransactionHash(), txPublicKey);
+
+        /* Finish populating wallet sync data: header fields, key inputs, payment ID */
+        if (walletTxOut)
+        {
+            walletTxOut->hash = cachedTransaction.getTransactionHash();
+            walletTxOut->transactionPublicKey = txPublicKey;
+            walletTxOut->unlockTime = tx.unlockTime;
+
+            for (const auto &input : tx.inputs)
+            {
+                if (input.type() == typeid(KeyInput))
+                {
+                    walletTxOut->keyInputs.push_back(boost::get<KeyInput>(input));
+                }
+            }
+
+            if (hasPaymentId)
+            {
+                walletTxOut->paymentID = Common::podToHex(paymentId);
+            }
         }
 
         batch.insertCachedTransaction(transactionCacheInfo, getCachedTransactionsCount() + 1);
@@ -1245,7 +1283,9 @@ namespace CryptoNote
         blockInfo.blockSize = static_cast<uint32_t>(blockSize);
         blockInfo.timestamp = cachedBlock.getBlock().timestamp;
 
-        batch.insertSpentKeyImages(getTopBlockIndex() + 1, validatorState.spentKeyImages);
+        const uint32_t newBlockIndex = getTopBlockIndex() + 1;
+
+        batch.insertSpentKeyImages(newBlockIndex, validatorState.spentKeyImages);
 
         auto txHashes = cachedBlock.getBlock().transactionHashes;
         auto baseTransaction = cachedBlock.getBlock().baseTransaction;
@@ -1254,15 +1294,39 @@ namespace CryptoNote
         // base transaction's hash is always the first one in index for this block
         txHashes.insert(txHashes.begin(), cachedBaseTransaction.getTransactionHash());
 
-        batch.insertCachedBlock(blockInfo, getTopBlockIndex() + 1, txHashes);
-        batch.insertRawBlock(getTopBlockIndex() + 1, rawBlock);
+        batch.insertCachedBlock(blockInfo, newBlockIndex, txHashes);
+        batch.insertRawBlock(newBlockIndex, rawBlock);
 
+        /* Push transactions and simultaneously collect compact wallet sync data */
         auto transactionIndex = 0;
-        pushTransaction(cachedBaseTransaction, getTopBlockIndex() + 1, transactionIndex++, batch);
+        WalletTypes::RawTransaction coinbaseWalletTx;
+        pushTransaction(cachedBaseTransaction, newBlockIndex, transactionIndex++, batch, &coinbaseWalletTx);
 
+        std::vector<WalletTypes::RawTransaction> txWalletData;
+        txWalletData.reserve(cachedTransactions.size());
         for (const auto &transaction : cachedTransactions)
         {
-            pushTransaction(transaction, getTopBlockIndex() + 1, transactionIndex++, batch);
+            txWalletData.emplace_back();
+            pushTransaction(transaction, newBlockIndex, transactionIndex++, batch, &txWalletData.back());
+        }
+
+        /* Assemble and store compact WalletBlockInfo — survives raw-block pruning */
+        {
+            WalletTypes::WalletBlockInfo walletBlock;
+            walletBlock.blockHeight = newBlockIndex;
+            walletBlock.blockHash   = cachedBlock.getBlockHash();
+            walletBlock.blockTimestamp = cachedBlock.getBlock().timestamp;
+
+            /* Coinbase: copy base fields only (no keyInputs by design) */
+            WalletTypes::RawCoinbaseTransaction coinbaseSyncTx;
+            coinbaseSyncTx.hash               = coinbaseWalletTx.hash;
+            coinbaseSyncTx.transactionPublicKey = coinbaseWalletTx.transactionPublicKey;
+            coinbaseSyncTx.keyOutputs         = coinbaseWalletTx.keyOutputs;
+            coinbaseSyncTx.unlockTime         = coinbaseWalletTx.unlockTime;
+            walletBlock.coinbaseTransaction   = coinbaseSyncTx;
+
+            walletBlock.transactions = std::move(txWalletData);
+            batch.insertWalletSyncBlock(newBlockIndex, walletBlock);
         }
 
         auto closestBlockIndexDb =
@@ -2313,6 +2377,213 @@ namespace CryptoNote
         }
 
         return orderedBlocks;
+    }
+
+    std::vector<WalletTypes::WalletBlockInfo> DatabaseBlockchainCache::getPrunedWalletBlocks(
+        uint64_t startHeight,
+        uint64_t endHeight,
+        bool skipCoinbaseTransactions) const
+    {
+        std::vector<WalletTypes::WalletBlockInfo> result;
+
+        if (startHeight >= endHeight)
+        {
+            return result;
+        }
+
+        /* Cap to available chain height */
+        const uint64_t storageCount = static_cast<uint64_t>(getBlockCount());
+        if (endHeight > storageCount)
+        {
+            endHeight = storageCount;
+        }
+
+        /* Read compact wallet sync records stored at push time under the "w" prefix.
+           These contain complete WalletBlockInfo (outputs + key images + payment IDs)
+           and are never deleted by the prune pass.
+           Process in batches of 100 to keep DB read sizes reasonable. */
+        constexpr uint64_t BATCH_SIZE = 100;
+
+        for (uint64_t batchStart = startHeight; batchStart < endHeight; batchStart += BATCH_SIZE)
+        {
+            const uint64_t batchEnd = std::min(batchStart + BATCH_SIZE, endHeight);
+
+            BlockchainReadBatch batch;
+            batch.requestWalletSyncBlocks(batchStart, batchEnd);
+            if (database.readThreadSafe(batch)) { continue; }
+
+            auto res = batch.extractResult();
+            const auto &walletBlocks = res.getWalletSyncBlocks();
+
+            /* Return blocks in height order */
+            for (uint64_t h = batchStart; h < batchEnd; ++h)
+            {
+                auto it = walletBlocks.find(static_cast<uint32_t>(h));
+                if (it == walletBlocks.end()) { continue; }
+
+                WalletTypes::WalletBlockInfo block = it->second;
+                if (skipCoinbaseTransactions)
+                {
+                    block.coinbaseTransaction = std::nullopt;
+                }
+                result.push_back(std::move(block));
+            }
+        }
+
+        return result;
+    }
+
+    /* Legacy reconstruction path — kept for databases upgraded without a resync.
+       Reconstructs partial WalletBlockInfo from surviving DB fragments.
+       Missing: key images (spent detection) and payment IDs.
+       Only called if "w" records are absent for a height range. */
+    std::vector<WalletTypes::WalletBlockInfo> DatabaseBlockchainCache::getPrunedWalletBlocksLegacy(
+        uint64_t startHeight,
+        uint64_t endHeight,
+        bool skipCoinbaseTransactions) const
+    {
+        std::vector<WalletTypes::WalletBlockInfo> result;
+
+        if (startHeight >= endHeight) { return result; }
+
+        const uint64_t storageCount = static_cast<uint64_t>(getBlockCount());
+        if (endHeight > storageCount) { endHeight = storageCount; }
+
+        constexpr uint64_t BATCH_SIZE = 100;
+
+        for (uint64_t batchStart = startHeight; batchStart < endHeight; batchStart += BATCH_SIZE)
+        {
+            const uint64_t batchEnd = std::min(batchStart + BATCH_SIZE, endHeight);
+
+            /* Step 1: read block infos and tx hash lists for this batch */
+            BlockchainReadBatch blockBatch;
+            for (uint64_t h = batchStart; h < batchEnd; ++h)
+            {
+                blockBatch.requestCachedBlock(static_cast<uint32_t>(h));
+                blockBatch.requestTransactionHashesByBlock(static_cast<uint32_t>(h));
+            }
+            auto blockResult = readDatabase(blockBatch);
+            const auto &blockInfos = blockResult.getCachedBlocks();
+            const auto &txHashesByBlock = blockResult.getTransactionHashesByBlocks();
+
+            for (uint64_t h = batchStart; h < batchEnd; ++h)
+            {
+                const auto biIt = blockInfos.find(static_cast<uint32_t>(h));
+                if (biIt == blockInfos.end())
+                {
+                    continue;
+                }
+                const auto txIt = txHashesByBlock.find(static_cast<uint32_t>(h));
+                if (txIt == txHashesByBlock.end())
+                {
+                    continue;
+                }
+
+                const CachedBlockInfo &bi = biIt->second;
+                const std::vector<Crypto::Hash> &txHashes = txIt->second;
+
+                WalletTypes::WalletBlockInfo walletBlock;
+                walletBlock.blockHeight = h;
+                walletBlock.blockHash = bi.blockHash;
+                walletBlock.blockTimestamp = bi.timestamp;
+
+                if (txHashes.empty())
+                {
+                    result.push_back(walletBlock);
+                    continue;
+                }
+
+                /* Step 2: read tx infos + tx public keys for all txs in this block */
+                BlockchainReadBatch txBatch;
+                txBatch.requestCachedTransactions(txHashes);
+                txBatch.requestTransactionPublicKeys(txHashes);
+                auto txResult = readDatabase(txBatch);
+                const auto &txInfos = txResult.getCachedTransactions();
+                const auto &txPubKeys = txResult.getTransactionPublicKeys();
+
+                for (const auto &txHash : txHashes)
+                {
+                    auto txInfoIt = txInfos.find(txHash);
+                    if (txInfoIt == txInfos.end())
+                    {
+                        continue;
+                    }
+                    const ExtendedTransactionInfo &txInfo = txInfoIt->second;
+
+                    /* Retrieve stored transaction public key (may be zero if tx predates this feature) */
+                    Crypto::PublicKey txPubKey{};
+                    auto pkIt = txPubKeys.find(txHash);
+                    if (pkIt != txPubKeys.end())
+                    {
+                        txPubKey = pkIt->second;
+                    }
+
+                    /* Build reverse map: globalIndex → amount, from amountToKeyIndexes */
+                    std::unordered_map<uint32_t, uint64_t> globalIndexToAmount;
+                    for (const auto &[amount, globalIndices] : txInfo.amountToKeyIndexes)
+                    {
+                        for (const auto gIdx : globalIndices)
+                        {
+                            globalIndexToAmount[gIdx] = amount;
+                        }
+                    }
+
+                    /* Build key outputs list */
+                    std::vector<WalletTypes::KeyOutput> keyOutputs;
+                    keyOutputs.reserve(txInfo.outputs.size());
+                    for (size_t i = 0; i < txInfo.outputs.size(); ++i)
+                    {
+                        const auto &target = txInfo.outputs[i];
+                        if (target.type() != typeid(CryptoNote::KeyOutput))
+                        {
+                            continue;
+                        }
+                        WalletTypes::KeyOutput ko;
+                        ko.key = boost::get<CryptoNote::KeyOutput>(target).key;
+                        ko.amount = 0;
+                        if (i < txInfo.globalIndexes.size())
+                        {
+                            const uint32_t gIdx = txInfo.globalIndexes[i];
+                            auto amtIt = globalIndexToAmount.find(gIdx);
+                            if (amtIt != globalIndexToAmount.end())
+                            {
+                                ko.amount = amtIt->second;
+                            }
+                            ko.globalOutputIndex = gIdx;
+                        }
+                        keyOutputs.push_back(ko);
+                    }
+
+                    /* transactionIndex == 0 means coinbase */
+                    if (txInfo.transactionIndex == 0)
+                    {
+                        if (!skipCoinbaseTransactions)
+                        {
+                            WalletTypes::RawCoinbaseTransaction coinbaseTx;
+                            coinbaseTx.hash = txHash;
+                            coinbaseTx.transactionPublicKey = txPubKey;
+                            coinbaseTx.unlockTime = txInfo.unlockTime;
+                            coinbaseTx.keyOutputs = std::move(keyOutputs);
+                            walletBlock.coinbaseTransaction = std::move(coinbaseTx);
+                        }
+                    }
+                    else
+                    {
+                        WalletTypes::RawTransaction tx;
+                        tx.hash = txHash;
+                        tx.transactionPublicKey = txPubKey;
+                        tx.unlockTime = txInfo.unlockTime;
+                        tx.keyOutputs = std::move(keyOutputs);
+                        /* keyInputs and paymentID are not preserved after pruning */
+                        walletBlock.transactions.push_back(std::move(tx));
+                    }
+                }
+
+                result.push_back(walletBlock);
+            }
+        }
+
+        return result;
     }
 
     std::unordered_map<Crypto::Hash, std::vector<uint64_t>> DatabaseBlockchainCache::getGlobalIndexes(
