@@ -88,6 +88,11 @@ uint64_t BlockDownloader::getHeight() const
     return m_synchronizationStatus.getHeight();
 }
 
+uint64_t BlockDownloader::getPruneFloor() const
+{
+    return m_pruneFloor.load();
+}
+
 void BlockDownloader::downloader()
 {
     while (!m_shouldStop)
@@ -247,7 +252,7 @@ bool BlockDownloader::downloadBlocks()
         Logger::logger.log(stream.str(), Logger::DEBUG, {Logger::SYNC});
     }
 
-    const auto [success, blocks, topBlock] = m_daemon->getWalletSyncData(
+    const auto [success, blocks, topBlock, pruneFloor] = m_daemon->getWalletSyncData(
         blockCheckpoints, m_startHeight, m_startTimestamp, Config::config.wallet.skipCoinbaseTransactions);
 
     /* Synced, store the top block so sync status displayes correctly if
@@ -282,6 +287,23 @@ bool BlockDownloader::downloadBlocks()
        to running at full speed in case we backed off a little
        bit before */
     m_daemon->resetRequestedBlockCount();
+
+    /* The daemon skipped a pruned range. Advance m_startHeight so future
+       requests start directly at the prune floor instead of re-requesting
+       the pruned range on every sync attempt. */
+    if (pruneFloor > 0 && pruneFloor > m_startHeight)
+    {
+        Logger::logger.log(
+            "Daemon prune floor detected at height " + std::to_string(pruneFloor) +
+            ". Blocks " + std::to_string(m_startHeight) + " to " +
+            std::to_string(pruneFloor - 1) + " are not available on this node. "
+            "Transactions in this range will not be detected.",
+            Logger::WARNING, {Logger::SYNC, Logger::DAEMON});
+
+        m_pruneFloor.store(pruneFloor);
+
+        m_startHeight = pruneFloor;
+    }
 
     /* Timestamp is transient and can change - block height is constant. */
     if (m_startTimestamp != 0)

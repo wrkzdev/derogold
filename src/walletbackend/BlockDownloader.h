@@ -55,6 +55,9 @@ class BlockDownloader
     /* Returns height of processed blocks */
     uint64_t getHeight() const;
 
+    /* Returns the prune floor reported by the daemon (0 if not pruned) */
+    uint64_t getPruneFloor() const;
+
     void fromJSON(const JSONObject &j, const uint64_t startHeight, const uint64_t startTimestamp);
 
     void toJSON(rapidjson::Writer<rapidjson::StringBuffer> &writer) const;
@@ -98,6 +101,9 @@ class BlockDownloader
 
     /* Height to begin syncing at */
     uint64_t m_startHeight;
+
+    /* Prune floor reported by daemon (0 = daemon not pruned) */
+    std::atomic<uint64_t> m_pruneFloor {0};
 
     /* Sync progress */
     SynchronizationStatus m_synchronizationStatus;

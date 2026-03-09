@@ -946,6 +946,11 @@ std::tuple<uint64_t, uint64_t, uint64_t> WalletBackend::getSyncStatus() const
     return {walletBlockCount, localDaemonBlockCount, networkBlockCount};
 }
 
+uint64_t WalletBackend::getPruneFloor() const
+{
+    return m_walletSynchronizer->getPruneFloor();
+}
+
 std::string WalletBackend::getWalletPassword() const
 {
     return m_password;

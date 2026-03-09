@@ -60,11 +60,15 @@ class Nigel
 
     std::tuple<std::string, uint16_t, bool> nodeAddress() const;
 
-    std::tuple<bool, std::vector<WalletTypes::WalletBlockInfo>, std::optional<WalletTypes::TopBlock>> getWalletSyncData(
-        const std::vector<Crypto::Hash> blockHashCheckpoints,
-        const uint64_t startHeight,
-        const uint64_t startTimestamp,
-        const bool skipCoinbaseTransactions);
+    /* Returns {success, blocks, topBlock, pruneFloor}.
+       pruneFloor > 0 means the daemon skipped a pruned range; the wallet should
+       advance its startHeight to pruneFloor on its next request. */
+    std::tuple<bool, std::vector<WalletTypes::WalletBlockInfo>, std::optional<WalletTypes::TopBlock>, uint64_t>
+        getWalletSyncData(
+            const std::vector<Crypto::Hash> blockHashCheckpoints,
+            const uint64_t startHeight,
+            const uint64_t startTimestamp,
+            const bool skipCoinbaseTransactions);
 
     /* Returns a bool on success or not */
     bool getTransactionsStatus(

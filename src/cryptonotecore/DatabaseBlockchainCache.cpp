@@ -2214,6 +2214,30 @@ namespace CryptoNote
         return blockHashes;
     }
 
+    uint64_t DatabaseBlockchainCache::getMinRawBlockHeight(uint64_t fromHeight) const
+    {
+        const uint64_t storageBlockCount = getBlockCount();
+        uint64_t lo = fromHeight, hi = storageBlockCount;
+
+        while (lo < hi)
+        {
+            uint64_t mid = lo + (hi - lo) / 2;
+            auto batch = BlockchainReadBatch().requestRawBlock(static_cast<uint32_t>(mid));
+            const auto result = readDatabase(batch).getRawBlocks();
+
+            if (!result.empty())
+            {
+                hi = mid;
+            }
+            else
+            {
+                lo = mid + 1;
+            }
+        }
+
+        return lo;
+    }
+
     std::vector<RawBlock> DatabaseBlockchainCache::getNonEmptyBlocks(const uint64_t startHeight,
                                                                      const size_t blockCount) const
     {
@@ -2237,9 +2261,10 @@ namespace CryptoNote
 
             if (rawBlocks.empty())
             {
-                /* All blocks in this batch were pruned; advance past them to avoid
-                   infinite loop. deserializeValues erases entries not found in DB. */
-                height = endHeight;
+                /* All blocks in this batch were pruned. Binary-search for the first
+                   available raw block to jump directly to the prune floor instead of
+                   scanning O(N/batch) sequential DB reads. */
+                height = getMinRawBlockHeight(batchStart);
                 continue;
             }
 

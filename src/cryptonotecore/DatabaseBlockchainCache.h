@@ -237,6 +237,10 @@ namespace CryptoNote
             getNonEmptyBlocks(const uint64_t startHeight, const size_t blockCount) const override;
 
       private:
+        /* Binary-search for the lowest height >= fromHeight that has a raw block
+           in the DB. Returns storageBlockCount if none found. */
+        uint64_t getMinRawBlockHeight(uint64_t fromHeight) const;
+
         const Currency &currency;
 
         IDataBase &database;

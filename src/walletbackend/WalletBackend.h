@@ -198,6 +198,9 @@ class WalletBackend
        remote blockchain sync height */
     std::tuple<uint64_t, uint64_t, uint64_t> getSyncStatus() const;
 
+    /* Returns the prune floor reported by the daemon (0 if not pruned) */
+    uint64_t getPruneFloor() const;
+
     /* Get the wallet password */
     std::string getWalletPassword() const;
 

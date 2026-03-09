@@ -59,9 +59,34 @@ void syncWallet(const std::shared_ptr<WalletBackend> walletBackend)
     /* Amount of times we have looped without getting any new blocks */
     uint32_t stuckCounter = 0;
 
+    /* Whether we have already shown the prune floor warning this session */
+    bool shownPruneWarning = false;
+
     while (walletBlockCount < localDaemonBlockCount)
     {
         auto [tmpWalletBlockCount, localDaemonBlockCount, networkBlockCount] = walletBackend->getSyncStatus();
+
+        /* Show a one-time warning when the daemon's prune floor is detected.
+           Raw block data below the prune floor is not available, so transactions
+           in that range cannot be detected. Sync continues from the prune floor. */
+        if (!shownPruneWarning)
+        {
+            const uint64_t pruneFloor = walletBackend->getPruneFloor();
+
+            if (pruneFloor > 0)
+            {
+                shownPruneWarning = true;
+
+                std::cout << WarningMsg(
+                    "\nNote: This daemon has pruned raw block data below height " +
+                    std::to_string(pruneFloor) + ".\n"
+                    "Transactions in blocks 0 to " + std::to_string(pruneFloor - 1) +
+                    " cannot be scanned on this node.\n"
+                    "Syncing from block " + std::to_string(pruneFloor) + " instead.\n"
+                    "Use a non-pruned node if you need full transaction history.\n")
+                    << std::endl;
+            }
+        }
 
         std::cout << SuccessMsg(tmpWalletBlockCount) << " of " << InformationMsg(localDaemonBlockCount) << std::endl;
 

@@ -766,6 +766,11 @@ uint64_t WalletSynchronizer::getCurrentScanHeight() const
     return m_blockDownloader.getHeight();
 }
 
+uint64_t WalletSynchronizer::getPruneFloor() const
+{
+    return m_blockDownloader.getPruneFloor();
+}
+
 void WalletSynchronizer::swapNode(const std::shared_ptr<Nigel> daemon)
 {
     m_daemon = daemon;
