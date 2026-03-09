@@ -18,6 +18,7 @@
 #include <cryptonotecore/DatabaseBlockchainCache.h>
 #include <cstdlib>
 #include <ctime>
+#include <map>
 
 namespace CryptoNote
 {
@@ -2248,21 +2249,31 @@ namespace CryptoNote
 
         while (orderedBlocks.size() < blockCount && height < storageBlockCount)
         {
-            uint64_t startHeight = height;
+            uint64_t batchStart = height;
 
             /* Lets try taking the amount we need *2, to try and balance not needing
                multiple DB requests to get the amount we need of non empty blocks, with
                not taking too many */
-            uint64_t endHeight = startHeight + (blockCount * 2);
+            uint64_t endHeight = batchStart + (blockCount * 2);
 
-            auto blockBatch = BlockchainReadBatch().requestRawBlocks(startHeight, endHeight);
+            auto blockBatch = BlockchainReadBatch().requestRawBlocks(batchStart, endHeight);
             const auto rawBlocks = readDatabase(blockBatch).getRawBlocks();
 
-            while (orderedBlocks.size() < blockCount && height < startHeight + rawBlocks.size())
+            if (rawBlocks.empty())
             {
-                const auto block = rawBlocks.at(height);
+                /* All blocks in this batch were pruned; advance past them to avoid
+                   infinite loop. deserializeValues erases entries not found in DB. */
+                height = endHeight;
+                continue;
+            }
 
-                height++;
+            /* Sort by height for ordered iteration. Pruned entries were already
+               erased from the map by deserializeValues, so gaps are skipped. */
+            std::map<uint32_t, RawBlock> sorted(rawBlocks.begin(), rawBlocks.end());
+
+            for (const auto &[h, block] : sorted)
+            {
+                height = h + 1;
 
                 if (block.transactions.empty())
                 {
@@ -2270,6 +2281,11 @@ namespace CryptoNote
                 }
 
                 orderedBlocks.push_back(block);
+
+                if (orderedBlocks.size() >= blockCount)
+                {
+                    break;
+                }
             }
         }
 
@@ -2284,12 +2300,15 @@ namespace CryptoNote
         /* Get the info from the DB */
         auto rawBlocks = readDatabase(blockBatch).getRawBlocks();
 
+        /* Sort by height and return only entries found in DB. Pruned entries were
+           erased from the map by deserializeValues, so gaps are silently skipped. */
+        std::map<uint32_t, RawBlock> sorted(rawBlocks.begin(), rawBlocks.end());
+
         std::vector<RawBlock> orderedBlocks;
 
-        /* Order, and convert from map, to vector */
-        for (uint64_t height = startHeight; height < startHeight + rawBlocks.size(); height++)
+        for (const auto &[height, block] : sorted)
         {
-            orderedBlocks.push_back(rawBlocks.at(height));
+            orderedBlocks.push_back(block);
         }
 
         return orderedBlocks;
