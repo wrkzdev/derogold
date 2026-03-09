@@ -371,13 +371,13 @@ void BlockchainReadBatch::submitRawResult(const std::vector<std::string> &values
     DB::deserializeValues(state.transactionPublicKeys, iter, DB::TX_HASH_TO_PUBLIC_KEY_PREFIX);
 
     /* Wallet sync blocks are stored as JSON strings — deserialize manually. */
-    for (auto it = state.walletSyncBlocks.begin(); it != state.walletSyncBlocks.end(); ++serializedValuesIter)
+    for (auto it = state.walletSyncBlocks.begin(); it != state.walletSyncBlocks.end(); ++iter)
     {
-        if (boost::get<1>(*serializedValuesIter))
+        if (boost::get<1>(*iter))
         {
             try
             {
-                nlohmann::json::parse(boost::get<0>(*serializedValuesIter)).get_to(it->second);
+                nlohmann::json::parse(boost::get<0>(*iter)).get_to(it->second);
             }
             catch (const std::exception &)
             {
