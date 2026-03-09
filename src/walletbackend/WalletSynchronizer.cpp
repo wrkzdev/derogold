@@ -116,69 +116,58 @@ void WalletSynchronizer::mainLoop()
 
     while (!m_shouldStop)
     {
+        bool didWork = false;
+
+        /* Feed the processing queue from the downloader — non-blocking.
+           The downloader prefetches independently so this returns immediately
+           with whatever is buffered. */
         const auto blocks = m_blockDownloader.fetchBlocks(Constants::BLOCK_PROCESSING_CHUNK);
 
         if (!blocks.empty())
         {
             m_blockProcessingQueue.push_back_n(blocks.begin(), blocks.end());
-
-            /* Tell the child threads to wake up */
             m_haveBlocksToProcess.notify_all();
-
-            const size_t chunkSize = blocks.size();
-
-            {
-                /* *possibly* should use another mutex here for the different
-                    condition variable? I think it's fine since we're only
-                    stopping the child threads from aquiring the mutex for
-                    a very short time (since the check will fail when not all
-                    blocks are available) */
-                std::unique_lock<std::mutex> lock(m_mutex);
-
-                m_haveProcessedBlocksToHandle.wait(lock, [&] {
-                    if (m_shouldStop)
-                    {
-                        return true;
-                    }
-
-                    /* Wait until all the blocks have been added to the queue */
-                    return m_processedBlocks.size() == chunkSize;
-                });
-
-                if (m_shouldStop)
-                {
-                    return;
-                }
-            }
-
-            /* Nothing else should be pushing to the queue here, since the
-               child threads are waiting for a new chunk, so don't need to
-               use mutex to access */
-            while (!m_processedBlocks.empty_unsafe() && !m_shouldStop)
-            {
-                const auto [block, ourInputs, arrivalIndex] = m_processedBlocks.top_unsafe();
-                completeBlockProcessing(block, ourInputs);
-                if (!m_processedBlocks.empty_unsafe() && !m_shouldStop)
-                {
-                    m_processedBlocks.pop_unsafe();
-                }
-            }
+            didWork = true;
         }
 
-        /* If we're synced, check any transactions that may be in the pool */
-        if (getCurrentScanHeight() >= m_daemon->localDaemonBlockCount() && !m_shouldStop)
+        /* Drain any blocks that worker threads have finished processing.
+           Uses the thread-safe top_and_remove() so workers can keep pushing
+           while we drain — true pipeline overlap between download and processing. */
+        while (!m_shouldStop && m_processedBlocks.size() > 0)
         {
-            const auto now = std::chrono::system_clock::now();
-            const auto timeDiff = now - lastCheckedLockedTransactions;
+            const auto [block, ourInputs, arrivalIndex] = m_processedBlocks.top_and_remove();
 
-            /* Not a viewwallet and haven't checked transactions in last 15 secs */
-            if (!m_subWallets->isViewWallet() && timeDiff > std::chrono::seconds(15))
+            if (m_shouldStop)
             {
-                checkLockedTransactions();
-                lastCheckedLockedTransactions = now;
+                break;
             }
 
-            Utilities::sleepUnlessStopping(std::chrono::seconds(5), m_shouldStop);
+            completeBlockProcessing(block, ourInputs);
+            didWork = true;
+        }
+
+        if (!didWork && !m_shouldStop)
+        {
+            if (getCurrentScanHeight() >= m_daemon->localDaemonBlockCount())
+            {
+                const auto now = std::chrono::system_clock::now();
+                const auto timeDiff = now - lastCheckedLockedTransactions;
+
+                /* Not a viewwallet and haven't checked transactions in last 15 secs */
+                if (!m_subWallets->isViewWallet() && timeDiff > std::chrono::seconds(15))
+                {
+                    checkLockedTransactions();
+                    lastCheckedLockedTransactions = now;
+                }
+
+                Utilities::sleepUnlessStopping(std::chrono::seconds(1), m_shouldStop);
+            }
+            else
+            {
+                /* Still syncing but nothing available yet — brief pause to
+                   avoid spinning while waiting for workers or downloader */
+                Utilities::sleepUnlessStopping(std::chrono::milliseconds(100), m_shouldStop);
+            }
         }
     }
 }
