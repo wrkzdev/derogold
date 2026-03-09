@@ -360,7 +360,7 @@ void BlockchainReadBatch::submitRawResult(const std::vector<std::string> &values
         {
             try
             {
-                nlohmann::json::parse(boost::get<0>(*iter)).get_to(it->second);
+                it->second = nlohmann::json::parse(boost::get<0>(*iter)).get<WalletTypes::WalletBlockInfo>();
             }
             catch (const std::exception &)
             {
