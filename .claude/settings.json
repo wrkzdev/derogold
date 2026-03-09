@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(cmake --list-presets)",
-      "Bash(cmake --preset windows-x64-msvc)"
-    ]
-  }
-}
