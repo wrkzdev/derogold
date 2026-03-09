@@ -121,7 +121,7 @@ void BlockDownloader::downloader()
 
             if (!blocksDownloaded)
             {
-                Utilities::sleepUnlessStopping(std::chrono::seconds(5), m_shouldStop);
+                Utilities::sleepUnlessStopping(std::chrono::seconds(1), m_shouldStop);
                 break;
             }
         }
