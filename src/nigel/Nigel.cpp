@@ -118,7 +118,7 @@ void Nigel::resetRequestedBlockCount()
     m_blockCount = CryptoNote::BLOCKS_SYNCHRONIZING_DEFAULT_COUNT;
 }
 
-std::tuple<bool, std::vector<WalletTypes::WalletBlockInfo>, std::optional<WalletTypes::TopBlock>>
+std::tuple<bool, std::vector<WalletTypes::WalletBlockInfo>, std::optional<WalletTypes::TopBlock>, uint64_t>
     Nigel::getWalletSyncData(
         const std::vector<Crypto::Hash> blockHashCheckpoints,
         const uint64_t startHeight,
@@ -206,17 +206,20 @@ std::tuple<bool, std::vector<WalletTypes::WalletBlockInfo>, std::optional<Wallet
             topBlock = j.at("topBlock").get<WalletTypes::TopBlock>();
         }
 
-        return std::make_tuple(items, topBlock);
+        const uint64_t pruneFloor =
+            (j.find("pruneFloor") != j.end()) ? j.at("pruneFloor").get<uint64_t>() : 0;
+
+        return std::make_tuple(items, topBlock, pruneFloor);
     });
 
     if (parsedResponse)
     {
-        const auto [ items, topBlock ] = *parsedResponse;
+        const auto [ items, topBlock, pruneFloor ] = *parsedResponse;
 
-        return { true, items, topBlock };
+        return { true, items, topBlock, pruneFloor };
     }
 
-    return { false, {}, std::nullopt };
+    return { false, {}, std::nullopt, 0 };
 }
 
 void Nigel::stop()

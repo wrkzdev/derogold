@@ -103,6 +103,8 @@ class WalletSynchronizer
 
     uint64_t getCurrentScanHeight() const;
 
+    uint64_t getPruneFloor() const;
+
     void swapNode(const std::shared_ptr<Nigel> daemon);
 
     void setSyncStart(const uint64_t startTimestamp, const uint64_t startHeight);

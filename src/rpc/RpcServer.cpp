@@ -4938,6 +4938,14 @@ std::tuple<Error, uint16_t> RpcServer::getRawBlocks(
         return {SUCCESS, 500};
     }
 
+    /* If the returned blocks start above the requested startHeight, the gap is
+       due to pruning. Report pruneFloor so the wallet can advance m_startHeight
+       directly to the prune floor on its next request. */
+    const uint64_t pruneFloor =
+        (!blocks.empty() && startHeight > 0 && blocks.front().blockHeight > startHeight)
+        ? blocks.front().blockHeight
+        : 0;
+
     writer.Key("items");
     writer.StartArray();
     {
@@ -4973,6 +4981,12 @@ std::tuple<Error, uint16_t> RpcServer::getRawBlocks(
             writer.Uint64(topBlockInfo->height);
         }
         writer.EndObject();
+    }
+
+    if (pruneFloor > 0)
+    {
+        writer.Key("pruneFloor");
+        writer.Uint64(pruneFloor);
     }
 
     writer.Key("synced");
