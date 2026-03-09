@@ -112,6 +112,14 @@ namespace CryptoNote
             std::vector<RawBlock> &walletBlocks,
             std::optional<WalletTypes::TopBlock> &topBlockInfo) const = 0;
 
+        /* Returns wallet-sync-compatible blocks for the pruned height range [startHeight, endHeight).
+           Uses cached block metadata and stored transaction public keys so results survive raw-block
+           deletion.  Returns an empty vector when the range is not pruned or on error. */
+        virtual std::vector<WalletTypes::WalletBlockInfo> getPrunedWalletBlocks(
+            uint64_t startHeight,
+            uint64_t endHeight,
+            bool skipCoinbaseTransactions) const = 0;
+
         virtual bool getTransactionsStatus(
             std::unordered_set<Crypto::Hash> transactionHashes,
             std::unordered_set<Crypto::Hash> &transactionsInPool,

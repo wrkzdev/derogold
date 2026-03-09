@@ -123,6 +123,11 @@ namespace CryptoNote
             std::vector<RawBlock> &walletBlocks,
             std::optional<WalletTypes::TopBlock> &topBlockInfo) const override;
 
+        virtual std::vector<WalletTypes::WalletBlockInfo> getPrunedWalletBlocks(
+            uint64_t startHeight,
+            uint64_t endHeight,
+            bool skipCoinbaseTransactions) const override;
+
         virtual bool getTransactionsStatus(
             std::unordered_set<Crypto::Hash> transactionHashes,
             std::unordered_set<Crypto::Hash> &transactionsInPool,

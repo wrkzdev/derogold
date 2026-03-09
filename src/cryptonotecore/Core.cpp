@@ -19,6 +19,7 @@
 #include <cryptonotecore/Core.h>
 #include <cryptonotecore/DatabaseBlockchainCache.h>
 #include <cryptonotecore/CoreErrors.h>
+#include <cryptonotecore/DatabaseBlockchainCache.h>
 #include <cryptonotecore/CryptoNoteFormatUtils.h>
 #include <cryptonotecore/ITimeProvider.h>
 #include <cryptonotecore/Mixins.h>
@@ -943,6 +944,33 @@ namespace CryptoNote
         {
             logger(Logging::ERROR) << "Failed to get wallet sync data: " << e.what();
             return false;
+        }
+    }
+
+    std::vector<WalletTypes::WalletBlockInfo> Core::getPrunedWalletBlocks(
+        uint64_t startHeight,
+        uint64_t endHeight,
+        bool skipCoinbaseTransactions) const
+    {
+        throwIfNotInitialized();
+
+        try
+        {
+            IBlockchainCache *mainChain = chainsLeaves[0];
+
+            /* Only DatabaseBlockchainCache supports pruned wallet block construction */
+            auto *dbChain = dynamic_cast<DatabaseBlockchainCache *>(mainChain);
+            if (dbChain == nullptr)
+            {
+                return {};
+            }
+
+            return dbChain->getPrunedWalletBlocks(startHeight, endHeight, skipCoinbaseTransactions);
+        }
+        catch (const std::exception &e)
+        {
+            logger(Logging::WARNING) << "getPrunedWalletBlocks failed: " << e.what();
+            return {};
         }
     }
 

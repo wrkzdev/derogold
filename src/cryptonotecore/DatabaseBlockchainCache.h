@@ -24,6 +24,7 @@
 #include "cryptonotecore/UpgradeManager.h"
 
 #include <IDataBase.h>
+#include <WalletTypes.h>
 #include <cryptonotecore/BlockchainReadBatch.h>
 #include <cryptonotecore/BlockchainWriteBatch.h>
 #include <cryptonotecore/DatabaseCacheData.h>
@@ -278,7 +279,20 @@ namespace CryptoNote
 
         uint32_t getPruneFloor() const override;
 
+        /* Build wallet-sync-compatible WalletBlockInfo records for the pruned height range
+           [startHeight, endHeight).  Uses cached block info + cached transaction public keys
+           so results survive raw-block deletion.  Returns an empty vector if the requested
+           range is not pruned (i.e. raw blocks are still present) or on any error. */
+        std::vector<WalletTypes::WalletBlockInfo> getPrunedWalletBlocks(uint64_t startHeight,
+                                                                        uint64_t endHeight,
+                                                                        bool skipCoinbaseTransactions) const;
+
       private:
+        /* Fallback reconstruction using cached block info + "k" prefix tx public keys.
+           Only called if "w" records are absent for a height range. */
+        std::vector<WalletTypes::WalletBlockInfo> getPrunedWalletBlocksLegacy(
+            uint64_t startHeight, uint64_t endHeight, bool skipCoinbaseTransactions) const;
+
         /* Binary-search for the lowest height >= fromHeight that has a raw block
            in the DB. Returns storageBlockCount if none found. */
         uint64_t getMinRawBlockHeight(uint64_t fromHeight) const;
@@ -328,7 +342,8 @@ namespace CryptoNote
             const CachedTransaction &cachedTransaction,
             uint32_t blockIndex,
             uint16_t transactionBlockIndex,
-            BlockchainWriteBatch &batch);
+            BlockchainWriteBatch &batch,
+            WalletTypes::RawTransaction *walletTxOut = nullptr);
 
         uint32_t updateKeyOutputCount(Amount amount, int32_t diff) const;
 
