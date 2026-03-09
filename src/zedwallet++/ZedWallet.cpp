@@ -5,6 +5,7 @@
 
 #include <common/SignalHandler.h>
 #include <config/CliHeader.h>
+#include <cstdlib>
 #include <iostream>
 #include <utilities/ColouredMsg.h>
 #include <zedwallet++/Menu.h>
@@ -107,8 +108,17 @@ int main(int argc, char **argv)
 
         /* Trigger the shutdown signal if ctrl+c is used
            We do the actual handling in a separate thread to handle stuff not
-           being re-entrant. */
-        Tools::SignalHandler::install([&ctrl_c] { ctrl_c = true; });
+           being re-entrant.
+           Second Ctrl+C force-exits immediately in case the graceful shutdown
+           stalls (e.g. waiting on a stuck daemon connection). */
+        Tools::SignalHandler::install([&ctrl_c] {
+            static std::atomic<bool> s_alreadyShuttingDown(false);
+            if (s_alreadyShuttingDown.exchange(true))
+            {
+                std::_Exit(1);
+            }
+            ctrl_c = true;
+        });
 
         /* Don't explicitly sync in foreground if it's a new wallet */
         if (sync)
