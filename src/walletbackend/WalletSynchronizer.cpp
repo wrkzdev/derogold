@@ -114,26 +114,36 @@ void WalletSynchronizer::mainLoop()
 {
     auto lastCheckedLockedTransactions = std::chrono::system_clock::now();
 
+    /* Tracks how many blocks have been pushed to m_blockProcessingQueue but
+       not yet committed via completeBlockProcessing. fetchBlocks() does NOT
+       remove blocks from the internal store, so we must guard against pushing
+       the same blocks again on the next iteration. */
+    size_t pendingBlocks = 0;
+
     while (!m_shouldStop)
     {
         bool didWork = false;
 
-        /* Feed the processing queue from the downloader — non-blocking.
-           The downloader prefetches independently so this returns immediately
-           with whatever is buffered. */
-        const auto blocks = m_blockDownloader.fetchBlocks(Constants::BLOCK_PROCESSING_CHUNK);
-
-        if (!blocks.empty())
+        /* Only fetch a new batch when the previous one is fully committed.
+           The downloader prefetches into its own buffer independently, so
+           the next batch is usually ready immediately. */
+        if (pendingBlocks == 0)
         {
-            m_blockProcessingQueue.push_back_n(blocks.begin(), blocks.end());
-            m_haveBlocksToProcess.notify_all();
-            didWork = true;
+            const auto blocks = m_blockDownloader.fetchBlocks(Constants::BLOCK_PROCESSING_CHUNK);
+
+            if (!blocks.empty())
+            {
+                pendingBlocks = blocks.size();
+                m_blockProcessingQueue.push_back_n(blocks.begin(), blocks.end());
+                m_haveBlocksToProcess.notify_all();
+                didWork = true;
+            }
         }
 
         /* Drain any blocks that worker threads have finished processing.
-           Uses the thread-safe top_and_remove() so workers can keep pushing
-           while we drain — true pipeline overlap between download and processing. */
-        while (!m_shouldStop && m_processedBlocks.size() > 0)
+           Workers run in parallel so this overlaps with their processing of
+           the remaining blocks in the current batch. */
+        while (!m_shouldStop && pendingBlocks > 0 && m_processedBlocks.size() > 0)
         {
             const auto [block, ourInputs, arrivalIndex] = m_processedBlocks.top_and_remove();
 
@@ -143,6 +153,7 @@ void WalletSynchronizer::mainLoop()
             }
 
             completeBlockProcessing(block, ourInputs);
+            pendingBlocks--;
             didWork = true;
         }
 
@@ -165,7 +176,7 @@ void WalletSynchronizer::mainLoop()
             else
             {
                 /* Still syncing but nothing available yet — brief pause to
-                   avoid spinning while waiting for workers or downloader */
+                   avoid spinning while waiting for workers or the downloader */
                 Utilities::sleepUnlessStopping(std::chrono::milliseconds(100), m_shouldStop);
             }
         }
