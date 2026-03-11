@@ -122,8 +122,6 @@ void WalletSynchronizer::mainLoop()
 
     while (!m_shouldStop)
     {
-        bool didWork = false;
-
         /* Only fetch a new batch when the previous one is fully committed.
            The downloader prefetches into its own buffer independently, so
            the next batch is usually ready immediately. */
@@ -136,7 +134,6 @@ void WalletSynchronizer::mainLoop()
                 pendingBlocks = blocks.size();
                 m_blockProcessingQueue.push_back_n(blocks.begin(), blocks.end());
                 m_haveBlocksToProcess.notify_all();
-                didWork = true;
             }
         }
 
@@ -154,31 +151,41 @@ void WalletSynchronizer::mainLoop()
 
             completeBlockProcessing(block, ourInputs);
             pendingBlocks--;
-            didWork = true;
         }
 
-        if (!didWork && !m_shouldStop)
+        if (m_shouldStop)
         {
-            if (getCurrentScanHeight() >= m_daemon->localDaemonBlockCount())
-            {
-                const auto now = std::chrono::system_clock::now();
-                const auto timeDiff = now - lastCheckedLockedTransactions;
+            break;
+        }
 
-                /* Not a viewwallet and haven't checked transactions in last 15 secs */
-                if (!m_subWallets->isViewWallet() && timeDiff > std::chrono::seconds(15))
-                {
-                    checkLockedTransactions();
-                    lastCheckedLockedTransactions = now;
-                }
+        if (pendingBlocks > 0)
+        {
+            /* Blocks are in-flight — yield CPU and wait for workers to signal
+               completion. Workers call notify_all() on m_haveProcessedBlocksToHandle
+               after each batch, so we wake up immediately when output is ready.
+               The 100ms timeout guards against missed notifications. */
+            std::unique_lock<std::mutex> lock(m_mutex);
+            m_haveProcessedBlocksToHandle.wait_for(lock, std::chrono::milliseconds(100));
+        }
+        else if (getCurrentScanHeight() >= m_daemon->localDaemonBlockCount())
+        {
+            /* Fully synced — check mempool periodically and sleep. */
+            const auto now = std::chrono::system_clock::now();
+            const auto timeDiff = now - lastCheckedLockedTransactions;
 
-                Utilities::sleepUnlessStopping(std::chrono::seconds(1), m_shouldStop);
-            }
-            else
+            /* Not a viewwallet and haven't checked transactions in last 15 secs */
+            if (!m_subWallets->isViewWallet() && timeDiff > std::chrono::seconds(15))
             {
-                /* Still syncing but nothing available yet — brief pause to
-                   avoid spinning while waiting for workers or the downloader */
-                Utilities::sleepUnlessStopping(std::chrono::milliseconds(100), m_shouldStop);
+                checkLockedTransactions();
+                lastCheckedLockedTransactions = now;
             }
+
+            Utilities::sleepUnlessStopping(std::chrono::seconds(1), m_shouldStop);
+        }
+        else
+        {
+            /* Downloader hasn't produced blocks yet — brief pause. */
+            Utilities::sleepUnlessStopping(std::chrono::milliseconds(100), m_shouldStop);
         }
     }
 }
