@@ -120,6 +120,11 @@ namespace CryptoNote
             uint64_t endHeight,
             bool skipCoinbaseTransactions) const = 0;
 
+        /* Returns the lowest block height >= fromHeight that has raw block data
+           in the DB.  Returns getTopBlockIndex()+1 if no raw blocks exist at or
+           above fromHeight (i.e. the entire range is pruned). */
+        virtual uint64_t getMinRawBlockHeight(uint64_t fromHeight) const = 0;
+
         virtual bool getTransactionsStatus(
             std::unordered_set<Crypto::Hash> transactionHashes,
             std::unordered_set<Crypto::Hash> &transactionsInPool,

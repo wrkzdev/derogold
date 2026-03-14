@@ -2776,6 +2776,31 @@ std::tuple<Error, uint16_t> RpcServer::getWalletSyncData(
         writer.EndObject();
     }
 
+    /* Detect prune floor for the /getwalletsyncdata response so the wallet
+       can advance past pruned ranges even when prunedItems are empty. */
+    {
+        uint64_t pruneFloor = 0;
+
+        if (!walletBlocks.empty() && walletBlocks.front().blockHeight > startHeight)
+        {
+            pruneFloor = walletBlocks.front().blockHeight;
+        }
+        else if (walletBlocks.empty())
+        {
+            const uint64_t minRaw = m_core->getMinRawBlockHeight(startHeight);
+            if (minRaw > startHeight)
+            {
+                pruneFloor = minRaw;
+            }
+        }
+
+        if (pruneFloor > 0)
+        {
+            writer.Key("pruneFloor");
+            writer.Uint64(pruneFloor);
+        }
+    }
+
     writer.Key("synced");
     writer.Bool(walletBlocks.empty());
 
@@ -4937,7 +4962,9 @@ std::tuple<Error, uint16_t> RpcServer::getRawBlocks(
 
     /* If the returned blocks start above the requested startHeight, the gap is due to pruning.
        Detect the prune floor and serve synthetic WalletBlockInfo for the pruned range.
-       RawBlock has no blockHeight field — deserialize the first block to read it. */
+       RawBlock has no blockHeight field — deserialize the first block to read it.
+       When blocks is empty (entire range pruned), query the DB directly for the
+       lowest available raw block height. */
     uint64_t pruneFloor = 0;
 
     if (!blocks.empty() && !blocks.front().block.empty())
@@ -4956,6 +4983,18 @@ std::tuple<Error, uint16_t> RpcServer::getRawBlocks(
         catch (...)
         {
             /* Deserialization failed; skip pruneFloor detection */
+        }
+    }
+    else if (blocks.empty())
+    {
+        /* All blocks in the requested range may be pruned.  Ask the DB for the
+           lowest height that still has raw block data. If that height is above
+           startHeight, everything in [startHeight, minRawHeight) was pruned. */
+        const uint64_t minRawHeight = m_core->getMinRawBlockHeight(startHeight);
+
+        if (minRawHeight > startHeight)
+        {
+            pruneFloor = minRawHeight;
         }
     }
 

@@ -245,15 +245,15 @@ namespace CryptoNote
                                                                         uint64_t endHeight,
                                                                         bool skipCoinbaseTransactions) const;
 
+        /* Binary-search for the lowest height >= fromHeight that has a raw block
+           in the DB. Returns storageBlockCount if none found. */
+        uint64_t getMinRawBlockHeight(uint64_t fromHeight) const;
+
       private:
         /* Fallback reconstruction using cached block info + "k" prefix tx public keys.
            Only called if "w" records are absent for a height range. */
         std::vector<WalletTypes::WalletBlockInfo> getPrunedWalletBlocksLegacy(
             uint64_t startHeight, uint64_t endHeight, bool skipCoinbaseTransactions) const;
-
-        /* Binary-search for the lowest height >= fromHeight that has a raw block
-           in the DB. Returns storageBlockCount if none found. */
-        uint64_t getMinRawBlockHeight(uint64_t fromHeight) const;
 
         const Currency &currency;
 

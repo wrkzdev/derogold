@@ -324,6 +324,14 @@ bool BlockDownloader::downloadBlocks()
         m_startHeight = blocks.front().blockHeight;
 
         m_subWallets->convertSyncTimestampToHeight(m_startTimestamp, m_startHeight);
+
+        /* Don't regress below the prune floor — prunedItems may have set
+           blocks.front().blockHeight below what we already advanced to. */
+        const uint64_t pf = m_pruneFloor.load();
+        if (pf > 0 && m_startHeight < pf)
+        {
+            m_startHeight = pf;
+        }
     }
 
     std::stringstream stream;

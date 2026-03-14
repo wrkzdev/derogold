@@ -13,6 +13,7 @@
 #include <ctime>
 #include <iomanip>
 #include <iostream>
+#include <sstream>
 #include <thread>
 #include <utilities/ColouredMsg.h>
 #include <utilities/FormatTools.h>
@@ -97,10 +98,10 @@ void syncWallet(const std::shared_ptr<WalletBackend> walletBackend)
                 std::cout << WarningMsg(
                     "\nNote: This daemon has pruned raw block data below height " +
                     std::to_string(pruneFloor) + ".\n"
-                    "Transactions in blocks 0 to " + std::to_string(pruneFloor - 1) +
-                    " cannot be scanned on this node.\n"
-                    "Syncing from block " + std::to_string(pruneFloor) + " instead.\n"
-                    "Use a non-pruned node if you need full transaction history.\n")
+                    "Balance from blocks 0 to " + std::to_string(pruneFloor - 1) +
+                    " is synced using cached data.\n"
+                    "Inputs from pruned blocks cannot be spent until re-synced on a non-pruned node.\n"
+                    "Use a non-pruned node if you need full spending capability.\n")
                     << std::endl;
             }
         }
@@ -124,22 +125,24 @@ void syncWallet(const std::shared_ptr<WalletBackend> walletBackend)
             /* Don't print out fusion transactions */
             if (!tx.isFusionTransaction())
             {
+                std::stringstream txStream;
+
                 if (tx.totalAmount() < 0)
                 {
                     const int64_t amount = std::abs(tx.totalAmount());
-                    std::cout << WarningMsg("[" + nowTimestamp() + "] OUT "
-                        + Utilities::formatAmount(amount) + " (fee " + Utilities::formatAmount(tx.fee)
-                        + ") | height " + std::to_string(tx.blockHeight)
-                        + " | " + tx.hash)
-                        << std::endl;
+                    txStream << "[" << nowTimestamp() << "] OUT "
+                        << Utilities::formatAmount(amount) << " (fee " << Utilities::formatAmount(tx.fee)
+                        << ") | height " << tx.blockHeight
+                        << " | " << tx.hash;
+                    std::cout << WarningMsg(txStream.str()) << std::endl;
                 }
                 else
                 {
-                    std::cout << SuccessMsg("[" + nowTimestamp() + "] IN  "
-                        + Utilities::formatAmount(tx.totalAmount())
-                        + " | height " + std::to_string(tx.blockHeight)
-                        + " | " + tx.hash)
-                        << std::endl;
+                    txStream << "[" << nowTimestamp() << "] IN  "
+                        << Utilities::formatAmount(tx.totalAmount())
+                        << " | height " << tx.blockHeight
+                        << " | " << tx.hash;
+                    std::cout << SuccessMsg(txStream.str()) << std::endl;
                 }
             }
         }

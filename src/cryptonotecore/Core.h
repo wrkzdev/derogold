@@ -128,6 +128,8 @@ namespace CryptoNote
             uint64_t endHeight,
             bool skipCoinbaseTransactions) const override;
 
+        virtual uint64_t getMinRawBlockHeight(uint64_t fromHeight) const override;
+
         virtual bool getTransactionsStatus(
             std::unordered_set<Crypto::Hash> transactionHashes,
             std::unordered_set<Crypto::Hash> &transactionsInPool,
