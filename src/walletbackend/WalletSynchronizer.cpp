@@ -363,6 +363,26 @@ void WalletSynchronizer::completeBlockProcessing(
     const std::vector<std::tuple<Crypto::PublicKey, WalletTypes::TransactionInput>> &ourInputs)
 {
     const uint64_t walletHeight = m_blockDownloader.getHeight();
+    const uint64_t pruneFloor = m_blockDownloader.getPruneFloor();
+
+    /* Safety: if this block is below both the wallet height AND the prune floor,
+       it is a stale prunedItem that the wallet has already processed — skip it
+       rather than falsely treating it as a fork. This guards against edge cases
+       where the daemon re-sends pruned block data the wallet already has. */
+    if (pruneFloor > 0 && block.blockHeight < pruneFloor
+        && walletHeight >= block.blockHeight && block.blockHeight != 0)
+    {
+        Logger::logger.log(
+            "Skipping already-processed pruned block at height " + std::to_string(block.blockHeight)
+                + " (wallet height: " + std::to_string(walletHeight)
+                + ", prune floor: " + std::to_string(pruneFloor) + ")",
+            Logger::DEBUG,
+            {Logger::SYNC});
+
+        /* Still drop the block from the download queue so we don't get stuck. */
+        m_blockDownloader.dropBlock(block.blockHeight, block.blockHash);
+        return;
+    }
 
     /* Chain forked, invalidate previous transactions */
     if (walletHeight >= block.blockHeight && block.blockHeight != 0)
