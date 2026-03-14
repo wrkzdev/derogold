@@ -5023,10 +5023,24 @@ std::tuple<Error, uint16_t> RpcServer::getRawBlocks(
     {
         const uint64_t prunedEnd = std::min(pruneFloor, resolvedStartIndex + blockCount);
         prunedItems = m_core->getPrunedWalletBlocks(resolvedStartIndex, prunedEnd, skipCoinbaseTransactions);
+
+        logger(Logging::INFO) << "/getrawblocks prune: resolvedStart=" << resolvedStartIndex
+                              << " pruneFloor=" << pruneFloor << " prunedEnd=" << prunedEnd
+                              << " rawBlocks=" << blocks.size() << " prunedItems=" << prunedItems.size();
     }
+
+    /* When the wallet is in the pruned range and we have prunedItems data, emit
+       ONLY the prunedItems and suppress the raw blocks for this response. This
+       lets the wallet iterate through the pruned range 100 blocks at a time and
+       naturally transitions to raw blocks when startIndex reaches pruneFloor.
+       Mixing both in one response creates a height gap that skips the middle of
+       the pruned range. If prunedItems is empty (legacy path unavailable), fall
+       back to the raw blocks with pruneFloor set so the wallet can advance. */
+    const bool servingPrunedRange = !prunedItems.empty();
 
     writer.Key("items");
     writer.StartArray();
+    if (!servingPrunedRange)
     {
         for (const auto &block : blocks)
         {
@@ -5070,7 +5084,7 @@ std::tuple<Error, uint16_t> RpcServer::getRawBlocks(
 
     /* Emit pre-parsed wallet data for the pruned range so the wallet can detect
        transactions in heights that no longer have raw block data. */
-    if (!prunedItems.empty())
+    if (servingPrunedRange)
     {
         const nlohmann::json prunedJson = prunedItems;
         const std::string prunedStr = prunedJson.dump();
@@ -5078,8 +5092,10 @@ std::tuple<Error, uint16_t> RpcServer::getRawBlocks(
         writer.RawValue(prunedStr.c_str(), static_cast<rapidjson::SizeType>(prunedStr.size()), rapidjson::kArrayType);
     }
 
+    /* synced=true only when we have truly exhausted blocks (no raw blocks and no
+       prunedItems). If we have prunedItems the wallet still has more to process. */
     writer.Key("synced");
-    writer.Bool(blocks.empty());
+    writer.Bool(blocks.empty() && !servingPrunedRange);
 
     writer.Key("status");
     writer.String("OK");
