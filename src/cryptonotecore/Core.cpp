@@ -816,6 +816,36 @@ namespace CryptoNote
                 walletBlocks.push_back(walletBlock);
             }
 
+            /* Detect pruned range and prepend cached wallet data so the wallet
+               can sync from height 0 even on a pruned node. */
+            uint64_t pruneFloor = 0;
+
+            if (!walletBlocks.empty() && walletBlocks.front().blockHeight > startIndex)
+            {
+                pruneFloor = walletBlocks.front().blockHeight;
+            }
+            else if (walletBlocks.empty() && currentIndex >= startIndex)
+            {
+                auto *dbChain = dynamic_cast<DatabaseBlockchainCache *>(mainChain);
+                if (dbChain != nullptr)
+                {
+                    const uint64_t minRaw = dbChain->getMinRawBlockHeight(startIndex);
+                    if (minRaw > startIndex)
+                    {
+                        pruneFloor = minRaw;
+                    }
+                }
+            }
+
+            if (pruneFloor > 0)
+            {
+                auto prunedItems = getPrunedWalletBlocks(startIndex, pruneFloor, skipCoinbaseTransactions);
+                if (!prunedItems.empty())
+                {
+                    walletBlocks.insert(walletBlocks.begin(), prunedItems.begin(), prunedItems.end());
+                }
+            }
+
             if (walletBlocks.empty())
             {
                 topBlockInfo = WalletTypes::TopBlock({currentHash, currentIndex});
@@ -971,6 +1001,27 @@ namespace CryptoNote
         {
             logger(Logging::WARNING) << "getPrunedWalletBlocks failed: " << e.what();
             return {};
+        }
+    }
+
+    uint64_t Core::getMinRawBlockHeight(uint64_t fromHeight) const
+    {
+        throwIfNotInitialized();
+
+        try
+        {
+            IBlockchainCache *mainChain = chainsLeaves[0];
+            auto *dbChain = dynamic_cast<DatabaseBlockchainCache *>(mainChain);
+            if (dbChain == nullptr)
+            {
+                return fromHeight;
+            }
+            return dbChain->getMinRawBlockHeight(fromHeight);
+        }
+        catch (const std::exception &e)
+        {
+            logger(Logging::WARNING) << "getMinRawBlockHeight failed: " << e.what();
+            return fromHeight;
         }
     }
 
@@ -1775,18 +1826,47 @@ namespace CryptoNote
 
             std::vector<Crypto::Hash> transactionHashes;
 
-            for (const auto& rawBlock : mainChain->getBlocksByHeight(startHeight, endHeight))
+            const auto rawBlocks = mainChain->getBlocksByHeight(startHeight, endHeight);
+
+            if (!rawBlocks.empty())
             {
-                for (const auto& transaction : rawBlock.transactions)
+                /* Normal path: extract tx hashes from raw blocks */
+                for (const auto& rawBlock : rawBlocks)
                 {
-                    transactionHashes.push_back(getBinaryArrayHash(transaction));
+                    for (const auto& transaction : rawBlock.transactions)
+                    {
+                        transactionHashes.push_back(getBinaryArrayHash(transaction));
+                    }
+
+                    BlockTemplate block;
+
+                    fromBinaryArray(block, rawBlock.block);
+
+                    transactionHashes.push_back(getBinaryArrayHash(toBinaryArray(block.baseTransaction)));
                 }
-
-                BlockTemplate block;
-
-                fromBinaryArray(block, rawBlock.block);
-
-                transactionHashes.push_back(getBinaryArrayHash(toBinaryArray(block.baseTransaction)));
+            }
+            else
+            {
+                /* Pruned path: raw blocks deleted, read tx hashes from cached
+                   block records which survive pruning.  Use the per-block
+                   transaction count + block hash to reconstruct tx hashes. */
+                auto *dbChain = dynamic_cast<DatabaseBlockchainCache *>(mainChain);
+                if (dbChain != nullptr)
+                {
+                    /* The "w" wallet sync records contain the tx hashes we need */
+                    auto prunedBlocks = dbChain->getPrunedWalletBlocks(startHeight, endHeight, false);
+                    for (const auto &wb : prunedBlocks)
+                    {
+                        if (wb.coinbaseTransaction)
+                        {
+                            transactionHashes.push_back(wb.coinbaseTransaction->hash);
+                        }
+                        for (const auto &tx : wb.transactions)
+                        {
+                            transactionHashes.push_back(tx.hash);
+                        }
+                    }
+                }
             }
 
             indexes = mainChain->getGlobalIndexes(transactionHashes);

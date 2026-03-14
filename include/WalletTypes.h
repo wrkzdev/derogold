@@ -160,7 +160,7 @@ namespace WalletTypes
             writer.Key("transactionIndex");
             writer.Uint64(transactionIndex);
             writer.Key("globalOutputIndex");
-            writer.Uint64(globalOutputIndex.value_or(0));
+            writer.Uint64(globalOutputIndex.value_or(UINT64_MAX));
             writer.Key("key");
             key.toJSON(writer);
             writer.Key("spendHeight");
@@ -180,7 +180,10 @@ namespace WalletTypes
             blockHeight = getUint64FromJSON(j, "blockHeight");
             transactionPublicKey.fromString(getStringFromJSON(j, "transactionPublicKey"));
             transactionIndex = getUint64FromJSON(j, "transactionIndex");
-            globalOutputIndex = getUint64FromJSON(j, "globalOutputIndex");
+            {
+                const uint64_t idx = getUint64FromJSON(j, "globalOutputIndex");
+                globalOutputIndex = (idx == UINT64_MAX) ? std::nullopt : std::optional<uint64_t>(idx);
+            }
             key.fromString(getStringFromJSON(j, "key"));
             spendHeight = getUint64FromJSON(j, "spendHeight");
             unlockTime = getUint64FromJSON(j, "unlockTime");

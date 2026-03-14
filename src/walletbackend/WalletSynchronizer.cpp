@@ -268,10 +268,10 @@ void WalletSynchronizer::blockProcessingThread()
                     if (!m_subWallets->isViewWallet() && !input.globalOutputIndex)
                     {
                         /* Pruned blocks: daemon can't provide global indexes.
-                           Mark with 0 — spending will require a non-pruned node. */
+                           Leave as nullopt — getSpendableInputs will filter
+                           these out until re-synced on a non-pruned node. */
                         if (isPrunedBlock)
                         {
-                            input.globalOutputIndex = 0;
                             continue;
                         }
 

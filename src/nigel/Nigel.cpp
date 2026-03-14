@@ -199,9 +199,10 @@ std::tuple<bool, std::vector<WalletTypes::WalletBlockInfo>, std::optional<Wallet
             items = j.at("items").get<std::vector<WalletTypes::WalletBlockInfo>>();
         }
 
-        /* For /getrawblocks: if the daemon also sent pre-parsed wallet data for a pruned
-           height range, prepend those items so the wallet processes all heights in order. */
-        if (m_useRawBlocks && j.find("prunedItems") != j.end())
+        /* If the daemon sent pre-parsed wallet data for a pruned height range,
+           prepend those items so the wallet processes all heights in order.
+           Applies to both /getrawblocks and /getwalletsyncdata endpoints. */
+        if (j.find("prunedItems") != j.end())
         {
             auto prunedItems = j.at("prunedItems").get<std::vector<WalletTypes::WalletBlockInfo>>();
             items.insert(items.begin(), prunedItems.begin(), prunedItems.end());

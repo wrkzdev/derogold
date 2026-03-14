@@ -19,6 +19,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <map>
+#include <set>
 
 namespace CryptoNote
 {
@@ -2422,6 +2423,10 @@ namespace CryptoNote
             endHeight = storageCount;
         }
 
+        /* Track which heights we've covered so we can fall back to legacy
+           for any gaps where "w" records are absent. */
+        std::set<uint64_t> coveredHeights;
+
         /* Read compact wallet sync records stored at push time under the "w" prefix.
            These contain complete WalletBlockInfo (outputs + key images + payment IDs)
            and are never deleted by the prune pass.
@@ -2451,7 +2456,28 @@ namespace CryptoNote
                     block.coinbaseTransaction = std::nullopt;
                 }
                 result.push_back(std::move(block));
+                coveredHeights.insert(h);
             }
+        }
+
+        /* If some heights are missing "w" records (DB predates this feature),
+           fill the gaps using the legacy reconstruction path. */
+        const uint64_t expectedCount = endHeight - startHeight;
+        if (coveredHeights.size() < expectedCount)
+        {
+            auto legacyBlocks = getPrunedWalletBlocksLegacy(startHeight, endHeight, skipCoinbaseTransactions);
+
+            for (auto &block : legacyBlocks)
+            {
+                if (coveredHeights.find(block.blockHeight) == coveredHeights.end())
+                {
+                    result.push_back(std::move(block));
+                }
+            }
+
+            /* Re-sort by height after merging */
+            std::sort(result.begin(), result.end(),
+                [](const auto &a, const auto &b) { return a.blockHeight < b.blockHeight; });
         }
 
         return result;
