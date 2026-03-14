@@ -845,7 +845,16 @@ namespace CryptoNote
                 auto prunedItems = getPrunedWalletBlocks(startIndex, prunedEnd, skipCoinbaseTransactions);
                 if (!prunedItems.empty())
                 {
-                    walletBlocks.insert(walletBlocks.begin(), prunedItems.begin(), prunedItems.end());
+                    /* Replace walletBlocks with prunedItems only — do NOT mix pruned
+                       blocks with raw blocks in the same response. If we prepended and
+                       also kept the raw blocks, the wallet would jump from the last
+                       prunedItem directly to the first raw block, creating a height gap
+                       of potentially hundreds of thousands of blocks and leaving the
+                       middle of the pruned range unscanned. By returning prunedItems
+                       alone the wallet iterates through the pruned range 100 blocks at
+                       a time and naturally transitions into the non-pruned range when
+                       startIndex reaches pruneFloor. */
+                    walletBlocks = std::move(prunedItems);
                 }
             }
 
@@ -1002,14 +1011,21 @@ namespace CryptoNote
             auto *dbChain = dynamic_cast<DatabaseBlockchainCache *>(mainChain);
             if (dbChain == nullptr)
             {
+                logger(Logging::WARNING) << "getPrunedWalletBlocks: mainChain is not DatabaseBlockchainCache";
                 return {};
             }
 
-            return dbChain->getPrunedWalletBlocks(startHeight, endHeight, skipCoinbaseTransactions);
+            auto result = dbChain->getPrunedWalletBlocks(startHeight, endHeight, skipCoinbaseTransactions);
+
+            logger(Logging::DEBUGGING) << "getPrunedWalletBlocks [" << startHeight << ", " << endHeight
+                                       << "): returned " << result.size() << " blocks";
+
+            return result;
         }
         catch (const std::exception &e)
         {
-            logger(Logging::WARNING) << "getPrunedWalletBlocks failed: " << e.what();
+            logger(Logging::WARNING) << "getPrunedWalletBlocks [" << startHeight << ", " << endHeight
+                                     << ") failed: " << e.what();
             return {};
         }
     }

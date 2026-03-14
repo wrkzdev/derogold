@@ -18,6 +18,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <map>
+#include <optional>
 #include <set>
 
 namespace CryptoNote
@@ -2394,6 +2395,10 @@ namespace CryptoNote
 
         /* Cap to available chain height */
         const uint64_t storageCount = static_cast<uint64_t>(getBlockCount());
+
+        logger(Logging::DEBUGGING) << "getPrunedWalletBlocks: [" << startHeight << ", " << endHeight
+                                   << ") storageCount=" << storageCount;
+
         if (endHeight > storageCount)
         {
             endHeight = storageCount;
@@ -2439,9 +2444,15 @@ namespace CryptoNote
         /* If some heights are missing "w" records (DB predates this feature),
            fill the gaps using the legacy reconstruction path. */
         const uint64_t expectedCount = endHeight - startHeight;
+
+        logger(Logging::DEBUGGING) << "getPrunedWalletBlocks: w-records covered " << coveredHeights.size()
+                                   << " of " << expectedCount << " heights, result so far: " << result.size();
+
         if (coveredHeights.size() < expectedCount)
         {
             auto legacyBlocks = getPrunedWalletBlocksLegacy(startHeight, endHeight, skipCoinbaseTransactions);
+
+            logger(Logging::DEBUGGING) << "getPrunedWalletBlocksLegacy returned " << legacyBlocks.size() << " blocks";
 
             for (auto &block : legacyBlocks)
             {
@@ -2455,6 +2466,8 @@ namespace CryptoNote
             std::sort(result.begin(), result.end(),
                 [](const auto &a, const auto &b) { return a.blockHeight < b.blockHeight; });
         }
+
+        logger(Logging::DEBUGGING) << "getPrunedWalletBlocks: final result " << result.size() << " blocks";
 
         return result;
     }
@@ -2488,124 +2501,155 @@ namespace CryptoNote
                 blockBatch.requestCachedBlock(static_cast<uint32_t>(h));
                 blockBatch.requestTransactionHashesByBlock(static_cast<uint32_t>(h));
             }
-            auto blockResult = readDatabase(blockBatch);
-            const auto &blockInfos = blockResult.getCachedBlocks();
-            const auto &txHashesByBlock = blockResult.getTransactionHashesByBlocks();
+
+            std::optional<BlockchainReadResult> blockResultOpt;
+            try
+            {
+                blockResultOpt.emplace(readDatabase(blockBatch));
+            }
+            catch (const std::exception &e)
+            {
+                logger(Logging::ERROR) << "getPrunedWalletBlocksLegacy: batch readDatabase failed for ["
+                                       << batchStart << ", " << batchEnd << "): " << e.what();
+                continue;
+            }
+
+            const auto &blockInfos = blockResultOpt->getCachedBlocks();
+            const auto &txHashesByBlock = blockResultOpt->getTransactionHashesByBlocks();
+
+            logger(Logging::DEBUGGING) << "getPrunedWalletBlocksLegacy: batch [" << batchStart
+                                       << ", " << batchEnd << ") found " << blockInfos.size()
+                                       << " blockInfos, " << txHashesByBlock.size() << " txHashesByBlock";
 
             for (uint64_t h = batchStart; h < batchEnd; ++h)
             {
-                const auto biIt = blockInfos.find(static_cast<uint32_t>(h));
-                if (biIt == blockInfos.end())
+                try
                 {
-                    continue;
-                }
-                const auto txIt = txHashesByBlock.find(static_cast<uint32_t>(h));
-                if (txIt == txHashesByBlock.end())
-                {
-                    continue;
-                }
-
-                const CachedBlockInfo &bi = biIt->second;
-                const std::vector<Crypto::Hash> &txHashes = txIt->second;
-
-                WalletTypes::WalletBlockInfo walletBlock;
-                walletBlock.blockHeight = h;
-                walletBlock.blockHash = bi.blockHash;
-                walletBlock.blockTimestamp = bi.timestamp;
-
-                if (txHashes.empty())
-                {
-                    result.push_back(walletBlock);
-                    continue;
-                }
-
-                /* Step 2: read tx infos + tx public keys for all txs in this block */
-                BlockchainReadBatch txBatch;
-                txBatch.requestCachedTransactions(txHashes);
-                txBatch.requestTransactionPublicKeys(txHashes);
-                auto txResult = readDatabase(txBatch);
-                const auto &txInfos = txResult.getCachedTransactions();
-                const auto &txPubKeys = txResult.getTransactionPublicKeys();
-
-                for (const auto &txHash : txHashes)
-                {
-                    auto txInfoIt = txInfos.find(txHash);
-                    if (txInfoIt == txInfos.end())
+                    const auto biIt = blockInfos.find(static_cast<uint32_t>(h));
+                    if (biIt == blockInfos.end())
                     {
+                        logger(Logging::DEBUGGING) << "getPrunedWalletBlocksLegacy: missing CachedBlockInfo at height " << h;
                         continue;
                     }
-                    const ExtendedTransactionInfo &txInfo = txInfoIt->second;
+                    const auto txIt = txHashesByBlock.find(static_cast<uint32_t>(h));
 
-                    /* Retrieve stored transaction public key (may be zero if tx predates this feature) */
-                    Crypto::PublicKey txPubKey{};
-                    auto pkIt = txPubKeys.find(txHash);
-                    if (pkIt != txPubKeys.end())
+                    const CachedBlockInfo &bi = biIt->second;
+
+                    WalletTypes::WalletBlockInfo walletBlock;
+                    walletBlock.blockHeight = h;
+                    walletBlock.blockHash = bi.blockHash;
+                    walletBlock.blockTimestamp = bi.timestamp;
+
+                    if (txIt == txHashesByBlock.end())
                     {
-                        txPubKey = pkIt->second;
+                        /* No tx-hash list for this block; emit a metadata-only beacon so
+                           the wallet advances its height counter through the pruned range. */
+                        result.push_back(walletBlock);
+                        continue;
                     }
 
-                    /* Build reverse map: globalIndex → amount, from amountToKeyIndexes */
-                    std::unordered_map<uint32_t, uint64_t> globalIndexToAmount;
-                    for (const auto &[amount, globalIndices] : txInfo.amountToKeyIndexes)
+                    const std::vector<Crypto::Hash> &txHashes = txIt->second;
+
+                    if (txHashes.empty())
                     {
-                        for (const auto gIdx : globalIndices)
-                        {
-                            globalIndexToAmount[gIdx] = amount;
-                        }
+                        result.push_back(walletBlock);
+                        continue;
                     }
 
-                    /* Build key outputs list */
-                    std::vector<WalletTypes::KeyOutput> keyOutputs;
-                    keyOutputs.reserve(txInfo.outputs.size());
-                    for (size_t i = 0; i < txInfo.outputs.size(); ++i)
+                    /* Step 2: read tx infos + tx public keys for all txs in this block */
+                    BlockchainReadBatch txBatch;
+                    txBatch.requestCachedTransactions(txHashes);
+                    txBatch.requestTransactionPublicKeys(txHashes);
+                    auto txResult = readDatabase(txBatch);
+                    const auto &txInfos = txResult.getCachedTransactions();
+                    const auto &txPubKeys = txResult.getTransactionPublicKeys();
+
+                    for (const auto &txHash : txHashes)
                     {
-                        const auto &target = txInfo.outputs[i];
-                        if (target.type() != typeid(CryptoNote::KeyOutput))
+                        auto txInfoIt = txInfos.find(txHash);
+                        if (txInfoIt == txInfos.end())
                         {
                             continue;
                         }
-                        WalletTypes::KeyOutput ko;
-                        ko.key = boost::get<CryptoNote::KeyOutput>(target).key;
-                        ko.amount = 0;
-                        if (i < txInfo.globalIndexes.size())
+                        const ExtendedTransactionInfo &txInfo = txInfoIt->second;
+
+                        /* Retrieve stored transaction public key (may be zero if tx predates this feature) */
+                        Crypto::PublicKey txPubKey{};
+                        auto pkIt = txPubKeys.find(txHash);
+                        if (pkIt != txPubKeys.end())
                         {
-                            const uint32_t gIdx = txInfo.globalIndexes[i];
-                            auto amtIt = globalIndexToAmount.find(gIdx);
-                            if (amtIt != globalIndexToAmount.end())
+                            txPubKey = pkIt->second;
+                        }
+
+                        /* Build reverse map: globalIndex → amount, from amountToKeyIndexes */
+                        std::unordered_map<uint32_t, uint64_t> globalIndexToAmount;
+                        for (const auto &[amount, globalIndices] : txInfo.amountToKeyIndexes)
+                        {
+                            for (const auto gIdx : globalIndices)
                             {
-                                ko.amount = amtIt->second;
+                                globalIndexToAmount[gIdx] = amount;
                             }
-                            ko.globalOutputIndex = gIdx;
                         }
-                        keyOutputs.push_back(ko);
-                    }
 
-                    /* transactionIndex == 0 means coinbase */
-                    if (txInfo.transactionIndex == 0)
-                    {
-                        if (!skipCoinbaseTransactions)
+                        /* Build key outputs list */
+                        std::vector<WalletTypes::KeyOutput> keyOutputs;
+                        keyOutputs.reserve(txInfo.outputs.size());
+                        for (size_t i = 0; i < txInfo.outputs.size(); ++i)
                         {
-                            WalletTypes::RawCoinbaseTransaction coinbaseTx;
-                            coinbaseTx.hash = txHash;
-                            coinbaseTx.transactionPublicKey = txPubKey;
-                            coinbaseTx.unlockTime = txInfo.unlockTime;
-                            coinbaseTx.keyOutputs = std::move(keyOutputs);
-                            walletBlock.coinbaseTransaction = std::move(coinbaseTx);
+                            const auto &target = txInfo.outputs[i];
+                            if (target.type() != typeid(CryptoNote::KeyOutput))
+                            {
+                                continue;
+                            }
+                            WalletTypes::KeyOutput ko;
+                            ko.key = boost::get<CryptoNote::KeyOutput>(target).key;
+                            ko.amount = 0;
+                            if (i < txInfo.globalIndexes.size())
+                            {
+                                const uint32_t gIdx = txInfo.globalIndexes[i];
+                                auto amtIt = globalIndexToAmount.find(gIdx);
+                                if (amtIt != globalIndexToAmount.end())
+                                {
+                                    ko.amount = amtIt->second;
+                                }
+                                ko.globalOutputIndex = gIdx;
+                            }
+                            keyOutputs.push_back(ko);
+                        }
+
+                        /* transactionIndex == 0 means coinbase */
+                        if (txInfo.transactionIndex == 0)
+                        {
+                            if (!skipCoinbaseTransactions)
+                            {
+                                WalletTypes::RawCoinbaseTransaction coinbaseTx;
+                                coinbaseTx.hash = txHash;
+                                coinbaseTx.transactionPublicKey = txPubKey;
+                                coinbaseTx.unlockTime = txInfo.unlockTime;
+                                coinbaseTx.keyOutputs = std::move(keyOutputs);
+                                walletBlock.coinbaseTransaction = std::move(coinbaseTx);
+                            }
+                        }
+                        else
+                        {
+                            WalletTypes::RawTransaction tx;
+                            tx.hash = txHash;
+                            tx.transactionPublicKey = txPubKey;
+                            tx.unlockTime = txInfo.unlockTime;
+                            tx.keyOutputs = std::move(keyOutputs);
+                            /* keyInputs and paymentID are not preserved after pruning */
+                            walletBlock.transactions.push_back(std::move(tx));
                         }
                     }
-                    else
-                    {
-                        WalletTypes::RawTransaction tx;
-                        tx.hash = txHash;
-                        tx.transactionPublicKey = txPubKey;
-                        tx.unlockTime = txInfo.unlockTime;
-                        tx.keyOutputs = std::move(keyOutputs);
-                        /* keyInputs and paymentID are not preserved after pruning */
-                        walletBlock.transactions.push_back(std::move(tx));
-                    }
-                }
 
-                result.push_back(walletBlock);
+                    result.push_back(walletBlock);
+                }
+                catch (const std::exception &e)
+                {
+                    logger(Logging::WARNING) << "getPrunedWalletBlocksLegacy: failed at height "
+                                             << h << ": " << e.what();
+                    /* Continue with the next block rather than failing the entire batch */
+                }
             }
         }
 
