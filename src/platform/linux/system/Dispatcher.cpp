@@ -52,7 +52,7 @@ namespace System
 
         static_assert(Dispatcher::SIZEOF_PTHREAD_MUTEX_T == sizeof(pthread_mutex_t), "invalid pthread mutex size");
 
-        const size_t STACK_SIZE = 64 * 1024;
+        const size_t STACK_SIZE = 1024 * 1024; // 1 MB — prevents stack overflows in heavy coroutines (was 64 KB)
 
     }; // namespace
 
@@ -108,6 +108,10 @@ namespace System
                         firstResumingContext = nullptr;
                         firstReusableContext = nullptr;
                         runningContextCount = 0;
+                        /* The remoteSpawnEventContext is a permanent Dispatcher
+                           member — always pre-register it so yield()/dispatch()
+                           never drop its epoll events. */
+                        activeContextPairs.insert(&remoteSpawnEventContext);
                         return;
                     }
 
@@ -194,6 +198,16 @@ namespace System
         }
     }
 
+    void Dispatcher::addContextPair(ContextPair *pair)
+    {
+        activeContextPairs.insert(pair);
+    }
+
+    void Dispatcher::removeContextPair(ContextPair *pair)
+    {
+        activeContextPairs.erase(pair);
+    }
+
     void Dispatcher::dispatch()
     {
         NativeContext *context;
@@ -215,6 +229,17 @@ namespace System
             if (count == 1)
             {
                 ContextPair *contextPair = static_cast<ContextPair *>(event.data.ptr);
+
+                /* Skip stale epoll events whose ContextPair is no longer active.
+                   This prevents crashes from the race: EPOLLONESHOT fires and
+                   enters the kernel ready queue, then the owning TcpConnection/
+                   TcpListener/TcpConnector is destroyed or moved before
+                   epoll_wait drains the event. */
+                if (activeContextPairs.count(contextPair) == 0)
+                {
+                    continue;
+                }
+
                 if (((event.events & (EPOLLIN | EPOLLOUT)) != 0) && contextPair->readContext == nullptr
                     && contextPair->writeContext == nullptr)
                 {
@@ -389,6 +414,13 @@ namespace System
                 for (int i = 0; i < count; ++i)
                 {
                     ContextPair *contextPair = static_cast<ContextPair *>(events[i].data.ptr);
+
+                    /* Skip stale epoll events — same race guard as in dispatch(). */
+                    if (activeContextPairs.count(contextPair) == 0)
+                    {
+                        continue;
+                    }
+
                     if (((events[i].events & (EPOLLIN | EPOLLOUT)) != 0) && contextPair->readContext == nullptr
                         && contextPair->writeContext == nullptr)
                     {

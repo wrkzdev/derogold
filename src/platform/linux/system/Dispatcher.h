@@ -11,6 +11,7 @@
 #include <functional>
 #include <queue>
 #include <stack>
+#include <unordered_set>
 
 #ifndef __GLIBC__
 
@@ -86,6 +87,39 @@ namespace System
 
         void yield();
 
+        /* Register/unregister a ContextPair as active.  yield() and dispatch()
+           skip epoll events whose data.ptr is not in this set, preventing
+           crashes from stale events that arrive after a ContextPair has been
+           destroyed or moved (the race: EPOLLONESHOT fires → kernel queues
+           event → interrupt/close frees the ContextPair → epoll_wait returns
+           stale pointer → UB). */
+        void addContextPair(ContextPair *pair);
+        void removeContextPair(ContextPair *pair);
+
+        /* RAII guard: registers a ContextPair on construction and deregisters
+           it on destruction.  Use for stack-allocated ContextPairs in
+           TcpListener::accept() and TcpConnector::connect(). */
+        class ContextPairGuard
+        {
+          public:
+            ContextPairGuard(Dispatcher &d, ContextPair &cp) : m_dispatcher(d), m_pair(cp)
+            {
+                m_dispatcher.addContextPair(&m_pair);
+            }
+
+            ~ContextPairGuard()
+            {
+                m_dispatcher.removeContextPair(&m_pair);
+            }
+
+            ContextPairGuard(const ContextPairGuard &) = delete;
+            ContextPairGuard &operator=(const ContextPairGuard &) = delete;
+
+          private:
+            Dispatcher &m_dispatcher;
+            ContextPair &m_pair;
+        };
+
         // system-dependent
         int getEpoll() const;
 
@@ -143,6 +177,12 @@ namespace System
         void contextProcedure(void *ucontext);
 
         static void contextProcedureStatic(void *context);
+
+        /* Set of ContextPair pointers currently registered with epoll.
+           All IO operations add their ContextPair before arming epoll and
+           remove it after deregistering.  yield() and dispatch() skip any
+           epoll event whose data.ptr is absent from this set. */
+        std::unordered_set<ContextPair *> activeContextPairs;
     };
 
 } // namespace System
