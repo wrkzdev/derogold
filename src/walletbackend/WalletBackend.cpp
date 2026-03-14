@@ -228,10 +228,7 @@ std::tuple<Error, std::shared_ptr<WalletBackend>> WalletBackend::importWalletFro
 
     wallet->init();
 
-    /* Save to disk */
-    Error error = wallet->save();
-
-    return {error, wallet};
+    return {SUCCESS, wallet};
 }
 
 /* Imports a wallet from a private spend key and a view key. Returns
@@ -281,10 +278,7 @@ std::tuple<Error, std::shared_ptr<WalletBackend>> WalletBackend::importWalletFro
 
     wallet->init();
 
-    /* Save to disk */
-    Error error = wallet->save();
-
-    return {error, wallet};
+    return {SUCCESS, wallet};
 }
 
 /* Imports a view wallet from a private view key and an address.
@@ -323,10 +317,7 @@ std::tuple<Error, std::shared_ptr<WalletBackend>> WalletBackend::importViewWalle
 
     wallet->init();
 
-    /* Save to disk */
-    Error error = wallet->save();
-
-    return {error, wallet};
+    return {SUCCESS, wallet};
 }
 
 /* Creates a new wallet with the given filename and password */
@@ -373,10 +364,7 @@ std::tuple<Error, std::shared_ptr<WalletBackend>> WalletBackend::createWallet(
 
     wallet->init();
 
-    /* Save to disk */
-    Error error = wallet->save();
-
-    return {error, wallet};
+    return {SUCCESS, wallet};
 }
 
 bool WalletBackend::tryUpgradeWalletFormat(
@@ -698,6 +686,16 @@ void WalletBackend::init()
     }
 
     m_walletSynchronizer->setSubWallets(m_subWallets);
+
+    /* Persist wallet state BEFORE starting sync.  Callers (importWallet,
+       createWallet, etc.) used to call save() right after init(), which
+       stopped the just-started sync — forcing a join() that blocks until
+       the in-flight /getrawblocks HTTP response arrives (10+ seconds on
+       slow daemons).  The fetched blocks were then discarded and had to
+       be re-requested.  By saving here, the wallet is already on disk
+       when sync begins, and the callers' save() finds nothing new to
+       write. */
+    unsafeSave();
 
     /* Launch the wallet sync process in a background thread */
     m_walletSynchronizer->start();
