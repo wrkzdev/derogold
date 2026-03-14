@@ -133,7 +133,11 @@ void syncWallet(const std::shared_ptr<WalletBackend> walletBackend)
                     txStream << "[" << nowTimestamp() << "] OUT "
                         << Utilities::formatAmount(amount) << " (fee " << Utilities::formatAmount(tx.fee)
                         << ") | height " << tx.blockHeight
-                        << " | " << tx.hash;
+                        << " | tx: " << tx.hash;
+                    if (!tx.paymentID.empty())
+                    {
+                        txStream << " | payment id: " << tx.paymentID;
+                    }
                     std::cout << WarningMsg(txStream.str()) << std::endl;
                 }
                 else
@@ -141,7 +145,11 @@ void syncWallet(const std::shared_ptr<WalletBackend> walletBackend)
                     txStream << "[" << nowTimestamp() << "] IN  "
                         << Utilities::formatAmount(tx.totalAmount())
                         << " | height " << tx.blockHeight
-                        << " | " << tx.hash;
+                        << " | tx: " << tx.hash;
+                    if (!tx.paymentID.empty())
+                    {
+                        txStream << " | payment id: " << tx.paymentID;
+                    }
                     std::cout << SuccessMsg(txStream.str()) << std::endl;
                 }
             }
