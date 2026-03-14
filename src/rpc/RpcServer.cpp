@@ -5015,12 +5015,14 @@ std::tuple<Error, uint16_t> RpcServer::getRawBlocks(
         }
     }
 
-    /* Build synthetic wallet data for the pruned range [resolvedStartIndex, pruneFloor) so the
-       wallet can detect transactions in pruned blocks using cached metadata and tx public keys. */
+    /* Build synthetic wallet data for the pruned range, limited to blockCount items
+       per response to avoid generating millions of records. The wallet will request
+       subsequent batches as it advances through the pruned range. */
     std::vector<WalletTypes::WalletBlockInfo> prunedItems;
     if (pruneFloor > 0)
     {
-        prunedItems = m_core->getPrunedWalletBlocks(resolvedStartIndex, pruneFloor, skipCoinbaseTransactions);
+        const uint64_t prunedEnd = std::min(pruneFloor, resolvedStartIndex + blockCount);
+        prunedItems = m_core->getPrunedWalletBlocks(resolvedStartIndex, prunedEnd, skipCoinbaseTransactions);
     }
 
     writer.Key("items");
