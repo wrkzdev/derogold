@@ -7,12 +7,29 @@
 #include <zedwallet++/Sync.h>
 /////////////////////////////
 
+#include <chrono>
 #include <common/SignalHandler.h>
 #include <config/WalletConfig.h>
+#include <ctime>
+#include <iomanip>
 #include <iostream>
 #include <thread>
 #include <utilities/ColouredMsg.h>
+#include <utilities/FormatTools.h>
 #include <zedwallet++/CommandImplementations.h>
+
+namespace
+{
+    /* Return current local time as "YYYY-MM-DD HH:MM:SS" */
+    std::string nowTimestamp()
+    {
+        const auto now = std::chrono::system_clock::now();
+        const std::time_t t = std::chrono::system_clock::to_time_t(now);
+        char buf[20];
+        std::strftime(buf, sizeof(buf), "%F %T", std::localtime(&t));
+        return std::string(buf);
+    }
+} // anonymous namespace
 
 void syncWallet(const std::shared_ptr<WalletBackend> walletBackend)
 {
@@ -88,7 +105,8 @@ void syncWallet(const std::shared_ptr<WalletBackend> walletBackend)
             }
         }
 
-        std::cout << SuccessMsg(tmpWalletBlockCount) << " of " << InformationMsg(localDaemonBlockCount) << std::endl;
+        std::cout << "[" << nowTimestamp() << "] "
+                  << SuccessMsg(tmpWalletBlockCount) << " of " << InformationMsg(localDaemonBlockCount) << std::endl;
 
         if (walletBlockCount == tmpWalletBlockCount)
         {
@@ -100,21 +118,28 @@ void syncWallet(const std::shared_ptr<WalletBackend> walletBackend)
         }
 
         /* Get any transactions in between the previous height and the new
-           height */
+           height — display as compact one-liners during sync */
         for (const auto &tx : walletBackend->getTransactionsRange(walletBlockCount, tmpWalletBlockCount))
         {
             /* Don't print out fusion transactions */
             if (!tx.isFusionTransaction())
             {
-                std::cout << InformationMsg("\nNew transaction found!\n\n");
-
                 if (tx.totalAmount() < 0)
                 {
-                    printOutgoingTransfer(tx);
+                    const int64_t amount = std::abs(tx.totalAmount());
+                    std::cout << WarningMsg("[" + nowTimestamp() + "] OUT "
+                        + Utilities::formatAmount(amount) + " (fee " + Utilities::formatAmount(tx.fee)
+                        + ") | height " + std::to_string(tx.blockHeight)
+                        + " | " + tx.hash)
+                        << std::endl;
                 }
                 else
                 {
-                    printIncomingTransfer(tx);
+                    std::cout << SuccessMsg("[" + nowTimestamp() + "] IN  "
+                        + Utilities::formatAmount(tx.totalAmount())
+                        + " | height " + std::to_string(tx.blockHeight)
+                        + " | " + tx.hash)
+                        << std::endl;
                 }
             }
         }
