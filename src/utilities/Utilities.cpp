@@ -113,11 +113,14 @@ namespace Utilities
     {
         auto sleptFor = std::chrono::milliseconds::zero();
 
-        /* 0.5 seconds */
-        const auto sleepDuration = std::chrono::milliseconds(500);
+        /* 0.5 seconds max per iteration */
+        const auto maxSleepDuration = std::chrono::milliseconds(500);
 
         while (!condition && sleptFor < duration)
         {
+            const auto remaining = duration - sleptFor;
+            const auto sleepDuration = std::min(remaining, maxSleepDuration);
+
             std::this_thread::sleep_for(sleepDuration);
 
             sleptFor += sleepDuration;

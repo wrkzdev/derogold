@@ -137,35 +137,39 @@ void WalletSynchronizer::mainLoop()
             }
         }
 
-        /* Drain any blocks that worker threads have finished processing.
-           Workers run in parallel so this overlaps with their processing of
-           the remaining blocks in the current batch. */
-        while (!m_shouldStop && pendingBlocks > 0 && m_processedBlocks.size() > 0)
-        {
-            const auto [block, ourInputs, arrivalIndex] = m_processedBlocks.top_and_remove();
-
-            if (m_shouldStop)
-            {
-                break;
-            }
-
-            completeBlockProcessing(block, ourInputs);
-            pendingBlocks--;
-        }
-
-        if (m_shouldStop)
-        {
-            break;
-        }
-
         if (pendingBlocks > 0)
         {
-            /* Blocks are in-flight — yield CPU and wait for workers to signal
-               completion. Workers call notify_all() on m_haveProcessedBlocksToHandle
-               after each batch, so we wake up immediately when output is ready.
-               The 100ms timeout guards against missed notifications. */
-            std::unique_lock<std::mutex> lock(m_mutex);
-            m_haveProcessedBlocksToHandle.wait_for(lock, std::chrono::milliseconds(100));
+            /* Wait for ALL pending blocks to arrive in m_processedBlocks before
+               draining. dropBlock() calls pop_front() on m_storedBlocks, which
+               assumes blocks are dropped in strict arrival order. Draining only
+               when the full batch is present lets the priority queue re-order any
+               out-of-order worker results before we commit them.
+               Workers call notify_all() immediately after each push, so we wake
+               up as soon as the last one arrives. The 100ms timeout guards against
+               missed notifications. */
+            {
+                std::unique_lock<std::mutex> lock(m_mutex);
+                m_haveProcessedBlocksToHandle.wait_for(lock, std::chrono::milliseconds(100), [&] {
+                    return m_shouldStop || m_processedBlocks.size() >= pendingBlocks;
+                });
+            }
+
+            /* Drain the full batch in arrival order via the priority queue. */
+            if (!m_shouldStop && m_processedBlocks.size() >= pendingBlocks)
+            {
+                while (!m_shouldStop && pendingBlocks > 0)
+                {
+                    const auto [block, ourInputs, arrivalIndex] = m_processedBlocks.top_and_remove();
+
+                    if (m_shouldStop)
+                    {
+                        break;
+                    }
+
+                    completeBlockProcessing(block, ourInputs);
+                    pendingBlocks--;
+                }
+            }
         }
         else if (getCurrentScanHeight() >= m_daemon->localDaemonBlockCount())
         {
@@ -186,6 +190,11 @@ void WalletSynchronizer::mainLoop()
         {
             /* Downloader hasn't produced blocks yet — brief pause. */
             Utilities::sleepUnlessStopping(std::chrono::milliseconds(100), m_shouldStop);
+        }
+
+        if (m_shouldStop)
+        {
+            break;
         }
     }
 }
