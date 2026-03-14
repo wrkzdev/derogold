@@ -1995,6 +1995,7 @@ std::tuple<Error, uint16_t> RpcServer::getWalletSyncDataTrtlApi(
 
     std::vector<WalletTypes::WalletBlockInfo> walletBlocks;
     std::optional<WalletTypes::TopBlock> topBlockInfo;
+    uint64_t resolvedStartIndex = 0;
 
     const bool success = m_core->getWalletSyncData(
         blockHashCheckpoints,
@@ -2003,7 +2004,8 @@ std::tuple<Error, uint16_t> RpcServer::getWalletSyncDataTrtlApi(
         blockCount,
         skipCoinbaseTransactions,
         walletBlocks,
-        topBlockInfo);
+        topBlockInfo,
+        resolvedStartIndex);
 
     if (!success)
     {
@@ -2185,6 +2187,7 @@ std::tuple<Error, uint16_t>
 
         std::vector<CryptoNote::RawBlock> rawBlocks;
         std::optional<WalletTypes::TopBlock> topBlockInfo;
+        uint64_t resolvedStartIndex = 0;
 
         const bool success = m_core->getRawBlocks(
             blockHashCheckpoints,
@@ -2193,7 +2196,8 @@ std::tuple<Error, uint16_t>
             blockCount,
             skipCoinbaseTransactions,
             rawBlocks,
-            topBlockInfo);
+            topBlockInfo,
+            resolvedStartIndex);
 
         if (!success)
         {
@@ -2625,6 +2629,7 @@ std::tuple<Error, uint16_t> RpcServer::getWalletSyncData(
 
     std::vector<WalletTypes::WalletBlockInfo> walletBlocks;
     std::optional<WalletTypes::TopBlock> topBlockInfo;
+    uint64_t resolvedStartIndex = 0;
 
     const bool success = m_core->getWalletSyncData(
         blockHashCheckpoints,
@@ -2633,7 +2638,8 @@ std::tuple<Error, uint16_t> RpcServer::getWalletSyncData(
         blockCount,
         skipCoinbaseTransactions,
         walletBlocks,
-        topBlockInfo
+        topBlockInfo,
+        resolvedStartIndex
     );
 
     if (!success)
@@ -2782,18 +2788,21 @@ std::tuple<Error, uint16_t> RpcServer::getWalletSyncData(
     }
 
     /* Detect prune floor for the /getwalletsyncdata response so the wallet
-       can advance past pruned ranges even when prunedItems are empty. */
+       can advance past pruned ranges even when prunedItems are empty.
+       Use resolvedStartIndex (checkpoint-resolved) instead of raw startHeight
+       to avoid falsely reporting a prune floor when the checkpoint mechanism
+       has simply advanced past startHeight. */
     {
         uint64_t pruneFloor = 0;
 
-        if (!walletBlocks.empty() && walletBlocks.front().blockHeight > startHeight)
+        if (!walletBlocks.empty() && walletBlocks.front().blockHeight > resolvedStartIndex)
         {
             pruneFloor = walletBlocks.front().blockHeight;
         }
         else if (walletBlocks.empty())
         {
-            const uint64_t minRaw = m_core->getMinRawBlockHeight(startHeight);
-            if (minRaw > startHeight)
+            const uint64_t minRaw = m_core->getMinRawBlockHeight(resolvedStartIndex);
+            if (minRaw > resolvedStartIndex)
             {
                 pruneFloor = minRaw;
             }
@@ -4949,6 +4958,7 @@ std::tuple<Error, uint16_t> RpcServer::getRawBlocks(
 
     std::vector<CryptoNote::RawBlock> blocks;
     std::optional<WalletTypes::TopBlock> topBlockInfo;
+    uint64_t resolvedStartIndex = 0;
 
     const bool success = m_core->getRawBlocks(
         blockHashCheckpoints,
@@ -4957,7 +4967,8 @@ std::tuple<Error, uint16_t> RpcServer::getRawBlocks(
         blockCount,
         skipCoinbaseTransactions,
         blocks,
-        topBlockInfo
+        topBlockInfo,
+        resolvedStartIndex
     );
 
     if (!success)
@@ -4965,11 +4976,12 @@ std::tuple<Error, uint16_t> RpcServer::getRawBlocks(
         return {SUCCESS, 500};
     }
 
-    /* If the returned blocks start above the requested startHeight, the gap is due to pruning.
-       Detect the prune floor and serve synthetic WalletBlockInfo for the pruned range.
-       RawBlock has no blockHeight field — deserialize the first block to read it.
-       When blocks is empty (entire range pruned), query the DB directly for the
-       lowest available raw block height. */
+    /* Detect pruned range by comparing the first returned block's height against
+       the checkpoint-resolved start index (NOT the raw startHeight parameter).
+       Using startHeight here was incorrect — when checkpoints advance past
+       startHeight, the gap is due to checkpoint resolution, not pruning, and
+       emitting prunedItems for that range causes the wallet to process blocks
+       it has already seen, triggering false fork detection and rollback loops. */
     uint64_t pruneFloor = 0;
 
     if (!blocks.empty() && !blocks.front().block.empty())
@@ -4980,7 +4992,7 @@ std::tuple<Error, uint16_t> RpcServer::getRawBlocks(
             fromBinaryArray(blockTemplate, blocks.front().block);
             const uint64_t firstBlockHeight = CryptoNote::CachedBlock(blockTemplate).getBlockIndex();
 
-            if (firstBlockHeight > startHeight)
+            if (firstBlockHeight > resolvedStartIndex)
             {
                 pruneFloor = firstBlockHeight;
             }
@@ -4994,21 +5006,21 @@ std::tuple<Error, uint16_t> RpcServer::getRawBlocks(
     {
         /* All blocks in the requested range may be pruned.  Ask the DB for the
            lowest height that still has raw block data. If that height is above
-           startHeight, everything in [startHeight, minRawHeight) was pruned. */
-        const uint64_t minRawHeight = m_core->getMinRawBlockHeight(startHeight);
+           the resolved start, everything in [resolvedStartIndex, minRawHeight) was pruned. */
+        const uint64_t minRawHeight = m_core->getMinRawBlockHeight(resolvedStartIndex);
 
-        if (minRawHeight > startHeight)
+        if (minRawHeight > resolvedStartIndex)
         {
             pruneFloor = minRawHeight;
         }
     }
 
-    /* Build synthetic wallet data for the pruned range [startHeight, pruneFloor) so the wallet
-       can detect transactions in pruned blocks using cached metadata and tx public keys. */
+    /* Build synthetic wallet data for the pruned range [resolvedStartIndex, pruneFloor) so the
+       wallet can detect transactions in pruned blocks using cached metadata and tx public keys. */
     std::vector<WalletTypes::WalletBlockInfo> prunedItems;
     if (pruneFloor > 0)
     {
-        prunedItems = m_core->getPrunedWalletBlocks(startHeight, pruneFloor, skipCoinbaseTransactions);
+        prunedItems = m_core->getPrunedWalletBlocks(resolvedStartIndex, pruneFloor, skipCoinbaseTransactions);
     }
 
     writer.Key("items");

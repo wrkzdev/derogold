@@ -694,7 +694,8 @@ namespace CryptoNote
         const uint64_t blockCount,
         const bool skipCoinbaseTransactions,
         std::vector<WalletTypes::WalletBlockInfo> &walletBlocks,
-        std::optional<WalletTypes::TopBlock> &topBlockInfo) const
+        std::optional<WalletTypes::TopBlock> &topBlockInfo,
+        uint64_t &resolvedStartIndex) const
     {
         throwIfNotInitialized();
 
@@ -769,6 +770,8 @@ namespace CryptoNote
                                        << "\n* Block difference: " << blockDifference << "\n* End index: " << endIndex
                                        << "\n============================================="
                                        << "\n\n\n";
+
+            resolvedStartIndex = startIndex;
 
             /* If we're fully synced, then the start index will be greater than our
            current block. */
@@ -870,7 +873,8 @@ namespace CryptoNote
         const uint64_t blockCount,
         const bool skipCoinbaseTransactions,
         std::vector<RawBlock> &blocks,
-        std::optional<WalletTypes::TopBlock> &topBlockInfo) const
+        std::optional<WalletTypes::TopBlock> &topBlockInfo,
+        uint64_t &resolvedStartIndex) const
     {
         throwIfNotInitialized();
 
@@ -945,6 +949,12 @@ namespace CryptoNote
                                        << "\n* Block difference: " << blockDifference << "\n* End index: " << endIndex
                                        << "\n============================================="
                                        << "\n\n\n";
+
+            /* Report the checkpoint-resolved start back to the caller so the RPC
+               handler can correctly detect prune gaps (comparing against the raw
+               startHeight would falsely trigger prune floor detection when the
+               checkpoint mechanism advanced past startHeight). */
+            resolvedStartIndex = startIndex;
 
             /* If we're fully synced, then the start index will be greater than our
            current block. */

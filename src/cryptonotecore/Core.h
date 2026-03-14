@@ -112,7 +112,8 @@ namespace CryptoNote
             const uint64_t blockCount,
             const bool skipCoinbaseTransactions,
             std::vector<WalletTypes::WalletBlockInfo> &walletBlocks,
-            std::optional<WalletTypes::TopBlock> &topBlockInfo) const override;
+            std::optional<WalletTypes::TopBlock> &topBlockInfo,
+            uint64_t &resolvedStartIndex) const override;
 
         virtual bool getRawBlocks(
             const std::vector<Crypto::Hash> &knownBlockHashes,
@@ -121,7 +122,8 @@ namespace CryptoNote
             const uint64_t blockCount,
             const bool skipCoinbaseTransactions,
             std::vector<RawBlock> &walletBlocks,
-            std::optional<WalletTypes::TopBlock> &topBlockInfo) const override;
+            std::optional<WalletTypes::TopBlock> &topBlockInfo,
+            uint64_t &resolvedStartIndex) const override;
 
         virtual std::vector<WalletTypes::WalletBlockInfo> getPrunedWalletBlocks(
             uint64_t startHeight,
