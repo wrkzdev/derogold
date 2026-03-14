@@ -26,9 +26,11 @@ namespace System
         {
             assert(other.contextPair.writeContext == nullptr);
             assert(other.contextPair.readContext == nullptr);
+            other.dispatcher->removeContextPair(&other.contextPair);
             connection = other.connection;
             contextPair = other.contextPair;
             other.dispatcher = nullptr;
+            dispatcher->addContextPair(&contextPair);
         }
     }
 
@@ -38,6 +40,7 @@ namespace System
         {
             assert(contextPair.readContext == nullptr);
             assert(contextPair.writeContext == nullptr);
+            dispatcher->removeContextPair(&contextPair);
             int result = close(connection);
             if (result)
             {
@@ -52,6 +55,7 @@ namespace System
         {
             assert(contextPair.readContext == nullptr);
             assert(contextPair.writeContext == nullptr);
+            dispatcher->removeContextPair(&contextPair);
             if (close(connection) == -1)
             {
                 throw std::runtime_error("TcpConnection::operator=, close failed, " + lastErrorMessage());
@@ -63,9 +67,11 @@ namespace System
         {
             assert(other.contextPair.readContext == nullptr);
             assert(other.contextPair.writeContext == nullptr);
+            other.dispatcher->removeContextPair(&other.contextPair);
             connection = other.connection;
             contextPair = other.contextPair;
             other.dispatcher = nullptr;
+            dispatcher->addContextPair(&contextPair);
         }
 
         return *this;
@@ -348,6 +354,8 @@ namespace System
         {
             throw std::runtime_error("TcpConnection::TcpConnection, epoll_ctl failed, " + lastErrorMessage());
         }
+
+        dispatcher.addContextPair(&contextPair);
     }
 
 } // namespace System
