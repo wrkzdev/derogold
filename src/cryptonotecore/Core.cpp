@@ -839,7 +839,10 @@ namespace CryptoNote
 
             if (pruneFloor > 0)
             {
-                auto prunedItems = getPrunedWalletBlocks(startIndex, pruneFloor, skipCoinbaseTransactions);
+                /* Limit prunedItems to the same batch size used for raw blocks
+                   to avoid generating millions of records in a single response. */
+                const uint64_t prunedEnd = std::min(pruneFloor, startIndex + actualBlockCount);
+                auto prunedItems = getPrunedWalletBlocks(startIndex, prunedEnd, skipCoinbaseTransactions);
                 if (!prunedItems.empty())
                 {
                     walletBlocks.insert(walletBlocks.begin(), prunedItems.begin(), prunedItems.end());
