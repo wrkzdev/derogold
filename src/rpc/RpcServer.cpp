@@ -5024,9 +5024,13 @@ std::tuple<Error, uint16_t> RpcServer::getRawBlocks(
         const uint64_t prunedEnd = std::min(pruneFloor, resolvedStartIndex + blockCount);
         prunedItems = m_core->getPrunedWalletBlocks(resolvedStartIndex, prunedEnd, skipCoinbaseTransactions);
 
-        logger(Logging::INFO) << "/getrawblocks prune: resolvedStart=" << resolvedStartIndex
-                              << " pruneFloor=" << pruneFloor << " prunedEnd=" << prunedEnd
-                              << " rawBlocks=" << blocks.size() << " prunedItems=" << prunedItems.size();
+        Logger::logger.log(
+            "/getrawblocks prune: resolvedStart=" + std::to_string(resolvedStartIndex)
+            + " pruneFloor=" + std::to_string(pruneFloor)
+            + " prunedEnd=" + std::to_string(prunedEnd)
+            + " rawBlocks=" + std::to_string(blocks.size())
+            + " prunedItems=" + std::to_string(prunedItems.size()),
+            Logger::DEBUG, {Logger::DAEMON_RPC});
     }
 
     /* When the wallet is in the pruned range and we have prunedItems data, emit
