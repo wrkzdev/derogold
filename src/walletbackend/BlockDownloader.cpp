@@ -255,6 +255,35 @@ bool BlockDownloader::downloadBlocks()
     const auto [success, blocks, topBlock, pruneFloor] = m_daemon->getWalletSyncData(
         blockCheckpoints, m_startHeight, m_startTimestamp, Config::config.wallet.skipCoinbaseTransactions);
 
+    /* Handle prune floor BEFORE the empty-blocks check.  When connecting to
+       a pruned node, the daemon may return zero blocks but still report a
+       prune floor.  If we don't advance m_startHeight here, we'll keep
+       requesting the same pruned range and get stuck in an infinite loop. */
+    if (success && pruneFloor > 0 && pruneFloor > m_startHeight)
+    {
+        m_pruneFloor.store(pruneFloor);
+
+        const bool prunedItemsCovered = !blocks.empty() && blocks.front().blockHeight < pruneFloor;
+
+        if (!prunedItemsCovered)
+        {
+            Logger::logger.log(
+                "Daemon prune floor at height " + std::to_string(pruneFloor) +
+                ". No wallet data for blocks " + std::to_string(m_startHeight) +
+                " to " + std::to_string(pruneFloor - 1) + ".",
+                Logger::WARNING, {Logger::SYNC, Logger::DAEMON});
+
+            m_startHeight = pruneFloor;
+
+            /* Re-request from the new start height on the next iteration
+               rather than falling through with an empty block list. */
+            if (blocks.empty())
+            {
+                return true;
+            }
+        }
+    }
+
     /* Synced, store the top block so sync status displayes correctly if
        we are not scanning coinbase tx only blocks */
     /* We can have an issue where we download a block, say, block 1000,
@@ -287,27 +316,6 @@ bool BlockDownloader::downloadBlocks()
        to running at full speed in case we backed off a little
        bit before */
     m_daemon->resetRequestedBlockCount();
-
-    /* Daemon has a prune floor. If prunedItems were provided by the daemon, the first
-       returned block's height will be <= m_startHeight so the gap is already covered.
-       Only advance m_startHeight to skip the pruned range when no prunedItems exist. */
-    if (pruneFloor > 0 && pruneFloor > m_startHeight)
-    {
-        m_pruneFloor.store(pruneFloor);
-
-        const bool prunedItemsCovered = !blocks.empty() && blocks.front().blockHeight < pruneFloor;
-
-        if (!prunedItemsCovered)
-        {
-            Logger::logger.log(
-                "Daemon prune floor at height " + std::to_string(pruneFloor) +
-                ". No wallet data for blocks " + std::to_string(m_startHeight) +
-                " to " + std::to_string(pruneFloor - 1) + ".",
-                Logger::WARNING, {Logger::SYNC, Logger::DAEMON});
-
-            m_startHeight = pruneFloor;
-        }
-    }
 
     /* Timestamp is transient and can change - block height is constant. */
     if (m_startTimestamp != 0)

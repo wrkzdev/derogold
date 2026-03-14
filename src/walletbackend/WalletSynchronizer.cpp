@@ -252,12 +252,29 @@ void WalletSynchronizer::blockProcessingThread()
 
                 auto ourInputs = processBlockOutputs(block);
 
+                /* Skip global index lookups for blocks below the prune floor.
+                   The daemon has deleted the raw transaction data for these
+                   heights, so /get_o_indexes will fail.  The prunedItems from
+                   the daemon still let us detect incoming outputs (balance),
+                   but we cannot resolve global indexes for spending until the
+                   wallet re-syncs against a non-pruned node. */
+                const uint64_t pruneFloor = m_blockDownloader.getPruneFloor();
+                const bool isPrunedBlock = (pruneFloor > 0 && block.blockHeight < pruneFloor);
+
                 std::unordered_map<Crypto::Hash, std::vector<uint64_t>> globalIndexes;
 
                 for (auto &[publicKey, input] : ourInputs)
                 {
                     if (!m_subWallets->isViewWallet() && !input.globalOutputIndex)
                     {
+                        /* Pruned blocks: daemon can't provide global indexes.
+                           Mark with 0 — spending will require a non-pruned node. */
+                        if (isPrunedBlock)
+                        {
+                            input.globalOutputIndex = 0;
+                            continue;
+                        }
+
                         if (globalIndexes.empty())
                         {
                             globalIndexes = getGlobalIndexes(block.blockHeight);
