@@ -2420,8 +2420,8 @@ namespace CryptoNote
         /* Cap to available chain height */
         const uint64_t storageCount = static_cast<uint64_t>(getBlockCount());
 
-        logger(Logging::DEBUGGING) << "getPrunedWalletBlocks: [" << startHeight << ", " << endHeight
-                                   << ") storageCount=" << storageCount;
+        logger(Logging::INFO) << "getPrunedWalletBlocks: [" << startHeight << ", " << endHeight
+                              << ") storageCount=" << storageCount;
 
         if (endHeight > storageCount)
         {
@@ -2469,14 +2469,14 @@ namespace CryptoNote
            fill the gaps using the legacy reconstruction path. */
         const uint64_t expectedCount = endHeight - startHeight;
 
-        logger(Logging::DEBUGGING) << "getPrunedWalletBlocks: w-records covered " << coveredHeights.size()
-                                   << " of " << expectedCount << " heights, result so far: " << result.size();
+        logger(Logging::INFO) << "getPrunedWalletBlocks: w-records covered " << coveredHeights.size()
+                              << " of " << expectedCount << " heights, result so far: " << result.size();
 
         if (coveredHeights.size() < expectedCount)
         {
             auto legacyBlocks = getPrunedWalletBlocksLegacy(startHeight, endHeight, skipCoinbaseTransactions);
 
-            logger(Logging::DEBUGGING) << "getPrunedWalletBlocksLegacy returned " << legacyBlocks.size() << " blocks";
+            logger(Logging::INFO) << "getPrunedWalletBlocksLegacy returned " << legacyBlocks.size() << " blocks";
 
             for (auto &block : legacyBlocks)
             {
@@ -2491,7 +2491,7 @@ namespace CryptoNote
                 [](const auto &a, const auto &b) { return a.blockHeight < b.blockHeight; });
         }
 
-        logger(Logging::DEBUGGING) << "getPrunedWalletBlocks: final result " << result.size() << " blocks";
+        logger(Logging::INFO) << "getPrunedWalletBlocks: final result " << result.size() << " blocks";
 
         return result;
     }
@@ -2541,9 +2541,9 @@ namespace CryptoNote
             const auto &blockInfos = blockResultOpt->getCachedBlocks();
             const auto &txHashesByBlock = blockResultOpt->getTransactionHashesByBlocks();
 
-            logger(Logging::DEBUGGING) << "getPrunedWalletBlocksLegacy: batch [" << batchStart
-                                       << ", " << batchEnd << ") found " << blockInfos.size()
-                                       << " blockInfos, " << txHashesByBlock.size() << " txHashesByBlock";
+            logger(Logging::INFO) << "getPrunedWalletBlocksLegacy: batch [" << batchStart
+                                  << ", " << batchEnd << ") found " << blockInfos.size()
+                                  << " blockInfos, " << txHashesByBlock.size() << " txHashesByBlock";
 
             for (uint64_t h = batchStart; h < batchEnd; ++h)
             {
@@ -2552,7 +2552,7 @@ namespace CryptoNote
                     const auto biIt = blockInfos.find(static_cast<uint32_t>(h));
                     if (biIt == blockInfos.end())
                     {
-                        logger(Logging::DEBUGGING) << "getPrunedWalletBlocksLegacy: missing CachedBlockInfo at height " << h;
+                        logger(Logging::WARNING) << "getPrunedWalletBlocksLegacy: missing CachedBlockInfo at height " << h;
                         continue;
                     }
                     const auto txIt = txHashesByBlock.find(static_cast<uint32_t>(h));
@@ -2672,7 +2672,19 @@ namespace CryptoNote
                 {
                     logger(Logging::WARNING) << "getPrunedWalletBlocksLegacy: failed at height "
                                              << h << ": " << e.what();
-                    /* Continue with the next block rather than failing the entire batch */
+                    /* Push a metadata-only block so the wallet still advances its
+                       height counter through the pruned range. The block's hash and
+                       timestamp come from CachedBlockInfo which was already read
+                       successfully in the outer batch. */
+                    const auto biIt2 = blockInfos.find(static_cast<uint32_t>(h));
+                    if (biIt2 != blockInfos.end())
+                    {
+                        WalletTypes::WalletBlockInfo fallbackBlock;
+                        fallbackBlock.blockHeight = h;
+                        fallbackBlock.blockHash = biIt2->second.blockHash;
+                        fallbackBlock.blockTimestamp = biIt2->second.timestamp;
+                        result.push_back(std::move(fallbackBlock));
+                    }
                 }
             }
         }

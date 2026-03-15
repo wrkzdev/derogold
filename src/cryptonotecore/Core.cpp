@@ -1020,8 +1020,8 @@ namespace CryptoNote
 
             auto result = dbChain->getPrunedWalletBlocks(startHeight, endHeight, skipCoinbaseTransactions);
 
-            logger(Logging::DEBUGGING) << "getPrunedWalletBlocks [" << startHeight << ", " << endHeight
-                                       << "): returned " << result.size() << " blocks";
+            logger(Logging::INFO) << "getPrunedWalletBlocks [" << startHeight << ", " << endHeight
+                                  << "): returned " << result.size() << " blocks";
 
             return result;
         }

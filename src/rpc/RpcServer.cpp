@@ -360,28 +360,28 @@ void RpcServer::middleware(
         return;
     }
 
-    const uint64_t height = m_core->getTopBlockIndex() + 1;
-    const uint64_t networkHeight = std::max(1u, m_syncManager->getBlockchainHeight());
-
-    const bool areSynced = m_p2p->get_payload_object().isSynchronized() && height >= networkHeight;
-
-    if (syncRequired && !areSynced)
-    {
-        if (m_useTrtlApi)
-        {
-            failRequest(Error(API_NODE_NOT_SYNCED), res);
-            res.status = 503;
-        }
-        else
-        {
-            failRequest(200, "Daemon must be synced to process this RPC method call, please retry when synced", res);
-        }
-
-        return;
-    }
-
     try
     {
+        const uint64_t height = m_core->getTopBlockIndex() + 1;
+        const uint64_t networkHeight = std::max(1u, m_syncManager->getBlockchainHeight());
+
+        const bool areSynced = m_p2p->get_payload_object().isSynchronized() && height >= networkHeight;
+
+        if (syncRequired && !areSynced)
+        {
+            if (m_useTrtlApi)
+            {
+                failRequest(Error(API_NODE_NOT_SYNCED), res);
+                res.status = 503;
+            }
+            else
+            {
+                failRequest(200, "Daemon must be synced to process this RPC method call, please retry when synced", res);
+            }
+
+            return;
+        }
+
         const auto [error, statusCode] = handler(req, res, *jsonBody);
 
         if (error)
@@ -457,6 +457,24 @@ void RpcServer::middleware(
         else
         {
             failRequest(500, "Internal server error: " + std::string(e.what()), res);
+        }
+    }
+    catch (...)
+    {
+        Logger::logger.log(
+            "Caught unknown exception while processing " + req.path + " request",
+            Logger::FATAL,
+            { Logger::DAEMON_RPC }
+        );
+
+        if (m_useTrtlApi)
+        {
+            failRequest(Error(API_INTERNAL_ERROR, "Unknown internal error"), res);
+            res.status = 500;
+        }
+        else
+        {
+            failRequest(500, "Unknown internal server error", res);
         }
     }
 }
@@ -2792,31 +2810,29 @@ std::tuple<Error, uint16_t> RpcServer::getWalletSyncData(
        Use resolvedStartIndex (checkpoint-resolved) instead of raw startHeight
        to avoid falsely reporting a prune floor when the checkpoint mechanism
        has simply advanced past startHeight. */
+    uint64_t pruneFloor = 0;
+
+    if (!walletBlocks.empty() && walletBlocks.front().blockHeight > resolvedStartIndex)
     {
-        uint64_t pruneFloor = 0;
-
-        if (!walletBlocks.empty() && walletBlocks.front().blockHeight > resolvedStartIndex)
+        pruneFloor = walletBlocks.front().blockHeight;
+    }
+    else if (walletBlocks.empty())
+    {
+        const uint64_t minRaw = m_core->getMinRawBlockHeight(resolvedStartIndex);
+        if (minRaw > resolvedStartIndex)
         {
-            pruneFloor = walletBlocks.front().blockHeight;
-        }
-        else if (walletBlocks.empty())
-        {
-            const uint64_t minRaw = m_core->getMinRawBlockHeight(resolvedStartIndex);
-            if (minRaw > resolvedStartIndex)
-            {
-                pruneFloor = minRaw;
-            }
-        }
-
-        if (pruneFloor > 0)
-        {
-            writer.Key("pruneFloor");
-            writer.Uint64(pruneFloor);
+            pruneFloor = minRaw;
         }
     }
 
+    if (pruneFloor > 0)
+    {
+        writer.Key("pruneFloor");
+        writer.Uint64(pruneFloor);
+    }
+
     writer.Key("synced");
-    writer.Bool(walletBlocks.empty());
+    writer.Bool(walletBlocks.empty() && pruneFloor == 0);
 
     writer.Key("status");
     writer.String("OK");
@@ -5030,7 +5046,7 @@ std::tuple<Error, uint16_t> RpcServer::getRawBlocks(
             + " prunedEnd=" + std::to_string(prunedEnd)
             + " rawBlocks=" + std::to_string(blocks.size())
             + " prunedItems=" + std::to_string(prunedItems.size()),
-            Logger::DEBUG, {Logger::DAEMON_RPC});
+            Logger::INFO, {Logger::DAEMON_RPC});
     }
 
     /* When the wallet is in the pruned range and we have prunedItems data, emit
@@ -5096,10 +5112,11 @@ std::tuple<Error, uint16_t> RpcServer::getRawBlocks(
         writer.RawValue(prunedStr.c_str(), static_cast<rapidjson::SizeType>(prunedStr.size()), rapidjson::kArrayType);
     }
 
-    /* synced=true only when we have truly exhausted blocks (no raw blocks and no
-       prunedItems). If we have prunedItems the wallet still has more to process. */
+    /* synced=true only when we have truly exhausted blocks (no raw blocks, no
+       prunedItems, and no pruneFloor gap). If we have prunedItems or a pruneFloor
+       the wallet still has more to process. */
     writer.Key("synced");
-    writer.Bool(blocks.empty() && !servingPrunedRange);
+    writer.Bool(blocks.empty() && !servingPrunedRange && pruneFloor == 0);
 
     writer.Key("status");
     writer.String("OK");
