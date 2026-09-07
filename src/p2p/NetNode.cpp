@@ -310,6 +310,22 @@ namespace CryptoNote
 #endif
             default:
             {
+                /* Payload commands are only for peers that have handshaked.
+                   Every one of them was reachable beforehand, so a host that
+                   merely completed a TCP connection could ask this node to read
+                   and serve blocks, hand over the transaction pool, or relay
+                   transactions, without ever identifying itself or proving it
+                   is even on the same network. */
+                if (ctx.m_state == CryptoNoteConnectionContext::state_before_handshake)
+                {
+                    logger(Logging::DEBUGGING)
+                        << ctx << "Payload command " << cmd.command
+                        << " received before handshake, dropping connection";
+                    ctx.m_state = CryptoNoteConnectionContext::state_shutdown;
+                    handled = false;
+                    break;
+                }
+
                 handled = false;
                 ret = m_payload_handler.handleCommand(cmd.isNotify, cmd.command, cmd.buf, out, ctx, handled);
             }
@@ -1679,7 +1695,17 @@ namespace CryptoNote
                         m_payload_handler.requestMissingPoolTransactions(ctx);
                     }
 
-                    if (!proto.readCommand(cmd))
+                    /* Until the peer has handshaked, cap what it can make us
+                       allocate. The buffer is sized straight from the length in
+                       the packet header, so without this any host that can
+                       complete a TCP connection could claim a 100MB body and
+                       have us reserve it before a single byte is validated. */
+                    const uint64_t maxPacketSize =
+                        ctx.m_state == CryptoNoteConnectionContext::state_before_handshake
+                            ? LEVIN_PRE_HANDSHAKE_MAX_PACKET_SIZE
+                            : LEVIN_DEFAULT_MAX_PACKET_SIZE;
+
+                    if (!proto.readCommand(cmd, maxPacketSize))
                     {
                         break;
                     }

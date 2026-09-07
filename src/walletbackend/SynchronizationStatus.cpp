@@ -82,6 +82,19 @@ void SynchronizationStatus::fromJSON(const JSONObject &j)
     }
 
     m_lastKnownBlockHeight = getUint64FromJSON(j, "lastKnownBlockHeight");
+
+    /* Optional: wallets written before this field existed do not carry it.
+       Without it the marker restarted at zero on every open, so the next block
+       processed always looked like a checkpoint height and appended another
+       entry to a list that is never trimmed. */
+    if (hasMember(j, "lastSavedCheckpointAt"))
+    {
+        m_lastSavedCheckpointAt = getUint64FromJSON(j, "lastSavedCheckpointAt");
+    }
+    else
+    {
+        m_lastSavedCheckpointAt = m_lastKnownBlockHeight;
+    }
 }
 
 void SynchronizationStatus::toJSON(rapidjson::Writer<rapidjson::StringBuffer> &writer) const
@@ -108,6 +121,9 @@ void SynchronizationStatus::toJSON(rapidjson::Writer<rapidjson::StringBuffer> &w
 
     writer.Key("lastKnownBlockHeight");
     writer.Uint64(m_lastKnownBlockHeight);
+
+    writer.Key("lastSavedCheckpointAt");
+    writer.Uint64(m_lastSavedCheckpointAt);
 
     writer.EndObject();
 }

@@ -61,7 +61,7 @@ namespace CryptoNote
         P2pMessage(P2pMessage &&msg):
             type(msg.type),
             command(msg.command),
-            buffer(msg.buffer),
+            buffer(std::move(msg.buffer)),
             returnCode(msg.returnCode)
         {
         }
@@ -75,7 +75,10 @@ namespace CryptoNote
 
         uint32_t command;
 
-        const BinaryArray buffer;
+        /* Not const: a const member silently turned every move of this message
+           into a copy, so each queued block response was duplicated in full on
+           its way to the send queue. */
+        BinaryArray buffer;
 
         int32_t returnCode;
     };

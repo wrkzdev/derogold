@@ -2502,21 +2502,45 @@ namespace CryptoNote
 
         if (coveredHeights.size() < expectedCount)
         {
-            auto legacyBlocks = getPrunedWalletBlocksLegacy(startHeight, endHeight, skipCoinbaseTransactions);
+            /* Rebuild only the heights actually missing. This used to rerun the
+               legacy path over the whole range whenever a single height lacked
+               a record, and one always does near the start of the chain because
+               genesis is pushed without one, so every wallet syncing from zero
+               paid for a full reconstruction of each batch and then discarded
+               nearly all of it. */
+            uint64_t firstMissing = endHeight;
+            uint64_t lastMissing = startHeight;
 
-            logger(Logging::DEBUGGING) << "getPrunedWalletBlocksLegacy returned " << legacyBlocks.size() << " blocks";
-
-            for (auto &block : legacyBlocks)
+            for (uint64_t h = startHeight; h < endHeight; ++h)
             {
-                if (coveredHeights.find(block.blockHeight) == coveredHeights.end())
+                if (coveredHeights.find(h) == coveredHeights.end())
                 {
-                    result.push_back(std::move(block));
+                    firstMissing = std::min(firstMissing, h);
+                    lastMissing = std::max(lastMissing, h);
                 }
             }
 
-            /* Re-sort by height after merging */
-            std::sort(result.begin(), result.end(),
-                [](const auto &a, const auto &b) { return a.blockHeight < b.blockHeight; });
+            if (firstMissing < endHeight)
+            {
+                auto legacyBlocks =
+                    getPrunedWalletBlocksLegacy(firstMissing, lastMissing + 1, skipCoinbaseTransactions);
+
+                logger(Logging::DEBUGGING)
+                    << "getPrunedWalletBlocksLegacy returned " << legacyBlocks.size() << " blocks for ["
+                    << firstMissing << ", " << (lastMissing + 1) << ")";
+
+                for (auto &block : legacyBlocks)
+                {
+                    if (coveredHeights.find(block.blockHeight) == coveredHeights.end())
+                    {
+                        result.push_back(std::move(block));
+                    }
+                }
+
+                /* Re-sort by height after merging */
+                std::sort(result.begin(), result.end(),
+                    [](const auto &a, const auto &b) { return a.blockHeight < b.blockHeight; });
+            }
         }
 
         logger(Logging::DEBUGGING) << "getPrunedWalletBlocks: final result " << result.size() << " blocks";
@@ -3026,7 +3050,28 @@ namespace CryptoNote
         auto baseTransaction = genesisBlock.getBlock().baseTransaction;
         auto cachedBaseTransaction = CachedTransaction {std::move(baseTransaction)};
 
-        pushTransaction(cachedBaseTransaction, 0, 0, batch);
+        /* Collect the compact wallet-sync record for genesis too. Every other
+           block gets one at push time; skipping genesis left a permanent hole
+           at height 0, which is exactly where a wallet syncing from scratch
+           starts looking. */
+        WalletTypes::RawTransaction coinbaseWalletTx;
+        pushTransaction(cachedBaseTransaction, 0, 0, batch, &coinbaseWalletTx);
+
+        {
+            WalletTypes::WalletBlockInfo walletBlock;
+            walletBlock.blockHeight = 0;
+            walletBlock.blockHash = genesisBlock.getBlockHash();
+            walletBlock.blockTimestamp = genesisBlock.getBlock().timestamp;
+
+            WalletTypes::RawCoinbaseTransaction coinbaseSyncTx;
+            coinbaseSyncTx.hash = coinbaseWalletTx.hash;
+            coinbaseSyncTx.transactionPublicKey = coinbaseWalletTx.transactionPublicKey;
+            coinbaseSyncTx.keyOutputs = coinbaseWalletTx.keyOutputs;
+            coinbaseSyncTx.unlockTime = coinbaseWalletTx.unlockTime;
+            walletBlock.coinbaseTransaction = coinbaseSyncTx;
+
+            batch.insertWalletSyncBlock(0, walletBlock);
+        }
 
         batch.insertCachedBlock(blockInfo, 0, {cachedBaseTransaction.getTransactionHash()});
         batch.insertRawBlock(0, {toBinaryArray(genesisBlock.getBlock()), {}});
