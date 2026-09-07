@@ -611,7 +611,6 @@ int main(int argc, char *argv[])
         {
             constexpr auto prunePassInterval = std::chrono::seconds(60);
             constexpr auto prunePollInterval = std::chrono::seconds(1);
-            constexpr uint64_t PRUNE_BATCH_SIZE = 500;
 
             pruneWorker = std::thread([&, prunePassInterval, prunePollInterval, pruneTrigger]
                                       {
@@ -619,9 +618,6 @@ int main(int argc, char *argv[])
                                           // by previous daemon runs where prune was enabled but non-functional.
                                           auto nextRun = std::chrono::steady_clock::now();
                                           std::future<void> prunePassTask;
-                                          // Tracks progress across passes; resets to 0 on restart (safe: re-deleting
-                                          // already-pruned keys is a no-op in RocksDB, so existing DBs are handled).
-                                          uint64_t lastPrunedBelow = 0;
 
                                           while (!stopPruneWorker)
                                           {
@@ -654,56 +650,51 @@ int main(int argc, char *argv[])
                                                           return;
                                                       }
 
+                                                      // Prune through the blockchain cache rather than writing
+                                                      // raw deletes here. That path preserves the genesis block,
+                                                      // batches the deletes, and — critically — persists the new
+                                                      // prune floor in the same atomic write. Deleting keys
+                                                      // directly left the stored floor stale, so the wallet sync
+                                                      // RPC, the pruned-block guard and prune_status all reported
+                                                      // a floor that no longer matched the database, and every
+                                                      // restart re-issued a tombstone for the whole pruned range.
                                                       uint64_t pruneFloor = 0;
+                                                      uint32_t currentFloor = 0;
                                                       try
                                                       {
                                                           const uint64_t height = ccore->getTopBlockIndex() + 1;
                                                           pruneFloor = height > depth ? height - depth : 0;
+                                                          currentFloor = ccore->getPruneFloor();
                                                       }
                                                       catch (const std::exception &)
                                                       {
                                                           return;
                                                       }
 
-                                                      if (pruneFloor <= lastPrunedBelow)
+                                                      if (pruneFloor <= currentFloor)
                                                       {
                                                           return;
                                                       }
 
                                                       logger(INFO)
                                                           << "Starting periodic prune pass (depth " << depth
-                                                          << ", pruning raw blocks [" << lastPrunedBelow
+                                                          << ", pruning raw blocks [" << currentFloor
                                                           << ", " << pruneFloor << ")).";
 
-                                                      uint64_t deletedCount = 0;
-                                                      for (uint64_t i = lastPrunedBelow;
-                                                           i < pruneFloor && !stopPruneWorker;
-                                                           i += PRUNE_BATCH_SIZE)
+                                                      try
                                                       {
-                                                          const uint64_t batchEnd =
-                                                              std::min(i + PRUNE_BATCH_SIZE, pruneFloor);
-                                                          CryptoNote::BlockchainWriteBatch batch;
-                                                          for (uint64_t j = i; j < batchEnd; ++j)
-                                                          {
-                                                              batch.removeRawBlock(static_cast<uint32_t>(j));
-                                                          }
-
-                                                          if (const auto err = database->write(batch); err)
-                                                          {
-                                                              logger(WARNING)
-                                                                  << "Prune pass: DB write failed at block " << i
-                                                                  << ": " << err.message();
-                                                              return;
-                                                          }
-
-                                                          deletedCount += batchEnd - i;
-                                                          lastPrunedBelow = batchEnd;
+                                                          ccore->pruneRawBlocksBefore(
+                                                              static_cast<uint32_t>(pruneFloor));
+                                                      }
+                                                      catch (const std::exception &e)
+                                                      {
+                                                          logger(WARNING) << "Prune pass failed: " << e.what();
+                                                          return;
                                                       }
 
                                                       logger(INFO)
-                                                          << "Periodic prune pass completed. Raw blocks pruned: "
-                                                          << deletedCount
-                                                          << " (pruned below block " << lastPrunedBelow << ").";
+                                                          << "Periodic prune pass completed. Prune floor now at: "
+                                                          << pruneFloor << ".";
                                                   });
 
                                               nextRun = std::chrono::steady_clock::now() + prunePassInterval;

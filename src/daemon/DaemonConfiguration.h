@@ -79,7 +79,12 @@ namespace DaemonConfig
         uint64_t dbWriteBufferSizeMB = CryptoNote::ROCKSDB_WRITE_BUFFER_MB;
         bool dbOptimize = false;
 
-        bool prune = true;
+        /* Opt-in. A node that prunes cannot serve historical blocks to peers,
+           and nothing in the P2P handshake advertises that, so a requester just
+           sees missing objects and drops the connection. Defaulting this on
+           made every upgrading node silently delete all but the most recent
+           blocks on first launch, with a full resync as the only way back. */
+        bool prune = false;
         bool backgroundPrune = true;
         uint32_t pruneDepth = DEFAULT_PRUNE_DEPTH;
 

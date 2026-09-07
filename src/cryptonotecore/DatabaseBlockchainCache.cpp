@@ -2307,7 +2307,25 @@ namespace CryptoNote
     uint64_t DatabaseBlockchainCache::getMinRawBlockHeight(uint64_t fromHeight) const
     {
         const uint64_t storageBlockCount = getBlockCount();
-        uint64_t lo = fromHeight, hi = storageBlockCount;
+
+        if (fromHeight >= storageBlockCount)
+        {
+            return fromHeight;
+        }
+
+        /* Fast path: probe the requested height directly. This is the common
+           case (the range is not pruned) and answers the question in a single
+           read instead of a log2(chain) binary search on every RPC request. */
+        {
+            auto batch = BlockchainReadBatch().requestRawBlock(static_cast<uint32_t>(fromHeight));
+
+            if (!readDatabase(batch).getRawBlocks().empty())
+            {
+                return fromHeight;
+            }
+        }
+
+        uint64_t lo = fromHeight + 1, hi = storageBlockCount;
 
         while (lo < hi)
         {
@@ -2354,7 +2372,17 @@ namespace CryptoNote
                 /* All blocks in this batch were pruned. Binary-search for the first
                    available raw block to jump directly to the prune floor instead of
                    scanning O(N/batch) sequential DB reads. */
-                height = getMinRawBlockHeight(batchStart);
+                const uint64_t nextHeight = getMinRawBlockHeight(batchStart);
+
+                /* Forward progress guard: if the search cannot advance past the
+                   current position (only reachable if the chain changed under us
+                   between the two reads), stop rather than spin forever. */
+                if (nextHeight <= batchStart)
+                {
+                    break;
+                }
+
+                height = nextHeight;
                 continue;
             }
 
@@ -2420,7 +2448,7 @@ namespace CryptoNote
         /* Cap to available chain height */
         const uint64_t storageCount = static_cast<uint64_t>(getBlockCount());
 
-        logger(Logging::INFO) << "getPrunedWalletBlocks: [" << startHeight << ", " << endHeight
+        logger(Logging::DEBUGGING) << "getPrunedWalletBlocks: [" << startHeight << ", " << endHeight
                               << ") storageCount=" << storageCount;
 
         if (endHeight > storageCount)
@@ -2469,14 +2497,14 @@ namespace CryptoNote
            fill the gaps using the legacy reconstruction path. */
         const uint64_t expectedCount = endHeight - startHeight;
 
-        logger(Logging::INFO) << "getPrunedWalletBlocks: w-records covered " << coveredHeights.size()
+        logger(Logging::DEBUGGING) << "getPrunedWalletBlocks: w-records covered " << coveredHeights.size()
                               << " of " << expectedCount << " heights, result so far: " << result.size();
 
         if (coveredHeights.size() < expectedCount)
         {
             auto legacyBlocks = getPrunedWalletBlocksLegacy(startHeight, endHeight, skipCoinbaseTransactions);
 
-            logger(Logging::INFO) << "getPrunedWalletBlocksLegacy returned " << legacyBlocks.size() << " blocks";
+            logger(Logging::DEBUGGING) << "getPrunedWalletBlocksLegacy returned " << legacyBlocks.size() << " blocks";
 
             for (auto &block : legacyBlocks)
             {
@@ -2491,7 +2519,7 @@ namespace CryptoNote
                 [](const auto &a, const auto &b) { return a.blockHeight < b.blockHeight; });
         }
 
-        logger(Logging::INFO) << "getPrunedWalletBlocks: final result " << result.size() << " blocks";
+        logger(Logging::DEBUGGING) << "getPrunedWalletBlocks: final result " << result.size() << " blocks";
 
         return result;
     }
@@ -2541,7 +2569,7 @@ namespace CryptoNote
             const auto &blockInfos = blockResultOpt->getCachedBlocks();
             const auto &txHashesByBlock = blockResultOpt->getTransactionHashesByBlocks();
 
-            logger(Logging::INFO) << "getPrunedWalletBlocksLegacy: batch [" << batchStart
+            logger(Logging::DEBUGGING) << "getPrunedWalletBlocksLegacy: batch [" << batchStart
                                   << ", " << batchEnd << ") found " << blockInfos.size()
                                   << " blockInfos, " << txHashesByBlock.size() << " txHashesByBlock";
 

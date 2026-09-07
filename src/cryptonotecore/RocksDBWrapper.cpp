@@ -255,6 +255,16 @@ namespace CryptoNote
 
         setOptimizeHandle(rocksDb);
 
+        /* Close the window between marking the compaction as running and
+           publishing its handle. A cancel arriving in that window set the flag
+           but had no handle to call DisableManualCompaction on, so the
+           compaction ran to completion and shutdown blocked behind it. Now that
+           the handle is published, honour any cancel that arrived meanwhile. */
+        if (optimizeCancelRequested.load())
+        {
+            rocksDb->DisableManualCompaction();
+        }
+
         rocksdb::CompactRangeOptions compactRangeOptions;
         compactRangeOptions.exclusive_manual_compaction = true;
         compactRangeOptions.change_level = true;

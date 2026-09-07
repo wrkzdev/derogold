@@ -819,24 +819,24 @@ namespace CryptoNote
                 walletBlocks.push_back(walletBlock);
             }
 
-            /* Detect pruned range and prepend cached wallet data so the wallet
-               can sync from height 0 even on a pruned node. */
+            /* Serve the pruned range from the compact archive so a wallet can
+               sync from height 0 even on a pruned node.
+
+               The range is pruned only if the persisted prune floor says so. A
+               gap between startIndex and the first returned block is NOT
+               evidence of pruning: with skipCoinbaseTransactions the daemon
+               deliberately skips empty blocks, so that gap is the normal case
+               on a sparse chain. Inferring a prune from it made unpruned
+               daemons throw away real blocks and serve rebuilt records for
+               every empty height instead. */
             uint64_t pruneFloor = 0;
 
-            if (!walletBlocks.empty() && walletBlocks.front().blockHeight > startIndex)
             {
-                pruneFloor = walletBlocks.front().blockHeight;
-            }
-            else if (walletBlocks.empty() && currentIndex >= startIndex)
-            {
-                auto *dbChain = dynamic_cast<DatabaseBlockchainCache *>(mainChain);
-                if (dbChain != nullptr)
+                const uint64_t persistedFloor = mainChain->getPruneFloor();
+
+                if (persistedFloor > startIndex)
                 {
-                    const uint64_t minRaw = dbChain->getMinRawBlockHeight(startIndex);
-                    if (minRaw > startIndex)
-                    {
-                        pruneFloor = minRaw;
-                    }
+                    pruneFloor = persistedFloor;
                 }
             }
 
@@ -1020,8 +1020,8 @@ namespace CryptoNote
 
             auto result = dbChain->getPrunedWalletBlocks(startHeight, endHeight, skipCoinbaseTransactions);
 
-            logger(Logging::INFO) << "getPrunedWalletBlocks [" << startHeight << ", " << endHeight
-                                  << "): returned " << result.size() << " blocks";
+            logger(Logging::DEBUGGING) << "getPrunedWalletBlocks [" << startHeight << ", " << endHeight
+                                       << "): returned " << result.size() << " blocks";
 
             return result;
         }
@@ -1539,6 +1539,24 @@ namespace CryptoNote
         else
         {
             logger(Logging::DEBUGGING) << "Resolving: " << blockStr;
+
+            /* A reorg that reaches below the prune floor cannot be resolved,
+               because splitting the chain there needs the raw blocks this node
+               deleted. Reject the block cleanly instead of letting an
+               out_of_range escape addBlock, which unwound all the way to the
+               connection handler and dropped the peer with no explanation.
+               Nothing has been mutated at this point, so returning here leaves
+               the chain untouched. */
+            const uint32_t pruneFloor = cache->getPruneFloor();
+
+            if (pruneFloor > 0 && previousBlockIndex + 1 < pruneFloor)
+            {
+                logger(Logging::WARNING)
+                    << "Cannot resolve fork at height " << (previousBlockIndex + 1)
+                    << ": raw blocks below the prune floor (" << pruneFloor << ") are not available on this node.";
+
+                return error::AddBlockErrorCode::REJECTED_AS_ORPHANED;
+            }
 
             auto upperSegment = cache->split(previousBlockIndex + 1);
             //[cache] is lower segment now

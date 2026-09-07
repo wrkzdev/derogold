@@ -23,6 +23,17 @@
 #include <utilities/FormatTools.h>
 #include <utilities/ParseExtra.h>
 
+namespace
+{
+    /* Largest request body the daemon will buffer, in bytes. Block submissions
+       are the biggest legitimate request and are far below this. */
+    constexpr size_t RPC_PAYLOAD_MAX_LENGTH = 16 * 1024 * 1024;
+
+    /* Largest height span a single global-index request may cover. Wallets ask
+       for a window of ten blocks; anything near this bound is already abusive. */
+    constexpr uint64_t RPC_MAX_INDEX_RANGE = 1000;
+} // namespace
+
 RpcServer::RpcServer(
     const uint16_t bindPort,
     const std::string rpcBindIp,
@@ -212,6 +223,12 @@ RpcServer::RpcServer(
             /* NOTE: Not passing through middleware */
             .Options(".*", [this](auto &req, auto &res) { handleOptions(req, res); });
     }
+
+    /* Bound the request body. cpp-httplib defaults this to SIZE_MAX, so without
+       it any caller can stream an arbitrarily large body and the server buffers
+       all of it before a handler ever runs. The largest legitimate request is a
+       block submission, so a few megabytes is generous. */
+    m_server.set_payload_max_length(RPC_PAYLOAD_MAX_LENGTH);
 }
 
 RpcServer::~RpcServer()
@@ -1183,6 +1200,14 @@ std::tuple<Error, uint16_t> RpcServer::getGlobalIndexesTrtlApi(
         {
             return {Error(API_INVALID_ARGUMENT, "Start height cannot be greater than end height."), 400};
         }
+
+        /* Bound the span. The range is read block by block into memory and every
+           transaction in it is re-hashed, so an unbounded span lets one request
+           pull the whole chain into RAM. */
+        if (endHeight - startHeight > RPC_MAX_INDEX_RANGE)
+        {
+            return {Error(API_INVALID_ARGUMENT, "Requested height range is too large."), 400};
+        }
     }
     catch (const std::out_of_range &)
     {
@@ -1996,10 +2021,18 @@ std::tuple<Error, uint16_t> RpcServer::getWalletSyncDataTrtlApi(
     {
         for (const auto &jsonHash : getArrayFromJSON(body, "checkpoints"))
         {
-            std::string hashStr = jsonHash.GetString();
+            /* Validate the element type before reading it. GetString() on a
+               non-string is an assertion that is compiled out of release
+               builds, leaving a bogus pointer that a remote caller can trigger
+               with a single request. */
+            const std::string hashStr = getStringFromJSONString(jsonHash);
+
             Crypto::Hash hash {};
 
-            Common::podFromHex(hashStr, hash);
+            if (!Common::podFromHex(hashStr, hash))
+            {
+                throw std::invalid_argument("Invalid block hash checkpoint: " + hashStr);
+            }
 
             blockHashCheckpoints.push_back(hash);
         }
@@ -2186,10 +2219,16 @@ std::tuple<Error, uint16_t>
         {
             for (const auto &jsonHash : getArrayFromJSON(body, "checkpoints"))
             {
-                std::string hashStr = jsonHash.GetString();
+                /* Validate the element type before reading it — see the note on
+                   the equivalent loop in getWalletSyncDataTrtlApi. */
+                const std::string hashStr = getStringFromJSONString(jsonHash);
 
-                Crypto::Hash hash;
-                Common::podFromHex(hashStr, hash);
+                Crypto::Hash hash {};
+
+                if (!Common::podFromHex(hashStr, hash))
+                {
+                    throw std::invalid_argument("Invalid block hash checkpoint: " + hashStr);
+                }
 
                 blockHashCheckpoints.push_back(hash);
             }
@@ -2620,10 +2659,16 @@ std::tuple<Error, uint16_t> RpcServer::getWalletSyncData(
     {
         for (const auto &jsonHash : getArrayFromJSON(body, "blockHashCheckpoints"))
         {
-            std::string hashStr = jsonHash.GetString();
+            /* Validate the element type before reading it — see the note on
+               the equivalent loop in getWalletSyncDataTrtlApi. */
+            const std::string hashStr = getStringFromJSONString(jsonHash);
 
-            Crypto::Hash hash;
-            Common::podFromHex(hashStr, hash);
+            Crypto::Hash hash {};
+
+            if (!Common::podFromHex(hashStr, hash))
+            {
+                throw std::invalid_argument("Invalid block hash checkpoint: " + hashStr);
+            }
 
             blockHashCheckpoints.push_back(hash);
         }
@@ -2637,9 +2682,18 @@ std::tuple<Error, uint16_t> RpcServer::getWalletSyncData(
         ? getUint64FromJSON(body, "startTimestamp")
         : 0;
 
-    const uint64_t blockCount = hasMember(body, "blockCount")
+    /* Clamp the client-supplied count to the same limit Core enforces. Core
+       clamps only its own copy, while the pruned-range code below uses this
+       value directly, so an unclamped request could ask the daemon to build and
+       serialise the entire pruned history into a single response. */
+    const uint64_t requestedBlockCount = hasMember(body, "blockCount")
         ? getUint64FromJSON(body, "blockCount")
-        : 100;
+        : CryptoNote::BLOCKS_SYNCHRONIZING_DEFAULT_COUNT;
+
+    const uint64_t blockCount =
+        (requestedBlockCount == 0 || requestedBlockCount > CryptoNote::BLOCKS_SYNCHRONIZING_DEFAULT_COUNT)
+            ? CryptoNote::BLOCKS_SYNCHRONIZING_DEFAULT_COUNT
+            : requestedBlockCount;
 
     const bool skipCoinbaseTransactions = hasMember(body, "skipCoinbaseTransactions")
         ? getBoolFromJSON(body, "skipCoinbaseTransactions")
@@ -2805,25 +2859,13 @@ std::tuple<Error, uint16_t> RpcServer::getWalletSyncData(
         writer.EndObject();
     }
 
-    /* Detect prune floor for the /getwalletsyncdata response so the wallet
-       can advance past pruned ranges even when prunedItems are empty.
-       Use resolvedStartIndex (checkpoint-resolved) instead of raw startHeight
-       to avoid falsely reporting a prune floor when the checkpoint mechanism
-       has simply advanced past startHeight. */
-    uint64_t pruneFloor = 0;
+    /* Report the prune floor so the wallet knows this daemon cannot serve the
+       range below it. Taken from the persisted floor rather than inferred from
+       a height gap: with skipCoinbaseTransactions the daemon omits empty blocks
+       by design, so a gap is normal and does not mean anything was pruned. */
+    const uint64_t daemonPruneFloor = m_core->getPruneFloor();
 
-    if (!walletBlocks.empty() && walletBlocks.front().blockHeight > resolvedStartIndex)
-    {
-        pruneFloor = walletBlocks.front().blockHeight;
-    }
-    else if (walletBlocks.empty())
-    {
-        const uint64_t minRaw = m_core->getMinRawBlockHeight(resolvedStartIndex);
-        if (minRaw > resolvedStartIndex)
-        {
-            pruneFloor = minRaw;
-        }
-    }
+    const uint64_t pruneFloor = daemonPruneFloor > resolvedStartIndex ? daemonPruneFloor : 0;
 
     if (pruneFloor > 0)
     {
@@ -2854,6 +2896,14 @@ std::tuple<Error, uint16_t> RpcServer::getGlobalIndexes(
 
     const uint64_t startHeight = getUint64FromJSON(body, "startHeight");
     const uint64_t endHeight = getUint64FromJSON(body, "endHeight");
+
+    /* Bound the span. The range is read block by block into memory and every
+       transaction in it is re-hashed, so an unbounded span lets one request pull
+       the whole chain into RAM. */
+    if (endHeight < startHeight || endHeight - startHeight > RPC_MAX_INDEX_RANGE)
+    {
+        throw std::invalid_argument("Requested height range is invalid or too large.");
+    }
 
     std::unordered_map<Crypto::Hash, std::vector<uint64_t>> indexes;
 
@@ -4947,10 +4997,16 @@ std::tuple<Error, uint16_t> RpcServer::getRawBlocks(
     {
         for (const auto &jsonHash : getArrayFromJSON(body, "blockHashCheckpoints"))
         {
-            std::string hashStr = jsonHash.GetString();
+            /* Validate the element type before reading it — see the note on
+               the equivalent loop in getWalletSyncDataTrtlApi. */
+            const std::string hashStr = getStringFromJSONString(jsonHash);
 
-            Crypto::Hash hash;
-            Common::podFromHex(hashStr, hash);
+            Crypto::Hash hash {};
+
+            if (!Common::podFromHex(hashStr, hash))
+            {
+                throw std::invalid_argument("Invalid block hash checkpoint: " + hashStr);
+            }
 
             blockHashCheckpoints.push_back(hash);
         }
@@ -4964,9 +5020,18 @@ std::tuple<Error, uint16_t> RpcServer::getRawBlocks(
         ? getUint64FromJSON(body, "startTimestamp")
         : 0;
 
-    const uint64_t blockCount = hasMember(body, "blockCount")
+    /* Clamp the client-supplied count to the same limit Core enforces. Core
+       clamps only its own copy, while the pruned-range code below uses this
+       value directly, so an unclamped request could ask the daemon to build and
+       serialise the entire pruned history into a single response. */
+    const uint64_t requestedBlockCount = hasMember(body, "blockCount")
         ? getUint64FromJSON(body, "blockCount")
-        : 100;
+        : CryptoNote::BLOCKS_SYNCHRONIZING_DEFAULT_COUNT;
+
+    const uint64_t blockCount =
+        (requestedBlockCount == 0 || requestedBlockCount > CryptoNote::BLOCKS_SYNCHRONIZING_DEFAULT_COUNT)
+            ? CryptoNote::BLOCKS_SYNCHRONIZING_DEFAULT_COUNT
+            : requestedBlockCount;
 
     const bool skipCoinbaseTransactions = hasMember(body, "skipCoinbaseTransactions")
         ? getBoolFromJSON(body, "skipCoinbaseTransactions")
@@ -4992,48 +5057,23 @@ std::tuple<Error, uint16_t> RpcServer::getRawBlocks(
         return {SUCCESS, 500};
     }
 
-    /* Detect pruned range by comparing the first returned block's height against
-       the checkpoint-resolved start index (NOT the raw startHeight parameter).
-       Using startHeight here was incorrect — when checkpoints advance past
-       startHeight, the gap is due to checkpoint resolution, not pruning, and
-       emitting prunedItems for that range causes the wallet to process blocks
-       it has already seen, triggering false fork detection and rollback loops. */
-    uint64_t pruneFloor = 0;
+    /* Detect a pruned range from the persisted prune floor, which is the exact
+       record of which raw blocks this daemon deleted.
 
-    if (!blocks.empty() && !blocks.front().block.empty())
-    {
-        try
-        {
-            CryptoNote::BlockTemplate blockTemplate;
-            fromBinaryArray(blockTemplate, blocks.front().block);
-            const uint64_t firstBlockHeight = CryptoNote::CachedBlock(blockTemplate).getBlockIndex();
+       Do NOT infer pruning from a gap between the first returned block and the
+       requested start: with skipCoinbaseTransactions (the wallet default) the
+       daemon deliberately omits empty blocks, so such a gap is the normal case
+       on a sparse chain and has nothing to do with pruning. Treating it as a
+       prune caused unpruned daemons to discard real blocks, serve rebuilt
+       records for every empty height, and report a bogus floor that disabled
+       the wallet's fork handling. */
+    const uint64_t daemonPruneFloor = m_core->getPruneFloor();
 
-            if (firstBlockHeight > resolvedStartIndex)
-            {
-                pruneFloor = firstBlockHeight;
-            }
-        }
-        catch (...)
-        {
-            /* Deserialization failed; skip pruneFloor detection */
-        }
-    }
-    else if (blocks.empty())
-    {
-        /* All blocks in the requested range may be pruned.  Ask the DB for the
-           lowest height that still has raw block data. If that height is above
-           the resolved start, everything in [resolvedStartIndex, minRawHeight) was pruned. */
-        const uint64_t minRawHeight = m_core->getMinRawBlockHeight(resolvedStartIndex);
+    const uint64_t pruneFloor = daemonPruneFloor > resolvedStartIndex ? daemonPruneFloor : 0;
 
-        if (minRawHeight > resolvedStartIndex)
-        {
-            pruneFloor = minRawHeight;
-        }
-    }
-
-    /* Build synthetic wallet data for the pruned range, limited to blockCount items
-       per response to avoid generating millions of records. The wallet will request
-       subsequent batches as it advances through the pruned range. */
+    /* Build wallet data for the pruned range from the compact archive, limited to
+       the (clamped) block count per response. The wallet requests subsequent
+       batches as it advances through the pruned range. */
     std::vector<WalletTypes::WalletBlockInfo> prunedItems;
     if (pruneFloor > 0)
     {
@@ -5046,7 +5086,7 @@ std::tuple<Error, uint16_t> RpcServer::getRawBlocks(
             + " prunedEnd=" + std::to_string(prunedEnd)
             + " rawBlocks=" + std::to_string(blocks.size())
             + " prunedItems=" + std::to_string(prunedItems.size()),
-            Logger::INFO, {Logger::DAEMON_RPC});
+            Logger::DEBUG, {Logger::DAEMON_RPC});
     }
 
     /* When the wallet is in the pruned range and we have prunedItems data, emit
