@@ -153,11 +153,6 @@ namespace System
         contextPair.writeContext = nullptr;
         contextPair.readContext = &listenerContext;
 
-        /* Guard registers contextPair as active for the duration of this call so
-           that yield()/dispatch() don't treat a stale EPOLLIN event (fired just
-           before interrupt() disarmed epoll) as a dangling pointer. */
-        Dispatcher::ContextPairGuard cpGuard(*dispatcher, contextPair);
-
         epoll_event listenEvent;
         listenEvent.events = EPOLLIN | EPOLLONESHOT;
         listenEvent.data.ptr = &contextPair;

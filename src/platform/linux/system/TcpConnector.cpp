@@ -111,11 +111,6 @@ namespace System
                             contextPair.readContext = nullptr;
                             contextPair.writeContext = &connectorContext;
 
-                            /* Guard registers contextPair for the duration of
-                               this connect attempt — same stale-event protection
-                               as in TcpListener::accept(). */
-                            Dispatcher::ContextPairGuard cpGuard(*dispatcher, contextPair);
-
                             epoll_event connectEvent;
                             connectEvent.events = EPOLLOUT | EPOLLRDHUP | EPOLLERR | EPOLLONESHOT;
                             connectEvent.data.ptr = &contextPair;
