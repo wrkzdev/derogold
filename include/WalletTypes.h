@@ -91,12 +91,20 @@ namespace WalletTypes
         size_t memoryUsage() const
         {
             const size_t txUsage = std::accumulate(
-                transactions.begin(), transactions.end(), sizeof(transactions), [](const auto acc, const auto item) {
-                    return acc + item.memoryUsage();
-                });
-            return coinbaseTransaction ? coinbaseTransaction->memoryUsage()
-                                       : sizeof(coinbaseTransaction) + txUsage + sizeof(blockHeight) + sizeof(blockHash)
-                                             + sizeof(blockTimestamp);
+                transactions.begin(),
+                transactions.end(),
+                sizeof(transactions),
+                [](const size_t acc, const RawTransaction &item) { return acc + item.memoryUsage(); });
+
+            /* The coinbase transaction is additional to the block's own fields
+               and its transaction list, not an alternative to them. Returning
+               only the coinbase size when one was present under-reported every
+               block with a coinbase to roughly a hundred bytes, which defeated
+               the downloader's memory cap and let it run far ahead of
+               processing on transaction-heavy ranges. */
+            return sizeof(coinbaseTransaction) + txUsage + sizeof(blockHeight) + sizeof(blockHash)
+                   + sizeof(blockTimestamp)
+                   + (coinbaseTransaction ? coinbaseTransaction->memoryUsage() : 0);
         }
     };
 
@@ -539,6 +547,16 @@ namespace WalletTypes
     inline void to_json(nlohmann::json &j, const KeyOutput &k)
     {
         j = {{"key", k.key}, {"amount", k.amount}};
+
+        /* Emit the global output index when we have it. The daemon knows this
+           value at block-push time and stores it in the compact wallet-sync
+           archive, but dropping it here meant every output served from that
+           archive reached the wallet with no index, leaving pruned-range inputs
+           permanently unspendable. from_json already reads this key back. */
+        if (k.globalOutputIndex)
+        {
+            j["globalIndex"] = *k.globalOutputIndex;
+        }
     }
 
     inline void from_json(const nlohmann::json &j, KeyOutput &k)

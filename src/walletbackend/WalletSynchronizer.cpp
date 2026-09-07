@@ -224,8 +224,15 @@ void WalletSynchronizer::blockProcessingThread()
         {
             std::unique_lock<std::mutex> lock(m_mutex);
 
-            /* Wait for blocks to be available */
-            m_haveBlocksToProcess.wait(lock, [&] {
+            /* Wait for blocks to be available.
+               This is a timed wait on purpose. Producers push to the queue and
+               call notify without holding this mutex, so a notification that
+               lands between our predicate check and the wait is lost. With an
+               untimed wait that lost wakeup parked the worker forever, and the
+               main loop then spun waiting for a batch that was never processed,
+               stalling sync until the wallet was reopened. Waking periodically
+               costs nothing and makes a missed notification self-correcting. */
+            m_haveBlocksToProcess.wait_for(lock, std::chrono::milliseconds(100), [&] {
                 if (m_shouldStop)
                 {
                     return true;
@@ -363,26 +370,15 @@ void WalletSynchronizer::completeBlockProcessing(
     const std::vector<std::tuple<Crypto::PublicKey, WalletTypes::TransactionInput>> &ourInputs)
 {
     const uint64_t walletHeight = m_blockDownloader.getHeight();
-    const uint64_t pruneFloor = m_blockDownloader.getPruneFloor();
 
-    /* Safety: if this block is below both the wallet height AND the prune floor,
-       it is a stale prunedItem that the wallet has already processed — skip it
-       rather than falsely treating it as a fork. This guards against edge cases
-       where the daemon re-sends pruned block data the wallet already has. */
-    if (pruneFloor > 0 && block.blockHeight < pruneFloor
-        && walletHeight >= block.blockHeight && block.blockHeight != 0)
-    {
-        Logger::logger.log(
-            "Skipping already-processed pruned block at height " + std::to_string(block.blockHeight)
-                + " (wallet height: " + std::to_string(walletHeight)
-                + ", prune floor: " + std::to_string(pruneFloor) + ")",
-            Logger::DEBUG,
-            {Logger::SYNC});
-
-        /* Still drop the block from the download queue so we don't get stuck. */
-        m_blockDownloader.dropBlock(block.blockHeight, block.blockHash);
-        return;
-    }
+    /* NOTE: there used to be a guard here that skipped any re-sent block below
+       the prune floor instead of resolving it as a fork. It was wrong twice
+       over: it took the fork path away from real reorgs whose replacement
+       blocks fell below the floor, leaving orphaned transactions in the wallet,
+       and its skip branch still dropped the block, which walked the wallet
+       height backwards so the following block was reprocessed and its inputs
+       stored a second time. Re-processing a block the wallet already has is
+       already handled correctly and idempotently by the fork path below. */
 
     /* Chain forked, invalidate previous transactions */
     if (walletHeight >= block.blockHeight && block.blockHeight != 0)
@@ -827,6 +823,11 @@ uint64_t WalletSynchronizer::getPruneFloor() const
 void WalletSynchronizer::swapNode(const std::shared_ptr<Nigel> daemon)
 {
     m_daemon = daemon;
+
+    /* The new node has its own pruning state, so forget what the previous one
+       reported rather than applying its floor to a node that may hold the full
+       chain. */
+    m_blockDownloader.clearPruneFloor();
 }
 
 void WalletSynchronizer::fromJSON(const JSONObject &j)

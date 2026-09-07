@@ -869,6 +869,12 @@ Crypto::SecretKey SubWallets::getPrimaryPrivateSpendKey() const
 
 std::vector<WalletTypes::Transaction> SubWallets::getTransactions() const
 {
+    /* Copy under the lock. The sync thread appends to and erases from this
+       vector while the UI thread reads it, and during a foreground sync the UI
+       reads it every couple of seconds, so an unguarded copy can walk a buffer
+       that a concurrent reallocation has already freed. */
+    std::scoped_lock lock(m_mutex);
+
     return m_transactions;
 }
 
@@ -877,6 +883,9 @@ std::vector<WalletTypes::Transaction> SubWallets::getTransactions() const
    block yet. */
 std::vector<WalletTypes::Transaction> SubWallets::getUnconfirmedTransactions() const
 {
+    /* Copy under the lock — the sync thread mutates this list too. */
+    std::scoped_lock lock(m_mutex);
+
     return m_lockedTransactions;
 }
 
@@ -935,6 +944,10 @@ void SubWallets::convertSyncTimestampToHeight(const uint64_t timestamp, const ui
 
 std::vector<std::tuple<std::string, uint64_t, uint64_t>> SubWallets::getBalances(const uint64_t currentHeight) const
 {
+    /* Read the subwallet map under the lock; the sync thread inserts into it
+       and mutates the balances it holds. */
+    std::scoped_lock lock(m_mutex);
+
     std::vector<std::tuple<std::string, uint64_t, uint64_t>> balances;
 
     for (const auto &[pubKey, subWallet] : m_subWallets)

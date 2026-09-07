@@ -39,8 +39,11 @@ class OrderByArrivalIndex
 {
   public:
     /* Ordering based on the arrival index of the blocks, not on the block
-       height. This is needed to ensure correct handling of network forks. */
-    bool operator()(SemiProcessedBlock a, SemiProcessedBlock b)
+       height. This is needed to ensure correct handling of network forks.
+       Takes both operands by const reference: by value, every comparison
+       copied two entire blocks with all their transactions, which for a
+       priority queue is thousands of full block copies per batch. */
+    bool operator()(const SemiProcessedBlock &a, const SemiProcessedBlock &b) const
     {
         return std::get<2>(a) > std::get<2>(b);
     }

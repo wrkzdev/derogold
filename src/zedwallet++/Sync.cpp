@@ -15,6 +15,7 @@
 #include <iostream>
 #include <sstream>
 #include <thread>
+#include <tuple>
 #include <utilities/ColouredMsg.h>
 #include <utilities/FormatTools.h>
 #include <zedwallet++/CommandImplementations.h>
@@ -82,7 +83,16 @@ void syncWallet(const std::shared_ptr<WalletBackend> walletBackend)
 
     while (walletBlockCount < localDaemonBlockCount)
     {
-        auto [tmpWalletBlockCount, localDaemonBlockCount, networkBlockCount] = walletBackend->getSyncStatus();
+        /* Update the outer variables rather than declaring new ones. A
+           structured binding here shadowed localDaemonBlockCount, so the loop
+           condition kept testing the value read before the loop started and the
+           foreground sync stopped at whatever height the daemon had on entry. */
+        const auto syncStatus = walletBackend->getSyncStatus();
+
+        const uint64_t tmpWalletBlockCount = std::get<0>(syncStatus);
+
+        localDaemonBlockCount = std::get<1>(syncStatus);
+        networkBlockCount = std::get<2>(syncStatus);
 
         /* Show a one-time warning when the daemon's prune floor is detected.
            Raw block data below the prune floor is not available, so transactions
@@ -98,10 +108,12 @@ void syncWallet(const std::shared_ptr<WalletBackend> walletBackend)
                 std::cout << WarningMsg(
                     "\nNote: This daemon has pruned raw block data below height " +
                     std::to_string(pruneFloor) + ".\n"
-                    "Balance from blocks 0 to " + std::to_string(pruneFloor - 1) +
-                    " is synced using cached data.\n"
-                    "Inputs from pruned blocks cannot be spent until re-synced on a non-pruned node.\n"
-                    "Use a non-pruned node if you need full spending capability.\n")
+                    "Blocks 0 to " + std::to_string(pruneFloor - 1) +
+                    " are synced from the daemon's compact archive.\n"
+                    "If that archive predates this daemon version it may not carry the\n"
+                    "output indexes needed to spend those inputs. Balances shown for that\n"
+                    "range are correct either way; re-sync against a node holding the full\n"
+                    "chain if a spend reports insufficient funds.\n")
                     << std::endl;
             }
         }

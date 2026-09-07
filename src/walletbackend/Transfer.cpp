@@ -20,6 +20,7 @@
 #include <utilities/Utilities.h>
 #include <walletbackend/WalletBackend.h>
 #include <ctime> // time_t
+#include <tuple> // std::tie
 
 namespace SendTransaction
 {
@@ -309,8 +310,25 @@ namespace SendTransaction
            their sum. The sumOfInputs is sometimes (most of the time) greater than
            the amount we want to send, so we need to send some back to ourselves
            as change. */
-        auto [ourInputs, sumOfInputs] = subWallets->getTransactionInputsForAmount(
-            totalAmount, takeFromAllSubWallets, subWalletsToTakeFrom, daemon->networkBlockCount());
+        /* Input selection throws when it cannot cover the amount. That can
+           happen even after validateTransaction passed, because validation
+           compares against the balance while selection only considers inputs
+           that are actually spendable — an input with no global output index,
+           for instance, counts towards the balance but cannot be spent. Turn it
+           into an error the caller can report instead of letting it escape and
+           terminate the wallet. */
+        std::vector<WalletTypes::TxInputAndOwner> ourInputs;
+        uint64_t sumOfInputs = 0;
+
+        try
+        {
+            std::tie(ourInputs, sumOfInputs) = subWallets->getTransactionInputsForAmount(
+                totalAmount, takeFromAllSubWallets, subWalletsToTakeFrom, daemon->networkBlockCount());
+        }
+        catch (const std::invalid_argument &)
+        {
+            return {NOT_ENOUGH_BALANCE, Crypto::Hash()};
+        }
 
         /* If the sum of inputs is > total amount, we need to send some back to
            ourselves. */

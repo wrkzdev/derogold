@@ -114,11 +114,18 @@ class Nigel
                 {
                     nlohmann::json j = nlohmann::json::parse(res->body);
 
-                    Logger::logger.log(
-                        "Got response from daemon: " + j.dump(),
-                        Logger::TRACE,
-                        { Logger::SYNC, Logger::DAEMON }
-                    );
+                    /* Only serialise the response back to text when the trace
+                       level will actually record it. Building this string
+                       unconditionally re-serialised every block batch the
+                       daemon sent, just to throw it away. */
+                    if (Logger::logger.getLogLevel() >= Logger::TRACE)
+                    {
+                        Logger::logger.log(
+                            "Got response from daemon: " + j.dump(),
+                            Logger::TRACE,
+                            { Logger::SYNC, Logger::DAEMON }
+                        );
+                    }
 
                     if (verifyStatus)
                     {
@@ -138,10 +145,27 @@ class Nigel
 
                     return parseFunc(j);
                 }
-                catch (const nlohmann::json::exception &e)
+                /* Catch everything the parse callback can throw, not just JSON
+                   errors. Hex decoding and the transaction input variant cast
+                   both throw plain std::runtime_error / boost::bad_get on
+                   malformed daemon data, and those escaped this handler into
+                   the download thread, which has no handler of its own and so
+                   terminated the whole wallet. nlohmann's exceptions derive
+                   from std::exception, so this still covers them. */
+                catch (const std::exception &e)
                 {
                     Logger::logger.log(
                         failMessage + ": " + std::string(e.what()),
+                        Logger::INFO,
+                        { Logger::SYNC, Logger::DAEMON }
+                    );
+
+                    return std::nullopt;
+                }
+                catch (...)
+                {
+                    Logger::logger.log(
+                        failMessage + ": unknown error parsing daemon response",
                         Logger::INFO,
                         { Logger::SYNC, Logger::DAEMON }
                     );

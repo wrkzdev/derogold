@@ -58,6 +58,11 @@ class BlockDownloader
     /* Returns the prune floor reported by the daemon (0 if not pruned) */
     uint64_t getPruneFloor() const;
 
+    /* Forget the prune floor. Call when the daemon we talk to changes, so the
+       floor is re-learned from the new node instead of a stale one being
+       applied to a node that may not be pruned at all. */
+    void clearPruneFloor();
+
     void fromJSON(const JSONObject &j, const uint64_t startHeight, const uint64_t startTimestamp);
 
     void toJSON(rapidjson::Writer<rapidjson::StringBuffer> &writer) const;

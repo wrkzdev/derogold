@@ -304,7 +304,9 @@ class WalletBackend
 
     std::string unsafeToJSON() const;
 
-    void init();
+    /* Returns the result of the initial save to disk, so callers creating or
+       importing a wallet can report a wallet that could not be written. */
+    Error init();
 
     //////////////////////////////
     /* Private member variables */

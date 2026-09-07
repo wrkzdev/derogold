@@ -54,6 +54,12 @@ BlockDownloader &BlockDownloader::operator=(BlockDownloader &&old)
 
     m_shouldStop = std::move(old.m_shouldStop.load());
 
+    /* Carry the prune floor across. Leaving it behind meant a downloader that
+       replaced a pruned-node one kept the old floor forever, so re-syncing
+       against a full node still skipped global index lookups and left inputs
+       unspendable until the process was restarted. */
+    m_pruneFloor = old.m_pruneFloor.load();
+
     return *this;
 }
 
@@ -93,6 +99,11 @@ uint64_t BlockDownloader::getPruneFloor() const
     return m_pruneFloor.load();
 }
 
+void BlockDownloader::clearPruneFloor()
+{
+    m_pruneFloor.store(0);
+}
+
 void BlockDownloader::downloader()
 {
     while (!m_shouldStop)
@@ -100,7 +111,12 @@ void BlockDownloader::downloader()
         {
             std::unique_lock<std::mutex> lock(m_mutex);
 
-            m_shouldTryFetch.wait(lock, [&] {
+            /* Timed wait: stop() and the consumer both signal without holding
+               this mutex, so a notification arriving between the predicate check
+               and the wait is lost. An untimed wait turned that into a download
+               thread that never woke, which hung the join in stop() and with it
+               every save and the wallet's own shutdown. */
+            m_shouldTryFetch.wait_for(lock, std::chrono::milliseconds(100), [&] {
                 if (m_shouldStop)
                 {
                     return true;
@@ -132,7 +148,9 @@ void BlockDownloader::downloader()
 
 bool BlockDownloader::shouldFetchMoreBlocks() const
 {
-    size_t ramUsage = m_storedBlocks.memoryUsage([](const auto block) { return std::get<0>(block).memoryUsage(); });
+    /* Take the block by reference. Taking it by value copied every stored block
+       in full on each call, and this runs in the download loop. */
+    size_t ramUsage = m_storedBlocks.memoryUsage([](const auto &block) { return std::get<0>(block).memoryUsage(); });
 
     if (ramUsage + WalletConfig::maxBodyResponseSize < WalletConfig::blockStoreMemoryLimit)
     {
@@ -325,13 +343,14 @@ bool BlockDownloader::downloadBlocks()
 
         m_subWallets->convertSyncTimestampToHeight(m_startTimestamp, m_startHeight);
 
-        /* Don't regress below the prune floor — prunedItems may have set
-           blocks.front().blockHeight below what we already advanced to. */
-        const uint64_t pf = m_pruneFloor.load();
-        if (pf > 0 && m_startHeight < pf)
-        {
-            m_startHeight = pf;
-        }
+        /* NOTE: this used to clamp m_startHeight up to the prune floor. That
+           skipped the whole pruned range on a timestamp import: the daemon
+           takes the greater of our start height and the checkpoint, so raising
+           the start height to the floor after the first batch of pruned blocks
+           meant every height between the import point and the floor was never
+           requested, and no fork was detected because the wallet only ever
+           moved forwards. The floor is honoured by the daemon, which serves the
+           pruned range in order, so the wallet simply follows the blocks. */
     }
 
     std::stringstream stream;
