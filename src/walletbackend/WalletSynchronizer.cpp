@@ -291,29 +291,65 @@ void WalletSynchronizer::blockProcessingThread()
 
                         /* Daemon returns indexes for hashes in a range. If we don't
                            find our hash, either the chain has forked, or the daemon
-                           is faulty. Print a warning message, then return so we
-                           can fetch new blocks, in the likely case the daemon has
-                           forked.
+                           is faulty.
 
                            Also need to check there are enough indexes for the one we want */
-                        while (it == globalIndexes.end() || it->second.size() <= input.transactionIndex)
+                        constexpr size_t MAX_GLOBAL_INDEX_ATTEMPTS = 6;
+
+                        size_t attempts = 0;
+
+                        while ((it == globalIndexes.end() || it->second.size() <= input.transactionIndex)
+                               && attempts < MAX_GLOBAL_INDEX_ATTEMPTS)
                         {
                             if (m_shouldStop)
                             {
                                 return;
                             }
 
+                            attempts++;
+
                             Logger::logger.log(
-                                "Warning: Failed to get correct global indexes from daemon."
-                                "\nThe daemon may have gone offline or the chain may have just forked.",
+                                "Warning: Failed to get correct global indexes from daemon (attempt "
+                                    + std::to_string(attempts) + " of "
+                                    + std::to_string(MAX_GLOBAL_INDEX_ATTEMPTS) + ")."
+                                    "\nThe daemon may have gone offline or the chain may have just forked.",
                                 Logger::FATAL,
                                 {Logger::SYNC, Logger::DAEMON});
 
-                            std::this_thread::sleep_for(std::chrono::seconds(5));
+                            Utilities::sleepUnlessStopping(std::chrono::seconds(5), m_shouldStop);
+
+                            if (m_shouldStop)
+                            {
+                                return;
+                            }
 
                             globalIndexes = getGlobalIndexes(block.blockHeight);
 
                             it = globalIndexes.find(input.parentTransactionHash);
+                        }
+
+                        /* Give up rather than retrying forever. This loop used to
+                           spin until shutdown, which is exactly what happens after
+                           a reorg: our transaction is no longer on the chain, so
+                           the daemon will never return an index for it, and the
+                           batch never completed — sync stopped dead until the
+                           wallet was reopened.
+
+                           Leaving the index unresolved lets the block commit. The
+                           input is then filtered out of spendable inputs, and if
+                           this really was a fork the daemon will resend this height
+                           and the fork path will roll the block back and rescan it. */
+                        if (it == globalIndexes.end() || it->second.size() <= input.transactionIndex)
+                        {
+                            Logger::logger.log(
+                                "Giving up on global indexes for transaction "
+                                    + Common::podToHex(input.parentTransactionHash) + " in block "
+                                    + std::to_string(block.blockHeight)
+                                    + ". This input cannot be spent until the wallet is rescanned.",
+                                Logger::FATAL,
+                                {Logger::SYNC, Logger::DAEMON});
+
+                            continue;
                         }
 
                         input.globalOutputIndex = it->second[input.transactionIndex];

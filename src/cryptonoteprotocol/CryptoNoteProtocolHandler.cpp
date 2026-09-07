@@ -536,8 +536,21 @@ namespace CryptoNote
         CryptoNoteConnectionContext &context)
     {
         logger(Logging::TRACE) << context << "NOTIFY_NEW_BLOCK (hop " << arg.hop << ")";
+
+        /* Ignore anything claimed by a peer that has not completed the
+           handshake. This used to be recorded before the state was checked, so
+           an unauthenticated peer could announce any height it liked and have
+           it adopted as the network height. That figure only ever moves up, so
+           one bogus announcement left the daemon reporting a nonsense network
+           height, and considering itself unsynced, until it was restarted. */
+        if (context.m_state == CryptoNoteConnectionContext::state_before_handshake)
+        {
+            return 1;
+        }
+
         updateObservedHeight(arg.current_blockchain_height, context);
         context.m_remote_blockchain_height = arg.current_blockchain_height;
+
         if (context.m_state != CryptoNoteConnectionContext::state_normal)
         {
             return 1;
@@ -647,6 +660,25 @@ namespace CryptoNote
         //  connection"; context.m_state = CryptoNoteConnectionContext::state_shutdown;
         //}
 
+        /* Bound what a peer can ask for in one request. Every hash here is
+           turned into a full raw block held in memory, copied again for the
+           legacy conversion and a third time when the response is encoded, so
+           an unbounded list is an amplification lever: a few megabytes of
+           hashes can make this node allocate gigabytes, on the dispatcher
+           thread, before the write queue limit ever pushes back.
+
+           The bound is the same one request_missing_objects clamps its own
+           block rate to, so a peer syncing normally never reaches it. */
+        if (arg.blocks.size() > BLOCKS_IDS_SYNCHRONIZING_DEFAULT_COUNT)
+        {
+            logger(Logging::WARNING, Logging::BRIGHT_YELLOW)
+                << context << "NOTIFY_REQUEST_GET_OBJECTS asked for " << arg.blocks.size()
+                << " blocks, more than the " << BLOCKS_IDS_SYNCHRONIZING_DEFAULT_COUNT
+                << " allowed per request, dropping connection";
+            context.m_state = CryptoNoteConnectionContext::state_shutdown;
+            return 1;
+        }
+
         rsp.current_blockchain_height = m_core.getTopBlockIndex() + 1;
         std::vector<RawBlock> rawBlocks;
         m_core.getBlocks(arg.blocks, rawBlocks, rsp.missed_ids);
@@ -742,9 +774,31 @@ namespace CryptoNote
 
         if (!context.m_requested_objects.empty())
         {
-            logger(Logging::ERROR, Logging::BRIGHT_RED)
-                << context << "returned not all requested objects (context.m_requested_objects.size()="
-                << context.m_requested_objects.size() << "), dropping connection";
+            /* A peer that reports the blocks it could not supply is answering
+               honestly, not misbehaving. A pruned node is the common case: it
+               still has the hashes, so it answers our chain request, but the
+               raw blocks below its prune floor are gone. Say so plainly instead
+               of calling it a protocol violation.
+
+               We still drop the connection, because this node cannot make
+               progress against a peer that will not serve the history we need.
+               Nothing here advertises pruning during the handshake, so we
+               cannot avoid picking such a peer in the first place. */
+            const bool peerReportedMissing = !arg.missed_ids.empty();
+
+            if (peerReportedMissing)
+            {
+                logger(Logging::WARNING, Logging::BRIGHT_YELLOW)
+                    << context << "cannot serve " << arg.missed_ids.size()
+                    << " of the blocks we requested (it is most likely pruned), dropping connection";
+            }
+            else
+            {
+                logger(Logging::ERROR, Logging::BRIGHT_RED)
+                    << context << "returned not all requested objects (context.m_requested_objects.size()="
+                    << context.m_requested_objects.size() << "), dropping connection";
+            }
+
             context.m_state = CryptoNoteConnectionContext::state_shutdown;
             return 1;
         }
@@ -1147,6 +1201,11 @@ namespace CryptoNote
                                    << arg.total_height << "\r\nm_start_height=" << arg.start_height
                                    << "\r\nm_block_ids.size()=" << arg.m_block_ids.size();
             context.m_state = CryptoNoteConnectionContext::state_shutdown;
+
+            /* Stop here. Without the return we carried on queueing objects from
+               a response we had just declared invalid, and then sent a fresh
+               request down a connection already marked for shutdown. */
+            return 1;
         }
 
         /* When the node has been bootstrapped from a specific height, blocks
@@ -1214,8 +1273,17 @@ namespace CryptoNote
         CryptoNoteConnectionContext &context)
     {
         logger(Logging::TRACE) << context << "NOTIFY_NEW_LITE_BLOCK (hop " << arg.hop << ")";
+
+        /* Ignore claims from a peer that has not handshaked — see
+           handle_notify_new_block. */
+        if (context.m_state == CryptoNoteConnectionContext::state_before_handshake)
+        {
+            return 1;
+        }
+
         updateObservedHeight(arg.current_blockchain_height, context);
         context.m_remote_blockchain_height = arg.current_blockchain_height;
+
         if (context.m_state != CryptoNoteConnectionContext::state_normal)
         {
             return 1;

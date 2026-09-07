@@ -32,6 +32,13 @@ namespace
     /* Largest height span a single global-index request may cover. Wallets ask
        for a window of ten blocks; anything near this bound is already abusive. */
     constexpr uint64_t RPC_MAX_INDEX_RANGE = 1000;
+
+    /* Caps for random output selection. Ring sizes are in the low tens, and a
+       transaction asks for one amount per input, so these are far above any
+       legitimate request while keeping the work per request bounded. */
+    constexpr uint64_t RPC_MAX_RANDOM_OUTPUTS = 1000;
+
+    constexpr rapidjson::SizeType RPC_MAX_RANDOM_OUTPUT_AMOUNTS = 1000;
 } // namespace
 
 RpcServer::RpcServer(
@@ -534,6 +541,11 @@ void RpcServer::failRequest(const Error& error, httplib::Response &res)
         writer.EndObject();
     }
     writer.EndObject();
+
+    /* The response was built and then thrown away, so every error in the trtl
+       API returned an empty body: not-synced, handler errors, and all three
+       exception handlers in the middleware. */
+    res.body = sb.GetString();
 }
 
 void RpcServer::failJsonRpcRequest(const int64_t errorCode, const std::string& errorMessage, httplib::Response &res)
@@ -1940,13 +1952,21 @@ std::tuple<Error, uint16_t> RpcServer::getRandomOutsTrtlApi(
 
     const uint64_t numOutputs = getUint64FromJSON(body, "count");
 
+    const auto amounts = getArrayFromJSON(body, "amounts");
+
+    /* Bound the work one request can ask for — see the note on getRandomOuts. */
+    if (numOutputs > RPC_MAX_RANDOM_OUTPUTS || amounts.Size() > RPC_MAX_RANDOM_OUTPUT_AMOUNTS)
+    {
+        return {Error(API_INVALID_ARGUMENT, "Requested too many random outputs."), 400};
+    }
+
     writer.StartArray();
     {
-        for (const auto &jsonAmount : getArrayFromJSON(body, "amounts"))
+        for (const auto &jsonAmount : amounts)
         {
             writer.StartObject();
 
-            const uint64_t amount = jsonAmount.GetUint64();
+            const uint64_t amount = getUint64FromJSONString(jsonAmount);
 
             std::vector<uint32_t> globalIndexes;
 
@@ -2565,6 +2585,17 @@ std::tuple<Error, uint16_t> RpcServer::getRandomOuts(
 {
     const uint64_t numOutputs = getUint64FromJSON(body, "outs_count");
 
+    const auto amounts = getArrayFromJSON(body, "amounts");
+
+    /* Bound the work one request can ask for. Each amount runs up to
+       outs_count random picks with a database read behind each, so an
+       unbounded count multiplied by an unbounded amount list is hundreds of
+       millions of lookups from a single unauthenticated request. */
+    if (numOutputs > RPC_MAX_RANDOM_OUTPUTS || amounts.Size() > RPC_MAX_RANDOM_OUTPUT_AMOUNTS)
+    {
+        throw std::invalid_argument("Requested too many random outputs.");
+    }
+
     rapidjson::StringBuffer sb;
     rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
 
@@ -2574,11 +2605,11 @@ std::tuple<Error, uint16_t> RpcServer::getRandomOuts(
 
     writer.StartArray();
     {
-        for (const auto &jsonAmount : getArrayFromJSON(body, "amounts"))
+        for (const auto &jsonAmount : amounts)
         {
             writer.StartObject();
 
-            const uint64_t amount = jsonAmount.GetUint64();
+            const uint64_t amount = getUint64FromJSONString(jsonAmount);
 
             std::vector<uint32_t> globalIndexes;
             std::vector<Crypto::PublicKey> publicKeys;
@@ -3543,7 +3574,11 @@ std::tuple<Error, uint16_t> RpcServer::getBlocksByHeightJsonRpc(
         writer.Key("blocks");
         writer.StartArray();
         {
-            for (uint64_t i = height; i >= startHeight; i--)
+            /* The `i <= height` term stops the counter wrapping when startHeight
+               is 0. Without it, i-- past 0 became UINT64_MAX, and the lookup for
+               that height threw, so every explorer request for a chain shorter
+               than MAX_BLOCKS_COUNT returned a 500. */
+            for (uint64_t i = height; i >= startHeight && i <= height; i--)
             {
                 writer.StartObject();
 

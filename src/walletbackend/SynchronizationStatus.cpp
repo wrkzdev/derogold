@@ -15,11 +15,15 @@
 
 uint64_t SynchronizationStatus::getHeight() const
 {
+    std::scoped_lock lock(m_mutex);
+
     return m_lastKnownBlockHeight;
 }
 
 void SynchronizationStatus::storeBlockHash(const Crypto::Hash hash, const uint64_t height)
 {
+    std::scoped_lock lock(m_mutex);
+
     m_lastKnownBlockHeight = height;
 
     /* Already added this hash */
@@ -47,16 +51,22 @@ void SynchronizationStatus::storeBlockHash(const Crypto::Hash hash, const uint64
 
 std::deque<Crypto::Hash> SynchronizationStatus::getBlockCheckpoints() const
 {
+    std::scoped_lock lock(m_mutex);
+
     return m_blockHashCheckpoints;
 }
 
 std::deque<Crypto::Hash> SynchronizationStatus::getRecentBlockHashes() const
 {
+    std::scoped_lock lock(m_mutex);
+
     return m_lastKnownBlockHashes;
 }
 
 void SynchronizationStatus::fromJSON(const JSONObject &j)
 {
+    std::scoped_lock lock(m_mutex);
+
     for (const auto &x : getArrayFromJSON(j, "blockHashCheckpoints"))
     {
         Crypto::Hash h;
@@ -76,6 +86,8 @@ void SynchronizationStatus::fromJSON(const JSONObject &j)
 
 void SynchronizationStatus::toJSON(rapidjson::Writer<rapidjson::StringBuffer> &writer) const
 {
+    std::scoped_lock lock(m_mutex);
+
     writer.StartObject();
 
     writer.Key("blockHashCheckpoints");

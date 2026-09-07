@@ -10,6 +10,8 @@
 #include "json.hpp"
 
 #include <deque>
+#include <mutex>
+#include <utility>
 #include <vector>
 
 using nlohmann::json;
@@ -20,6 +22,33 @@ class SynchronizationStatus
     /////////////////////////////
     /* Public member functions */
     /////////////////////////////
+
+    SynchronizationStatus() = default;
+
+    /* The mutex below makes this class neither copyable nor movable by
+       default, but BlockDownloader move-assigns one of these on reset. These
+       transfer the data and leave each object's own mutex alone, which is the
+       correct thing to do: a lock protects the object it lives in, not the
+       value being moved. */
+    SynchronizationStatus(SynchronizationStatus &&other)
+    {
+        *this = std::move(other);
+    }
+
+    SynchronizationStatus &operator=(SynchronizationStatus &&other)
+    {
+        if (this != &other)
+        {
+            std::scoped_lock lock(m_mutex, other.m_mutex);
+
+            m_blockHashCheckpoints = std::move(other.m_blockHashCheckpoints);
+            m_lastKnownBlockHashes = std::move(other.m_lastKnownBlockHashes);
+            m_lastKnownBlockHeight = other.m_lastKnownBlockHeight;
+            m_lastSavedCheckpointAt = other.m_lastSavedCheckpointAt;
+        }
+
+        return *this;
+    }
 
     void storeBlockHash(const Crypto::Hash hash, const uint64_t blockHeight);
 
@@ -59,4 +88,9 @@ class SynchronizationStatus
     /* The last height we saved a block checkpoint at. Can't do every 5k
        since we skip blocks with coinbase tx scanning of. */
     uint64_t m_lastSavedCheckpointAt = 0;
+
+    /* Guards everything above. The sync thread writes here via storeBlockHash
+       while the download thread reads the checkpoints and the height to build
+       its next request, and the wallet serialises the same fields on save. */
+    mutable std::mutex m_mutex;
 };

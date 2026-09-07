@@ -44,6 +44,16 @@ inline std::shared_ptr<httplib::Client> getClient(
 #endif
 
     client->set_connection_timeout(timeout);
+
+    /* Set the read and write timeouts explicitly. Only the connection timeout
+       was set, leaving these at whatever the library defaults to, which has
+       changed between cpp-httplib versions and is five seconds in the pinned
+       one. A daemon that needs longer than that to start a response had its
+       request abandoned mid-flight while it carried on building the answer, so
+       the wallet retried and the daemon piled up duplicate work. */
+    client->set_read_timeout(timeout);
+    client->set_write_timeout(timeout);
+
     return client;
 }
 
@@ -320,7 +330,11 @@ bool Nigel::getFeeInfo()
     const auto parsedResponse = tryParseJSONResponse(res, "Failed to update fee info", [this](const nlohmann::json j) {
         std::string tmpAddress = j.at("address").get<std::string>();
 
-        uint32_t tmpFee = j.at("amount").get<uint32_t>();
+        /* Read the full width the daemon writes. Reading it as uint32 silently
+           wrapped any node fee at or above 2^32 atomic units, so the wallet
+           could attach a fee far smaller than the node asked for and have the
+           transaction rejected. */
+        const uint64_t tmpFee = j.at("amount").get<uint64_t>();
 
         const bool integratedAddressesAllowed = false;
 
