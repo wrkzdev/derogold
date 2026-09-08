@@ -70,85 +70,90 @@ function(derogold_require_openssl)
     message(STATUS "OpenSSL: ${OPENSSL_VERSION}")
 endfunction()
 
-function(derogold_require_cryptopp)
+# Crypto++ and miniupnpc are built from the copies checked into external/.
+# Both are small and neither is reliably packaged across the platforms this
+# project targets, so vendoring them removes two install steps and any question
+# of which version is present. Nothing here consults the system for them.
+function(derogold_add_cryptopp)
     if(TARGET cryptopp::cryptopp)
         return()
     endif()
 
-    # Upstream and vcpkg ship a CMake config; distributions usually do not.
-    find_package(cryptopp CONFIG QUIET)
+    set(_src "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../external/cryptopp")
 
-    if(TARGET cryptopp::cryptopp)
-        message(STATUS "Crypto++: found via CMake config")
-        return()
+    if(NOT EXISTS "${_src}/CMakeLists.txt")
+        message(FATAL_ERROR "external/cryptopp is missing from the checkout.")
     endif()
 
-    # Fall back to pkg-config, then to a plain library search. Debian names the
-    # package libcrypto++ while most others use libcryptopp.
-    find_package(PkgConfig QUIET)
+    # Static only, and none of the extras. These option names are prefixed in
+    # the vendored CMakeLists precisely so setting them here cannot disturb the
+    # enclosing project.
+    set(CRYPTOPP_BUILD_STATIC ON CACHE BOOL "" FORCE)
+    set(CRYPTOPP_BUILD_SHARED OFF CACHE BOOL "" FORCE)
+    set(CRYPTOPP_BUILD_TESTING OFF CACHE BOOL "" FORCE)
+    set(CRYPTOPP_BUILD_DOCUMENTATION OFF CACHE BOOL "" FORCE)
 
-    if(PkgConfig_FOUND)
-        pkg_check_modules(PC_CRYPTOPP QUIET libcrypto++ libcryptopp cryptopp)
+    add_subdirectory("${_src}" "${CMAKE_BINARY_DIR}/external/cryptopp" EXCLUDE_FROM_ALL)
+
+    if(NOT TARGET cryptopp-static)
+        message(FATAL_ERROR "The vendored Crypto++ did not produce a static library target.")
     endif()
 
-    find_path(CRYPTOPP_INCLUDE_DIR
-        NAMES cryptopp/cryptlib.h crypto++/cryptlib.h
-        HINTS ${PC_CRYPTOPP_INCLUDE_DIRS})
+    add_library(cryptopp::cryptopp ALIAS cryptopp-static)
 
-    find_library(CRYPTOPP_LIBRARY
-        NAMES cryptopp crypto++ libcryptopp
-        HINTS ${PC_CRYPTOPP_LIBRARY_DIRS})
+    # DeroGold includes <cryptopp/sha.h>, so the headers have to be reachable
+    # under a cryptopp/ prefix. They sit flat in the source tree, so mirror
+    # them into the build tree once and expose that.
+    set(_compat "${CMAKE_BINARY_DIR}/external/include")
 
-    if(NOT CRYPTOPP_INCLUDE_DIR OR NOT CRYPTOPP_LIBRARY)
-        _derogold_missing_dependency("Crypto++"
-            "libcrypto++-dev" "cryptopp-devel" "crypto++" "cryptopp")
-    endif()
+    file(GLOB _cryptopp_headers "${_src}/*.h")
+    file(COPY ${_cryptopp_headers} DESTINATION "${_compat}/cryptopp")
 
-    add_library(cryptopp::cryptopp UNKNOWN IMPORTED GLOBAL)
-    set_target_properties(cryptopp::cryptopp PROPERTIES
-        IMPORTED_LOCATION "${CRYPTOPP_LIBRARY}"
-        INTERFACE_INCLUDE_DIRECTORIES "${CRYPTOPP_INCLUDE_DIR}")
+    target_include_directories(cryptopp-static INTERFACE "$<BUILD_INTERFACE:${_compat}>")
 
-    message(STATUS "Crypto++: ${CRYPTOPP_LIBRARY}")
+    message(STATUS "Crypto++: building the copy in external/cryptopp")
 endfunction()
 
-function(derogold_require_miniupnpc)
+function(derogold_add_miniupnpc)
     if(TARGET miniupnpc::miniupnpc)
         return()
     endif()
 
-    find_package(miniupnpc CONFIG QUIET)
+    set(_src "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../external/miniupnpc")
 
-    if(TARGET miniupnpc::miniupnpc)
-        message(STATUS "miniupnpc: found via CMake config")
-        return()
+    if(NOT EXISTS "${_src}/CMakeLists.txt")
+        message(FATAL_ERROR "external/miniupnpc is missing from the checkout.")
     endif()
 
-    find_package(PkgConfig QUIET)
+    set(UPNPC_BUILD_STATIC ON CACHE BOOL "" FORCE)
+    set(UPNPC_BUILD_SHARED OFF CACHE BOOL "" FORCE)
+    set(UPNPC_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set(UPNPC_BUILD_SAMPLE OFF CACHE BOOL "" FORCE)
+    set(UPNPC_NO_INSTALL ON CACHE BOOL "" FORCE)
 
-    if(PkgConfig_FOUND)
-        pkg_check_modules(PC_MINIUPNPC QUIET miniupnpc)
+    add_subdirectory("${_src}" "${CMAKE_BINARY_DIR}/external/miniupnpc" EXCLUDE_FROM_ALL)
+
+    if(NOT TARGET libminiupnpc-static)
+        message(FATAL_ERROR "The vendored miniupnpc did not produce a static library target.")
     endif()
 
-    find_path(MINIUPNPC_INCLUDE_DIR
-        NAMES miniupnpc/miniupnpc.h
-        HINTS ${PC_MINIUPNPC_INCLUDE_DIRS})
-
-    find_library(MINIUPNPC_LIBRARY
-        NAMES miniupnpc
-        HINTS ${PC_MINIUPNPC_LIBRARY_DIRS})
-
-    if(NOT MINIUPNPC_INCLUDE_DIR OR NOT MINIUPNPC_LIBRARY)
-        _derogold_missing_dependency("miniupnpc"
-            "libminiupnpc-dev" "miniupnpc-devel" "miniupnpc" "miniupnpc")
+    # Upstream already aliases miniupnpc::miniupnpc when only the static
+    # library is built; define it ourselves if that ever changes.
+    if(NOT TARGET miniupnpc::miniupnpc)
+        add_library(miniupnpc::miniupnpc ALIAS libminiupnpc-static)
     endif()
 
-    add_library(miniupnpc::miniupnpc UNKNOWN IMPORTED GLOBAL)
-    set_target_properties(miniupnpc::miniupnpc PROPERTIES
-        IMPORTED_LOCATION "${MINIUPNPC_LIBRARY}"
-        INTERFACE_INCLUDE_DIRECTORIES "${MINIUPNPC_INCLUDE_DIR}")
+    # Same prefix problem as Crypto++: DeroGold includes
+    # <miniupnpc/miniupnpc.h> because that is how the headers are installed
+    # system-wide, but in the source tree they are flat under include/.
+    set(_compat "${CMAKE_BINARY_DIR}/external/include")
 
-    message(STATUS "miniupnpc: ${MINIUPNPC_LIBRARY}")
+    file(GLOB _miniupnpc_headers "${_src}/include/*.h")
+    file(COPY ${_miniupnpc_headers} DESTINATION "${_compat}/miniupnpc")
+
+    target_include_directories(libminiupnpc-static INTERFACE "$<BUILD_INTERFACE:${_compat}>")
+
+    message(STATUS "miniupnpc: building the copy in external/miniupnpc")
 endfunction()
 
 function(derogold_require_rocksdb)

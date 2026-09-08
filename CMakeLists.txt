@@ -23,11 +23,13 @@ project(DeroGold VERSION 1.0.1.0 HOMEPAGE_URL https://derogold.com LANGUAGES C C
 
 # Dependencies come from three places, no package manager involved:
 #
-#   1. Header-only libraries vendored under external/ (rapidjson, cpp-httplib,
-#      cxxopts, nlohmann-json, cpp-linenoise). These are pinned by being
-#      checked in, so they cannot drift underneath a build.
-#   2. Libraries taken from the system (Boost, OpenSSL, Crypto++, miniupnpc).
-#      See BUILDING.md for the one-line install on each platform.
+#   1. Libraries vendored under external/ and built with the project:
+#      rapidjson, cpp-httplib, cxxopts, nlohmann-json and cpp-linenoise are
+#      header-only; Crypto++ and miniupnpc are compiled from their checked-in
+#      sources. All of them are pinned by being in the tree, so none can drift
+#      underneath a build and none has to be installed first.
+#   2. Libraries taken from the system: Boost and OpenSSL. Both are large,
+#      ubiquitous, and packaged everywhere. See BUILDING.md.
 #   3. RocksDB, which is built from source by default because the version
 #      packaged by most distributions is older than this code requires.
 #      Set -D DEROGOLD_SYSTEM_ROCKSDB=ON to use the system one instead.
@@ -277,8 +279,8 @@ include(DeroGoldDependencies)
 
 derogold_require_boost()
 derogold_require_openssl()
-derogold_require_cryptopp()
-derogold_require_miniupnpc()
+derogold_add_cryptopp()
+derogold_add_miniupnpc()
 derogold_require_rocksdb()
 
 # So we can use std::string with rapidjson

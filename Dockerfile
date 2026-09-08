@@ -26,7 +26,7 @@ ARG DEV_PACKAGE="cmake ninja-build"
 # Downloading the RocksDB source at configure time, plus the libraries this
 # project links against.
 ARG FETCH_PACKAGE="curl ca-certificates tar pkg-config"
-ARG LIB_PACKAGE="libboost-serialization-dev libssl-dev libcrypto++-dev libminiupnpc-dev libzstd-dev"
+ARG LIB_PACKAGE="libboost-serialization-dev libssl-dev libzstd-dev"
 
 ARG AMD64_GCC_PACKAGE="build-essential crossbuild-essential-arm64"
 ARG ARM64_GCC_PACKAGE="build-essential crossbuild-essential-amd64"

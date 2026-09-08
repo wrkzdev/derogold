@@ -22,10 +22,10 @@ jobs:
       matrix:
         include:
           # MSVC is disabled. With vcpkg removed there is no package source on
-          # Windows for Boost, OpenSSL, Crypto++ and miniupnpc, so this job has
-          # nothing to link against. The MinGW jobs cover Windows using MSYS2
-          # packages. To bring MSVC back, provide those four libraries and
-          # uncomment this entry.
+          # Windows for Boost and OpenSSL, so this job has nothing to link
+          # against. The MinGW jobs cover Windows using MSYS2 packages. To
+          # bring MSVC back, provide those two libraries and uncomment this
+          # entry.
           # - os: windows-latest
           #   arch: x64
           #   compiler: msvc
@@ -39,12 +39,8 @@ jobs:
             install: >-
               build-essential
               curl
-              g++-9
-              gcc-9
               git
               libboost-serialization-dev
-              libcrypto++-dev
-              libminiupnpc-dev
               libssl-dev
               libzstd-dev
               ninja-build
@@ -60,12 +56,9 @@ jobs:
             compiler: gcc
             install: >-
               curl
-              g++-9-aarch64-linux-gnu
-              gcc-9-aarch64-linux-gnu
+              crossbuild-essential-arm64
               git
               libboost-serialization-dev
-              libcrypto++-dev
-              libminiupnpc-dev
               libssl-dev
               libzstd-dev
               ninja-build
@@ -103,24 +96,9 @@ jobs:
           ccache-key-prefix: ccache_cache_${{ runner.os }}_${{ matrix.arch }}_${{ matrix.compiler }}
           max-size: 150M
 
-      - name: Pin GCC 9 (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          if ("${{ matrix.arch }}" -eq "x64")
-          {
-            sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 9
-            sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 9
-            sudo update-alternatives --set gcc /usr/bin/gcc-9
-            sudo update-alternatives --set g++ /usr/bin/g++-9
-          }
-          elseif ("${{ matrix.arch }}" -eq "arm64")
-          {
-            sudo update-alternatives --install /usr/bin/aarch64-linux-gnu-gcc aarch64-linux-gnu-gcc /usr/bin/aarch64-linux-gnu-gcc-9 9
-            sudo update-alternatives --install /usr/bin/aarch64-linux-gnu-g++ aarch64-linux-gnu-g++ /usr/bin/aarch64-linux-gnu-g++-9 9
-            sudo update-alternatives --set aarch64-linux-gnu-gcc /usr/bin/aarch64-linux-gnu-gcc-9
-            sudo update-alternatives --set aarch64-linux-gnu-g++ /usr/bin/aarch64-linux-gnu-g++-9
-          }
-
+      # The GCC 9 pin that used to live here is gone. The bundled RocksDB
+      # builds as C++20, which GCC 9 cannot do, so these jobs now use the
+      # runner's default compiler.
 
       - name: Build
         uses: lukka/run-cmake@v10.8

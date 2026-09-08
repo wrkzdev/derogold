@@ -58,10 +58,10 @@ jobs:
       matrix:
         include:
           # MSVC is disabled. With vcpkg removed there is no package source on
-          # Windows for Boost, OpenSSL, Crypto++ and miniupnpc, so this job has
-          # nothing to link against. The MinGW jobs cover Windows using MSYS2
-          # packages. To bring MSVC back, provide those four libraries and
-          # uncomment this entry.
+          # Windows for Boost and OpenSSL, so this job has nothing to link
+          # against. The MinGW jobs cover Windows using MSYS2 packages. To
+          # bring MSVC back, provide those two libraries and uncomment this
+          # entry.
           # - os: windows-latest
           #   arch: x64
           #   compiler: msvc
@@ -78,8 +78,6 @@ jobs:
               curl
               git
               libboost-serialization-dev
-              libcrypto++-dev
-              libminiupnpc-dev
               libssl-dev
               libzstd-dev
               ninja-build
@@ -99,8 +97,6 @@ jobs:
               curl
               git
               libboost-serialization-dev
-              libcrypto++-dev
-              libminiupnpc-dev
               libssl-dev
               libzstd-dev
               ninja-build

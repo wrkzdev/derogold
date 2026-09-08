@@ -32,10 +32,10 @@ jobs:
       matrix:
         include:
           # MSVC is disabled. With vcpkg removed there is no package source on
-          # Windows for Boost, OpenSSL, Crypto++ and miniupnpc, so this job has
-          # nothing to link against. The MinGW jobs below cover Windows using
-          # MSYS2 packages. To bring MSVC back, provide those four libraries
-          # and uncomment this entry.
+          # Windows for Boost and OpenSSL, so this job has nothing to link
+          # against. The MinGW jobs below cover Windows using MSYS2 packages.
+          # To bring MSVC back, provide those two libraries and uncomment this
+          # entry.
           # - os: windows-latest
           #   arch: x64
           #   compiler: msvc
@@ -55,8 +55,6 @@ jobs:
               mingw-w64-x86_64-ninja
               mingw-w64-x86_64-toolchain
               mingw-w64-x86_64-boost
-              mingw-w64-x86_64-crypto++
-              mingw-w64-x86_64-miniupnpc
               mingw-w64-x86_64-openssl
               mingw-w64-x86_64-zstd
             configure_preset: windows-x64-mingw-gcc-package
@@ -74,8 +72,6 @@ jobs:
               mingw-w64-clang-x86_64-ninja
               mingw-w64-clang-x86_64-toolchain
               mingw-w64-clang-x86_64-boost
-              mingw-w64-clang-x86_64-crypto++
-              mingw-w64-clang-x86_64-miniupnpc
               mingw-w64-clang-x86_64-openssl
               mingw-w64-clang-x86_64-zstd
             configure_preset: windows-x64-mingw-clang-package
@@ -91,8 +87,6 @@ jobs:
               curl
               git
               libboost-serialization-dev
-              libcrypto++-dev
-              libminiupnpc-dev
               libssl-dev
               libzstd-dev
               ninja-build
@@ -113,8 +107,6 @@ jobs:
               curl
               git
               libboost-serialization-dev
-              libcrypto++-dev
-              libminiupnpc-dev
               libssl-dev
               libzstd-dev
               ninja-build
@@ -135,8 +127,6 @@ jobs:
               curl
               git
               libboost-serialization-dev
-              libcrypto++-dev
-              libminiupnpc-dev
               libssl-dev
               libzstd-dev
               ninja-build
@@ -157,8 +147,6 @@ jobs:
               curl
               git
               libboost-serialization-dev
-              libcrypto++-dev
-              libminiupnpc-dev
               libssl-dev
               libzstd-dev
               ninja-build

@@ -8,8 +8,7 @@ libraries from your system's own repositories, then build.
 ```sh
 # Debian / Ubuntu
 sudo apt install build-essential cmake ninja-build git curl pkg-config \
-    libboost-serialization-dev libssl-dev libcrypto++-dev \
-    libminiupnpc-dev libzstd-dev
+    libboost-serialization-dev libssl-dev libzstd-dev
 
 git clone -b development https://github.com/derogold/derogold-core.git
 cd derogold-core
@@ -25,13 +24,12 @@ No `--recursive` clone is needed any more; there are no submodules.
 
 | Dependency | Where it comes from |
 | --- | --- |
-| rapidjson, cpp-httplib, cxxopts, nlohmann-json, cpp-linenoise | Vendored in `external/`, nothing to install |
+| rapidjson, cpp-httplib, cxxopts, nlohmann-json, cpp-linenoise | Vendored in `external/`, header-only, nothing to install |
+| Crypto++, miniupnpc | Vendored in `external/`, compiled with the project |
 | Boost (serialization) | System package |
 | OpenSSL | System package |
-| Crypto++ | System package |
-| miniupnpc | System package |
 | zstd | System package, used by RocksDB |
-| RocksDB | Built from source during the build, see below |
+| RocksDB | Downloaded and built during the build, see below |
 
 If a system library is missing, CMake stops with the install command for your
 platform rather than a wall of linker errors.
@@ -103,12 +101,18 @@ By default the build targets the machine it is compiled on. Pass
 `-D ARCH=default` for a binary that runs on other machines, at some cost in
 performance.
 
+## Vendored Crypto++ and miniupnpc
+
+Both are compiled from the sources in `external/cryptopp` and
+`external/miniupnpc`, so there is nothing to install and no version to match.
+Crypto++ carries a small local patch to its CMake build, described at the top
+of `external/cryptopp/CMakeLists.txt`.
+
 ## Windows and MSVC
 
-MSVC is not currently supported. The four system libraries above have no
-standard source on Windows outside MSYS2, which is what the MinGW instructions
-use. Building with MSVC means providing Boost, OpenSSL, Crypto++ and miniupnpc
-yourself and pointing CMake at them.
+MSVC is not currently supported. Boost and OpenSSL have no standard source on
+Windows outside MSYS2, which is what the MinGW instructions use. Building with
+MSVC means providing those two yourself and pointing CMake at them.
 
 ## Upgrading from the vcpkg build
 
