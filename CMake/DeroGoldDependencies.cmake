@@ -155,6 +155,51 @@ function(derogold_add_miniupnpc)
     message(STATUS "miniupnpc: building the copy in external/miniupnpc")
 endfunction()
 
+# zstd is built from the copy in external/zstd. RocksDB needs it because the
+# blockchain wrapper writes with kZSTD when compression is on, so an existing
+# database cannot be opened without it.
+#
+# This has to run before RocksDB is added. RocksDB looks for zstd with its own
+# find module, which searches the system and fails hard when WITH_ZSTD is on,
+# so the results it expects are published here in advance.
+function(derogold_add_zstd)
+    if(TARGET zstd::zstd)
+        return()
+    endif()
+
+    set(_src "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../external/zstd")
+
+    if(NOT EXISTS "${_src}/build/cmake/CMakeLists.txt")
+        message(FATAL_ERROR "external/zstd is missing from the checkout.")
+    endif()
+
+    set(ZSTD_BUILD_STATIC ON CACHE BOOL "" FORCE)
+    set(ZSTD_BUILD_SHARED OFF CACHE BOOL "" FORCE)
+    set(ZSTD_BUILD_PROGRAMS OFF CACHE BOOL "" FORCE)
+    set(ZSTD_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set(ZSTD_BUILD_CONTRIB OFF CACHE BOOL "" FORCE)
+    set(ZSTD_LEGACY_SUPPORT OFF CACHE BOOL "" FORCE)
+
+    add_subdirectory("${_src}/build/cmake" "${CMAKE_BINARY_DIR}/external/zstd" EXCLUDE_FROM_ALL)
+
+    if(NOT TARGET libzstd_static)
+        message(FATAL_ERROR "The vendored zstd did not produce a static library target.")
+    endif()
+
+    add_library(zstd::zstd ALIAS libzstd_static)
+
+    # What RocksDB's Findzstd module produces. Setting these in the cache stops
+    # its find_path and find_library searching the system at all, and lets
+    # find_package_handle_standard_args succeed. Its own
+    # "if(ZSTD_FOUND AND NOT TARGET zstd::zstd)" then leaves the alias above
+    # alone rather than declaring an imported target over the top.
+    set(ZSTD_FOUND TRUE CACHE BOOL "" FORCE)
+    set(ZSTD_INCLUDE_DIRS "${_src}/lib" CACHE PATH "" FORCE)
+    set(ZSTD_LIBRARIES libzstd_static CACHE STRING "" FORCE)
+
+    message(STATUS "zstd: building the copy in external/zstd")
+endfunction()
+
 function(derogold_require_rocksdb)
     if(DEROGOLD_SYSTEM_ROCKSDB)
         find_package(RocksDB CONFIG QUIET)
@@ -177,6 +222,10 @@ function(derogold_require_rocksdb)
     endif()
 
     message(STATUS "RocksDB: building the ${DEROGOLD_ROCKSDB_VERSION} copy in external/rocksdb")
+
+    # zstd first, so its target and the variables RocksDB's find module looks
+    # for already exist by the time RocksDB is added.
+    derogold_add_zstd()
 
     # Compression: the wrapper writes with kZSTD when compression is enabled,
     # so an existing database cannot be opened without zstd support. Keep the

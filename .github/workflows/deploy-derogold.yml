@@ -79,7 +79,6 @@ jobs:
               git
               libboost-serialization-dev
               libssl-dev
-              libzstd-dev
               ninja-build
               pkg-config
               tar
@@ -98,7 +97,6 @@ jobs:
               git
               libboost-serialization-dev
               libssl-dev
-              libzstd-dev
               ninja-build
               pkg-config
               tar

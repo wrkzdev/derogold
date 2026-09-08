@@ -1,14 +1,14 @@
 # Building DeroGold
 
-There is no package manager to set up. Install a compiler, CMake and five
+There is no package manager to set up. Install a compiler, CMake and two
 libraries from your system's own repositories, then build.
 
 ## Quick start (Linux)
 
 ```sh
 # Debian / Ubuntu
-sudo apt install build-essential cmake ninja-build git curl pkg-config \
-    libboost-serialization-dev libssl-dev libzstd-dev
+sudo apt install build-essential cmake ninja-build git \
+    libboost-serialization-dev libssl-dev
 
 git clone -b development https://github.com/derogold/derogold-core.git
 cd derogold-core
@@ -25,10 +25,9 @@ No `--recursive` clone is needed any more; there are no submodules.
 | Dependency | Where it comes from |
 | --- | --- |
 | rapidjson, cpp-httplib, cxxopts, nlohmann-json, cpp-linenoise | Vendored in `external/`, header-only, nothing to install |
-| Crypto++, miniupnpc | Vendored in `external/`, compiled with the project |
+| Crypto++, miniupnpc, zstd | Vendored in `external/`, compiled with the project |
 | Boost (serialization) | System package |
 | OpenSSL | System package |
-| zstd | System package, used by RocksDB |
 | RocksDB | Vendored in `external/`, compiled with the project, see below |
 
 If a system library is missing, CMake stops with the install command for your
@@ -48,19 +47,17 @@ can still build by pointing at a system RocksDB, see the next section.
 
 ```sh
 # Fedora / RHEL
-sudo dnf install gcc-c++ cmake ninja-build git boost-devel openssl-devel \
-    cryptopp-devel miniupnpc-devel libzstd-devel
+sudo dnf install gcc-c++ cmake ninja-build git boost-devel openssl-devel
 
 # Arch
-sudo pacman -S base-devel cmake ninja git boost openssl crypto++ miniupnpc zstd
+sudo pacman -S base-devel cmake ninja git boost openssl
 
 # macOS
-brew install cmake ninja boost openssl@3 cryptopp miniupnpc zstd
+brew install cmake ninja boost openssl@3
 
 # Windows, MSYS2 MINGW64 shell
 pacman -S mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake \
-    mingw-w64-x86_64-ninja mingw-w64-x86_64-boost mingw-w64-x86_64-openssl \
-    mingw-w64-x86_64-crypto++ mingw-w64-x86_64-miniupnpc mingw-w64-x86_64-zstd
+    mingw-w64-x86_64-ninja mingw-w64-x86_64-boost mingw-w64-x86_64-openssl
 ```
 
 ## RocksDB
@@ -102,13 +99,16 @@ performance.
 
 ## Vendored libraries
 
-Crypto++, miniupnpc and RocksDB are compiled from the sources in
-`external/cryptopp`, `external/miniupnpc` and `external/rocksdb`, so there is
-nothing to install and no version to match. Crypto++ carries a small local
-patch to its CMake build, described at the top of
-`external/cryptopp/CMakeLists.txt`. The RocksDB copy is upstream 11.8.1 with
+Crypto++, miniupnpc, zstd and RocksDB are compiled from the sources in
+`external/`, so there is nothing to install and no version to match. zstd is
+there because RocksDB needs it: the blockchain wrapper writes with kZSTD when
+compression is on, so an existing database cannot be opened without it.
+
+Crypto++ carries a small local patch to its CMake build, described at the top
+of `external/cryptopp/CMakeLists.txt`. The RocksDB copy is upstream 11.8.1 with
 the documentation, Java bindings, tests, benchmarks and code generators
-removed; only what the library build compiles is kept.
+removed; only what the library build compiles is kept. zstd is upstream 1.5.7,
+library and CMake files only.
 
 ## Windows and MSVC
 
