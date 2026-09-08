@@ -204,6 +204,16 @@ namespace CryptoNote
                    : std::chrono::duration_cast<std::chrono::milliseconds>(now - writeOperationStartTime).count();
     }
 
+    uint64_t P2pConnectionContext::readIdleDuration(TimePoint now) const
+    { // in milliseconds
+        return std::chrono::duration_cast<std::chrono::milliseconds>(now - lastReadTime).count();
+    }
+
+    void P2pConnectionContext::markRead()
+    {
+        lastReadTime = Clock::now();
+    }
+
     void P2pConnectionContext::interrupt()
     {
         logger(DEBUGGING) << *this << "Interrupt connection";
@@ -1622,12 +1632,31 @@ namespace CryptoNote
                 m_timeoutTimer.sleep(std::chrono::seconds(10));
                 auto now = P2pConnectionContext::Clock::now();
 
+                /* A peer that accepts a request and never answers holds one of
+                   the few outgoing slots indefinitely. Only writes were timed,
+                   and no timed sync is sent to a peer in the synchronizing
+                   state, so nothing ever noticed. Twelve such peers stopped the
+                   node making any new outgoing connections at all.
+
+                   The threshold is deliberately generous: a healthy peer
+                   answers object and chain requests within seconds, so silence
+                   for this long means the exchange is dead. */
+                constexpr uint64_t SYNC_READ_IDLE_TIMEOUT_MS = 5 * 60 * 1000;
+
                 for (auto &kv : m_connections)
                 {
                     auto &ctx = kv.second;
                     if (ctx.writeDuration(now) > P2P_DEFAULT_INVOKE_TIMEOUT)
                     {
                         logger(DEBUGGING) << ctx << "write operation timed out, stopping connection";
+                        safeInterrupt(ctx);
+                        continue;
+                    }
+
+                    if (ctx.m_state == CryptoNoteConnectionContext::state_synchronizing
+                        && ctx.readIdleDuration(now) > SYNC_READ_IDLE_TIMEOUT_MS)
+                    {
+                        logger(DEBUGGING) << ctx << "stopped responding while synchronizing, stopping connection";
                         safeInterrupt(ctx);
                     }
                 }
@@ -1709,6 +1738,8 @@ namespace CryptoNote
                     {
                         break;
                     }
+
+                    ctx.markRead();
 
                     BinaryArray response;
                     bool handled = false;

@@ -2472,7 +2472,12 @@ namespace CryptoNote
 
             BlockchainReadBatch batch;
             batch.requestWalletSyncBlocks(batchStart, batchEnd);
-            if (database.readThreadSafe(batch)) { continue; }
+
+            /* Use the batched read. readThreadSafe issues a separate lookup per
+               key, so serving a hundred-block batch cost a hundred round trips
+               into the database instead of one; the rest of this class already
+               reads through the same batched path from these threads. */
+            if (database.read(batch)) { continue; }
 
             auto res = batch.extractResult();
             const auto &walletBlocks = res.getWalletSyncBlocks();

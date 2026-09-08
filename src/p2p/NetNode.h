@@ -127,10 +127,22 @@ namespace CryptoNote
 
         uint64_t writeDuration(TimePoint now) const;
 
+        /* Milliseconds since we last read anything from this peer. */
+        uint64_t readIdleDuration(TimePoint now) const;
+
+        /* Called by the connection handler after every command it reads. */
+        void markRead();
+
       private:
         Logging::LoggerRef logger;
 
         TimePoint writeOperationStartTime;
+
+        /* When we last read a command from this peer. Only the write side was
+           tracked, so a peer that accepted our request and then went quiet was
+           never noticed: it sat in the synchronizing state holding one of the
+           few outgoing slots for the lifetime of the process. */
+        TimePoint lastReadTime = Clock::now();
 
         System::Event queueEvent;
 

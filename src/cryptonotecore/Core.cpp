@@ -1873,14 +1873,52 @@ namespace CryptoNote
 
             std::vector<Crypto::Hash> transactionHashes;
 
-            const auto rawBlocks = mainChain->getBlocksByHeight(startHeight, endHeight);
+            /* Split the range at the prune floor rather than choosing one path
+               for the whole thing. The pruned path used to run only when the
+               range held no raw blocks at all, so a range straddling the floor
+               took the normal path and silently returned nothing for the pruned
+               side. That is not a rare case: the wallet asks for a fixed window
+               around each block it scans, and the floor advances continuously,
+               so there is always a window sitting across it. */
+            const uint64_t pruneFloor = mainChain->getPruneFloor();
 
-            if (!rawBlocks.empty())
+            const uint64_t prunedEnd = std::min<uint64_t>(endHeight, pruneFloor);
+
+            if (pruneFloor > startHeight && prunedEnd > startHeight)
             {
-                /* Normal path: extract tx hashes from raw blocks */
-                for (const auto& rawBlock : rawBlocks)
+                /* Pruned part of the range: raw blocks are gone, so read the
+                   transaction hashes from the compact archive, which survives
+                   pruning. */
+                auto *dbChain = dynamic_cast<DatabaseBlockchainCache *>(mainChain);
+
+                if (dbChain != nullptr)
                 {
-                    for (const auto& transaction : rawBlock.transactions)
+                    auto prunedBlocks = dbChain->getPrunedWalletBlocks(startHeight, prunedEnd, false);
+
+                    for (const auto &wb : prunedBlocks)
+                    {
+                        if (wb.coinbaseTransaction)
+                        {
+                            transactionHashes.push_back(wb.coinbaseTransaction->hash);
+                        }
+
+                        for (const auto &tx : wb.transactions)
+                        {
+                            transactionHashes.push_back(tx.hash);
+                        }
+                    }
+                }
+            }
+
+            const uint64_t rawStart = std::max<uint64_t>(startHeight, pruneFloor);
+
+            if (endHeight > rawStart)
+            {
+                /* Unpruned part of the range: take the hashes from the blocks
+                   themselves. */
+                for (const auto &rawBlock : mainChain->getBlocksByHeight(rawStart, endHeight))
+                {
+                    for (const auto &transaction : rawBlock.transactions)
                     {
                         transactionHashes.push_back(getBinaryArrayHash(transaction));
                     }
@@ -1890,29 +1928,6 @@ namespace CryptoNote
                     fromBinaryArray(block, rawBlock.block);
 
                     transactionHashes.push_back(getBinaryArrayHash(toBinaryArray(block.baseTransaction)));
-                }
-            }
-            else
-            {
-                /* Pruned path: raw blocks deleted, read tx hashes from cached
-                   block records which survive pruning.  Use the per-block
-                   transaction count + block hash to reconstruct tx hashes. */
-                auto *dbChain = dynamic_cast<DatabaseBlockchainCache *>(mainChain);
-                if (dbChain != nullptr)
-                {
-                    /* The "w" wallet sync records contain the tx hashes we need */
-                    auto prunedBlocks = dbChain->getPrunedWalletBlocks(startHeight, endHeight, false);
-                    for (const auto &wb : prunedBlocks)
-                    {
-                        if (wb.coinbaseTransaction)
-                        {
-                            transactionHashes.push_back(wb.coinbaseTransaction->hash);
-                        }
-                        for (const auto &tx : wb.transactions)
-                        {
-                            transactionHashes.push_back(tx.hash);
-                        }
-                    }
                 }
             }
 
