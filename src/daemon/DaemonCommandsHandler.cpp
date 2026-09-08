@@ -221,7 +221,13 @@ std::string DaemonCommandsHandler::get_commands_str() const
     ss << CryptoNote::CRYPTONOTE_NAME << " v" << PROJECT_VERSION_LONG << ENDL;
     ss << "Commands: " << ENDL;
     std::string usage = m_consoleHandler.getUsage();
-    boost::replace_all(usage, "\n", "\n  ");
+
+    /* Indent every line, replacing boost::replace_all. */
+    for (std::size_t at = usage.find('\n'); at != std::string::npos; at = usage.find('\n', at + 3))
+    {
+        usage.replace(at, 1, "\n  ");
+    }
+
     usage.insert(0, "  ");
     ss << usage << ENDL;
     return ss.str();
@@ -340,15 +346,34 @@ bool DaemonCommandsHandler::print_block(const std::vector<std::string> &args)
     }
 
     const std::string &arg = args.front();
-    try
+
+    /* A bare number is a height, anything else is treated as a hash. This
+       replaces boost::lexical_cast, which threw bad_lexical_cast on a value
+       that was not a number; std::stoul throws for the same reason, but also
+       accepts leading whitespace, a sign, and trailing text, so the whole
+       string is checked for digits first. */
+    const bool looksLikeHeight =
+        !arg.empty() && arg.find_first_not_of("0123456789") == std::string::npos;
+
+    if (looksLikeHeight)
     {
-        uint32_t height = boost::lexical_cast<uint32_t>(arg);
-        print_block_by_height(height);
+        try
+        {
+            const unsigned long height = std::stoul(arg);
+
+            if (height <= std::numeric_limits<uint32_t>::max())
+            {
+                print_block_by_height(static_cast<uint32_t>(height));
+                return true;
+            }
+        }
+        catch (const std::exception &)
+        {
+            /* Out of range for unsigned long; fall through to the hash path. */
+        }
     }
-    catch (boost::bad_lexical_cast &)
-    {
-        print_block_by_hash(arg);
-    }
+
+    print_block_by_hash(arg);
 
     return true;
 }

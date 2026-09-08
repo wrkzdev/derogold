@@ -23,6 +23,7 @@
 #include "common/StringView.h"
 #include "cryptonotecore/UpgradeManager.h"
 
+#include <deque>
 #include <IDataBase.h>
 #include <WalletTypes.h>
 #include <cryptonotecore/BlockchainReadBatch.h>

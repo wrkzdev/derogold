@@ -106,7 +106,18 @@ endif()
 target_link_libraries(Common Boost::boost)
 target_link_libraries(Config rapidjson)
 target_link_libraries(Crypto rapidjson)
-target_link_libraries(CryptoNoteCore Common Crypto Http Logging P2P Rpc Serialization System Utilities WalletBackend Boost::boost Boost::serialization rapidjson)
+target_link_libraries(CryptoNoteCore PUBLIC Common Crypto Http Logging P2P Rpc Serialization System Utilities WalletBackend Boost::boost Boost::serialization rapidjson)
+
+# RocksDBWrapper.cpp lives in this library, so this is where its headers are
+# needed. Under vcpkg they happened to be on the global include path and no
+# link was required; now that RocksDB is an ordinary target, leaving this out
+# meant the compiler fell back to whatever /usr/include/rocksdb happened to
+# hold, which on most machines is a version far older than this code needs.
+#
+# PRIVATE on purpose: only the daemon also includes RocksDBWrapper.h, and it
+# links RocksDB itself, so the C++20 requirement RocksDB carries stays with
+# this target instead of spreading across the whole project.
+target_link_libraries(CryptoNoteCore PRIVATE RocksDB::rocksdb)
 target_link_libraries(cryptotest Common Crypto rapidjson cxxopts::cxxopts)
 target_link_libraries(DeroGoldd CryptoNoteCore Errors System Boost::boost Boost::serialization cxxopts::cxxopts OpenSSL::Crypto OpenSSL::SSL rapidjson RocksDB::rocksdb)
 target_link_libraries(Errors Crypto SubWallets Utilities)
