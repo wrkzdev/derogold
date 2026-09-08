@@ -1092,12 +1092,10 @@ namespace SendTransaction
 
         setupTX.unlockTime = unlockTime;
 
-        /* Convert from key inputs to the boost uglyness */
+        /* Convert to the variant types the transaction prefix is built from.
+           These cannot be simplified away: the prefix is hashed as it stands,
+           so its layout is consensus critical. */
         setupTX.inputs = keyInputToTransactionInput(transactionInputs);
-
-        /* We can't really remove boost from here yet and simplify our data types
-           since we take a hash of the transaction prefix. Once we've got this
-           working, maybe we can work some magic. TODO */
         setupTX.outputs = keyOutputToTransactionOutput(result.outputs);
 
         /* Generate the transaction proof of work, this comes before the ring

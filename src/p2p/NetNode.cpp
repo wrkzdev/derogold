@@ -23,16 +23,6 @@
 #include <algorithm>
 
 
-// clang-format off
-// see https://github.com/boostorg/random/issues/49
-#if BOOST_VERSION == 106900
-#ifndef BOOST_PENDING_INTEGER_LOG2_HPP
-#define BOOST_PENDING_INTEGER_LOG2_HPP
-#endif /* BOOST_PENDING_INTEGER_LOG2_HPP */
-#endif /* BOOST_VERSION */
-
-// clang-format on
-
 #include <config/CryptoNoteConfig.h>
 #include <crypto/random.h>
 #include <fstream>

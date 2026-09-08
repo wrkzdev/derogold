@@ -303,17 +303,16 @@ void RpcServer::middleware(
      * reject the request */
     if (routePermissions > m_rpcMode)
     {
+        /* --enable-blockexplorer, which this used to name, is a config file
+           key rather than a command line option; the flag is --daemon-mode.
+           NOTE: nothing currently sets m_rpcMode to AllMethodsEnabled, because
+           daemon-mode only accepts standard and explorer, so routes needing it
+           always land here. */
         std::stringstream stream;
 
         stream << "You do not have permission to access this method. Please "
-                  "relaunch your daemon with the --enable-blockexplorer";
-
-        if (routePermissions == RpcMode::AllMethodsEnabled)
-        {
-            stream << "-detailed";
-        }
-
-        stream << " command line option to access this method.";
+                  "relaunch your daemon with --daemon-mode=explorer to access "
+                  "this method.";
 
         failRequest(403, stream.str(), res);
 

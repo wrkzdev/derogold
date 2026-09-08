@@ -286,32 +286,6 @@ namespace Crypto
         uint8_t data[64] = {};
     };
 
-    /* For boost hash_value */
-    inline size_t hash_value(const Hash &hash)
-    {
-        return reinterpret_cast<const size_t &>(hash);
-    }
-
-    inline size_t hash_value(const PublicKey &publicKey)
-    {
-        return reinterpret_cast<const size_t &>(publicKey);
-    }
-
-    inline size_t hash_value(const SecretKey &secretKey)
-    {
-        return reinterpret_cast<const size_t &>(secretKey);
-    }
-
-    inline size_t hash_value(const KeyDerivation &keyDerivation)
-    {
-        return reinterpret_cast<const size_t &>(keyDerivation);
-    }
-
-    inline size_t hash_value(const KeyImage &keyImage)
-    {
-        return reinterpret_cast<const size_t &>(keyImage);
-    }
-
     inline void to_json(nlohmann::json &j, const Hash &h)
     {
         j = Common::podToHex(h);
