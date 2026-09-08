@@ -34,6 +34,10 @@ No `--recursive` clone is needed any more; there are no submodules.
 If a system library is missing, CMake stops with the install command for your
 platform rather than a wall of linker errors.
 
+### CMake
+
+3.15 or newer. Ubuntu 22.04's 3.22 is fine.
+
 ### Compiler
 
 A C++17 compiler for DeroGold itself. The bundled RocksDB builds as C++20, so

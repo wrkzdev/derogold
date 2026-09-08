@@ -217,9 +217,19 @@ function(derogold_require_rocksdb)
     set(CMAKE_CXX_STANDARD 20)
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-    FetchContent_Declare(rocksdb
-        URL "https://github.com/facebook/rocksdb/archive/refs/tags/v${DEROGOLD_ROCKSDB_VERSION}.tar.gz"
-        DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
+    # DOWNLOAD_EXTRACT_TIMESTAMP only exists from CMake 3.24. Passing it to an
+    # older CMake is not ignored: FetchContent hands it through to
+    # ExternalProject, which rejects it as an unknown argument and fails the
+    # download step. Ubuntu 22.04 still ships 3.22, so this has to be
+    # conditional rather than always set.
+    if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.24")
+        FetchContent_Declare(rocksdb
+            URL "https://github.com/facebook/rocksdb/archive/refs/tags/v${DEROGOLD_ROCKSDB_VERSION}.tar.gz"
+            DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
+    else()
+        FetchContent_Declare(rocksdb
+            URL "https://github.com/facebook/rocksdb/archive/refs/tags/v${DEROGOLD_ROCKSDB_VERSION}.tar.gz")
+    endif()
 
     FetchContent_MakeAvailable(rocksdb)
 
