@@ -114,7 +114,7 @@ struct AddressBookEntry
 /* An address book is a vector of address book entries */
 typedef std::vector<AddressBookEntry> AddressBook;
 
-/* This borrows from haskell, and is a nicer boost::optional class. We either
+/* This borrows from haskell, and is a nicer std::optional class. We either
    have Just a value, or Nothing.
 
    Example usage follows.

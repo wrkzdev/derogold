@@ -114,7 +114,7 @@ namespace CryptoNote
         return cachedTransaction.getTransactionHash();
     }
 
-    size_t TransactionPool::PaymentIdHasher::operator()(const boost::optional<Crypto::Hash> &paymentId) const
+    size_t TransactionPool::PaymentIdHasher::operator()(const std::optional<Crypto::Hash> &paymentId) const
     {
         if (!paymentId)
         {
@@ -311,7 +311,7 @@ namespace CryptoNote
     {
         std::scoped_lock lock(m_transactionsMutex);
 
-        boost::optional<Crypto::Hash> p(paymentId);
+        std::optional<Crypto::Hash> p(paymentId);
 
         auto range = paymentIdIndex.equal_range(p);
         std::vector<Crypto::Hash> transactionHashes;

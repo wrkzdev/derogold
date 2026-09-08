@@ -10,7 +10,7 @@
 #include "TransactionValidatiorState.h"
 #include "crypto/crypto.h"
 
-#include <boost/optional/optional.hpp>
+#include <optional>
 #include <boost/multi_index/composite_key.hpp>
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/mem_fun.hpp>
@@ -66,7 +66,7 @@ namespace CryptoNote
 
             CachedTransaction cachedTransaction;
 
-            boost::optional<Crypto::Hash> paymentId;
+            std::optional<Crypto::Hash> paymentId;
 
             const Crypto::Hash &getTransactionHash() const;
         };
@@ -103,12 +103,12 @@ namespace CryptoNote
 
         struct PaymentIdHasher
         {
-            size_t operator()(const boost::optional<Crypto::Hash> &paymentId) const;
+            size_t operator()(const std::optional<Crypto::Hash> &paymentId) const;
         };
 
         typedef boost::multi_index::hashed_non_unique<
             boost::multi_index::tag<PaymentIdTag>,
-            BOOST_MULTI_INDEX_MEMBER(PendingTransactionInfo, boost::optional<Crypto::Hash>, paymentId),
+            BOOST_MULTI_INDEX_MEMBER(PendingTransactionInfo, std::optional<Crypto::Hash>, paymentId),
             PaymentIdHasher>
             PaymentIdIndex;
 

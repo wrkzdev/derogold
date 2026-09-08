@@ -211,10 +211,10 @@ namespace CryptoNote
             return static_cast<uint64_t>((timestamp / ONE_DAY_SECONDS) * ONE_DAY_SECONDS);
         }
 
-        std::pair<boost::optional<uint32_t>, bool> requestClosestBlockIndexByTimestamp(uint64_t timestamp,
+        std::pair<std::optional<uint32_t>, bool> requestClosestBlockIndexByTimestamp(uint64_t timestamp,
                                                                                        IDataBase &database)
         {
-            std::pair<boost::optional<uint32_t>, bool> result = {{}, false};
+            std::pair<std::optional<uint32_t>, bool> result = {{}, false};
 
             BlockchainReadBatch readBatch;
             readBatch.requestClosestTimestampBlockIndex(timestamp);
@@ -504,13 +504,13 @@ namespace CryptoNote
                 version = static_cast<uint32_t>(std::atoi(values[0].c_str()));
             }
 
-            boost::optional<uint32_t> getDbSchemeVersion()
+            std::optional<uint32_t> getDbSchemeVersion()
             {
                 return version;
             }
 
         private:
-            boost::optional<uint32_t> version;
+            std::optional<uint32_t> version;
         };
 
         class DatabaseVersionWriteBatch : public IWriteBatch
@@ -737,9 +737,9 @@ namespace CryptoNote
         logger(Logging::TRACE) << "Delete successfull";
 
         // invalidate top block index and hash
-        topBlockIndex = boost::none;
-        topBlockHash = boost::none;
-        transactionsCount = boost::none;
+        topBlockIndex = std::nullopt;
+        topBlockHash = std::nullopt;
+        transactionsCount = std::nullopt;
 
         logger(Logging::DEBUGGING) << "split completed";
         // return new cache
@@ -876,9 +876,9 @@ namespace CryptoNote
         logger(Logging::TRACE) << "Delete successful";
 
         // invalidate top block index and hash
-        topBlockIndex = boost::none;
-        topBlockHash = boost::none;
-        transactionsCount = boost::none;
+        topBlockIndex = std::nullopt;
+        topBlockHash = std::nullopt;
+        transactionsCount = std::nullopt;
     }
 
     // returns hash of pushed block
@@ -1142,7 +1142,7 @@ namespace CryptoNote
 
         if (!newKeyAmounts.empty())
         {
-            assert(keyOutputAmountsCount.is_initialized());
+            assert(keyOutputAmountsCount.has_value());
             batch.insertKeyOutputAmounts(newKeyAmounts, *keyOutputAmountsCount);
         }
 
@@ -2857,7 +2857,7 @@ namespace CryptoNote
                 if (!states.empty() && states[0])
                     height = static_cast<uint32_t>(std::stoul(values[0]));
             }
-            boost::optional<uint32_t> height;
+            std::optional<uint32_t> height;
         };
 
         SyncFloorReadBatch batch;
@@ -3021,9 +3021,9 @@ namespace CryptoNote
          * getTopBlockIndex() jumps to anchorHeight, so cacheStartIndex would be
          * miscalculated as anchorHeight and the genesis entry would be treated as
          * the block at that height – corrupting LWMA input data. */
-        topBlockIndex = boost::none;
+        topBlockIndex = std::nullopt;
         unitsCache.clear();
-        topBlockHash  = boost::none;
+        topBlockHash  = std::nullopt;
 
         logger(Logging::INFO) << "injectBootstrapAnchor: complete, DB top is now " << getTopBlockIndex();
     }

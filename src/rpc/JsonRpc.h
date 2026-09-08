@@ -10,7 +10,7 @@
 #include "serialization/ISerializer.h"
 #include "serialization/SerializationTools.h"
 
-#include <boost/optional.hpp>
+#include <optional>
 #include <common/JsonValue.h>
 #include <functional>
 
@@ -63,9 +63,9 @@ namespace CryptoNote
             std::string message;
         };
 
-        typedef boost::optional<Common::JsonValue> OptionalId;
+        typedef std::optional<Common::JsonValue> OptionalId;
 
-        typedef boost::optional<Common::JsonValue> OptionalPassword;
+        typedef std::optional<Common::JsonValue> OptionalPassword;
 
         class JsonRpcRequest
         {
@@ -172,7 +172,7 @@ namespace CryptoNote
 
             void setId(const OptionalId &id)
             {
-                if (id.is_initialized())
+                if (id.has_value())
                 {
                     psResp.insert("id", id.get());
                 }

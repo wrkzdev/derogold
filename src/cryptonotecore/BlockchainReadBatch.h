@@ -12,10 +12,19 @@
 #include "IReadBatch.h"
 
 #include <WalletTypes.h>
-#include <boost/functional/hash.hpp>
 
 namespace std
 {
+    namespace derogold_detail
+    {
+        /* The mixing step boost::hash_combine performs. Kept identical so the
+           bucket distribution of the maps below does not change. */
+        template<typename T> void hashCombine(std::size_t &seed, const T &value)
+        {
+            seed ^= std::hash<T> {}(value) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        }
+    } // namespace derogold_detail
+
     template<> struct hash<std::pair<CryptoNote::IBlockchainCache::Amount, uint32_t>>
     {
         using argment_type = std::pair<CryptoNote::IBlockchainCache::Amount, uint32_t>;
@@ -23,8 +32,8 @@ namespace std
 
         result_type operator()(const argment_type &arg) const
         {
-            size_t hashValue = boost::hash_value(arg.first);
-            boost::hash_combine(hashValue, arg.second);
+            size_t hashValue = std::hash<CryptoNote::IBlockchainCache::Amount> {}(arg.first);
+            derogold_detail::hashCombine(hashValue, arg.second);
             return hashValue;
         }
     };
@@ -37,7 +46,7 @@ namespace std
         result_type operator()(const argment_type &arg) const
         {
             size_t hashValue = std::hash<Crypto::Hash> {}(arg.first);
-            boost::hash_combine(hashValue, arg.second);
+            derogold_detail::hashCombine(hashValue, arg.second);
             return hashValue;
         }
     };

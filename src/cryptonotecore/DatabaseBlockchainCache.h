@@ -303,18 +303,18 @@ namespace CryptoNote
 
         IBlockchainCacheFactory &blockchainCacheFactory;
 
-        mutable boost::optional<uint32_t> topBlockIndex;
+        mutable std::optional<uint32_t> topBlockIndex;
 
-        mutable boost::optional<Crypto::Hash> topBlockHash;
+        mutable std::optional<Crypto::Hash> topBlockHash;
 
         /* Cached prune floor (first block index whose raw data is still present).
          * Loaded lazily from the DB on first call to getPruneFloor() or
-         * pruneRawBlocksBefore(). boost::none means "not yet loaded from DB". */
-        mutable boost::optional<uint32_t> m_pruneFloor;
+         * pruneRawBlocksBefore(). std::nullopt means "not yet loaded from DB". */
+        mutable std::optional<uint32_t> m_pruneFloor;
 
-        mutable boost::optional<uint64_t> transactionsCount;
+        mutable std::optional<uint64_t> transactionsCount;
 
-        mutable boost::optional<uint32_t> keyOutputAmountsCount;
+        mutable std::optional<uint32_t> keyOutputAmountsCount;
 
         mutable std::unordered_map<Amount, int32_t> keyOutputCountsForAmounts;
 
