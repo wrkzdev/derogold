@@ -9,7 +9,7 @@ from your system's own repositories, then build.
 # Debian / Ubuntu
 sudo apt install build-essential cmake ninja-build git libssl-dev
 
-git clone -b development https://github.com/derogold/derogold-core.git
+git clone https://github.com/derogold/derogold-core.git
 cd derogold-core
 cmake -G Ninja -D CMAKE_BUILD_TYPE=Release -S . -B build
 cmake --build build
@@ -27,6 +27,9 @@ No `--recursive` clone is needed any more; there are no submodules.
 | Crypto++, miniupnpc, zstd | Vendored in `external/`, compiled with the project |
 | OpenSSL | System package |
 | RocksDB | Vendored in `external/`, compiled with the project, see below |
+
+Exact versions, and any local modifications made to a vendored tree, are
+recorded in [external/README.md](external/README.md).
 
 If OpenSSL is missing, CMake stops with the install command for your platform
 rather than a wall of linker errors.
