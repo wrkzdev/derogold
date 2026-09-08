@@ -10,7 +10,6 @@
 #include "serialization/ISerializer.h"
 #include "serialization/SerializationTools.h"
 
-#include <boost/foreach.hpp>
 #include <boost/optional.hpp>
 #include <common/JsonValue.h>
 #include <functional>

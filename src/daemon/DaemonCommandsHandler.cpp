@@ -9,7 +9,6 @@
 #include "version.h"
 #include "config/SyncBootstrapCheckpoints.h"
 
-#include <boost/format.hpp>
 #include <common/StringTools.h>
 #include <common/Util.h>
 #include <IDataBase.h>

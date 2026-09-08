@@ -21,13 +21,27 @@
 #include <unistd.h>
 #endif
 
-#include <boost/algorithm/string.hpp>
+#include <algorithm>
+#include <cctype>
 #include <linenoise.hpp>
 
 using Common::Console::Color;
 
 namespace Common
 {
+    namespace
+    {
+        /* Strip leading and trailing whitespace in place, replacing
+           boost::algorithm::trim. */
+        void trimInPlace(std::string &line)
+        {
+            const auto notSpace = [](const unsigned char c) { return std::isspace(c) == 0; };
+
+            line.erase(line.begin(), std::find_if(line.begin(), line.end(), notSpace));
+            line.erase(std::find_if(line.rbegin(), line.rend(), notSpace).base(), line.end());
+        }
+    } // namespace
+
     /////////////////////////////////////////////////////////////////////////////
     // AsyncConsoleReader
     /////////////////////////////////////////////////////////////////////////////
@@ -284,8 +298,27 @@ namespace Common
 
     void ConsoleHandler::handleCommand(const std::string &cmd)
     {
+        /* Split on spaces, collapsing runs of them, which is what
+           boost::split with token_compress_on did here. */
         std::vector<std::string> args;
-        boost::split(args, cmd, boost::is_any_of(" "), boost::token_compress_on);
+
+        for (std::size_t start = 0; start < cmd.size();)
+        {
+            const std::size_t end = cmd.find(' ', start);
+
+            if (end != start)
+            {
+                args.push_back(cmd.substr(start, end - start));
+            }
+
+            if (end == std::string::npos)
+            {
+                break;
+            }
+
+            start = end + 1;
+        }
+
         runCommand(args);
     }
 
@@ -302,7 +335,7 @@ namespace Common
                     break;
                 }
 
-                boost::algorithm::trim(line);
+                trimInPlace(line);
                 if (!line.empty())
                 {
                     handleCommand(line);

@@ -21,8 +21,6 @@
 #include "version.h"
 
 #include <algorithm>
-#include <boost/foreach.hpp>
-#include <boost/utility/value_init.hpp>
 
 
 // clang-format off
@@ -30,7 +28,6 @@
 #if BOOST_VERSION == 106900
 #ifndef BOOST_PENDING_INTEGER_LOG2_HPP
 #define BOOST_PENDING_INTEGER_LOG2_HPP
-#include <boost/integer/integer_log2.hpp>
 #endif /* BOOST_PENDING_INTEGER_LOG2_HPP */
 #endif /* BOOST_VERSION */
 
@@ -230,14 +227,14 @@ namespace CryptoNote
         typedef typename Command::response Response;
         int command = Command::ID;
 
-        Request req = boost::value_initialized<Request>();
+        Request req = Request {};
 
         if (!LevinProtocol::decode(reqBuf, req))
         {
             throw std::runtime_error("Failed to load_from_binary in command " + std::to_string(command));
         }
 
-        Response res = boost::value_initialized<Response>();
+        Response res = Response {};
         int ret = handler(command, req, res, ctx);
         resBuf = LevinProtocol::encode(res);
         return ret;
@@ -736,7 +733,7 @@ namespace CryptoNote
 
     bool NodeServer::timedSync()
     {
-        COMMAND_TIMED_SYNC::request arg = boost::value_initialized<COMMAND_TIMED_SYNC::request>();
+        COMMAND_TIMED_SYNC::request arg = COMMAND_TIMED_SYNC::request {};
         m_payload_handler.get_payload_sync_data(arg.payload_data);
         auto cmdBuf = LevinProtocol::encode<COMMAND_TIMED_SYNC::request>(arg);
 
@@ -912,7 +909,7 @@ namespace CryptoNote
                 return true;
             }
 
-            PeerlistEntry pe_local = boost::value_initialized<PeerlistEntry>();
+            PeerlistEntry pe_local = PeerlistEntry {};
             pe_local.adr = na;
             pe_local.id = ctx.peerId;
             pe_local.last_seen = time(nullptr);
@@ -977,7 +974,7 @@ namespace CryptoNote
             }
 
             tried_peers.insert(random_index);
-            PeerlistEntry pe = boost::value_initialized<PeerlistEntry>();
+            PeerlistEntry pe = PeerlistEntry {};
             bool r = use_white_list ? m_peerlist.get_white_peer_by_index(pe, random_index)
                                     : m_peerlist.get_gray_peer_by_index(pe, random_index);
             if (!(r))
@@ -1138,7 +1135,7 @@ namespace CryptoNote
         time(&now);
         delta = now - local_time;
 
-        BOOST_FOREACH (PeerlistEntry &be, local_peerlist)
+        for (PeerlistEntry &be : local_peerlist)
         {
             if (be.last_seen > uint64_t(local_time))
             {
@@ -1299,7 +1296,7 @@ namespace CryptoNote
         const boost::uuids::uuid *excludeConnection)
     {
         boost::uuids::uuid excludeId =
-            excludeConnection ? *excludeConnection : boost::value_initialized<boost::uuids::uuid>();
+            excludeConnection ? *excludeConnection : boost::uuids::uuid {};
 
         forEachConnection([&](P2pConnectionContext &conn) {
             if (conn.peerId && conn.m_connection_id != excludeId

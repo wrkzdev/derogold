@@ -272,7 +272,7 @@ namespace CryptoNote
             assert(context.m_needed_objects.empty());
             assert(context.m_requested_objects.empty());
 
-            NOTIFY_REQUEST_CHAIN::request r = boost::value_initialized<NOTIFY_REQUEST_CHAIN::request>();
+            NOTIFY_REQUEST_CHAIN::request r = NOTIFY_REQUEST_CHAIN::request {};
             r.block_ids = m_core.buildSparseChain();
             logger(Logging::TRACE) << context << "-->>NOTIFY_REQUEST_CHAIN: m_block_ids.size()=" << r.block_ids.size();
             post_notify<NOTIFY_REQUEST_CHAIN>(*m_p2p, r, context);
@@ -479,7 +479,7 @@ namespace CryptoNote
         typedef typename Command::request Request;
         int command = Command::ID;
 
-        Request req = boost::value_initialized<Request>();
+        Request req = Request {};
         if (!LevinProtocol::decode(reqBuf, req))
         {
             throw std::runtime_error("Failed to load_from_binary in command " + std::to_string(command));
@@ -586,7 +586,7 @@ namespace CryptoNote
         else if (result == error::AddBlockErrorCondition::BLOCK_REJECTED)
         {
             context.m_state = CryptoNoteConnectionContext::state_synchronizing;
-            NOTIFY_REQUEST_CHAIN::request r = boost::value_initialized<NOTIFY_REQUEST_CHAIN::request>();
+            NOTIFY_REQUEST_CHAIN::request r = NOTIFY_REQUEST_CHAIN::request {};
             r.block_ids = m_core.buildSparseChain();
             logger(Logging::TRACE) << context << "-->>NOTIFY_REQUEST_CHAIN: m_block_ids.size()=" << r.block_ids.size();
             post_notify<NOTIFY_REQUEST_CHAIN>(*m_p2p, r, context);
@@ -996,7 +996,7 @@ namespace CryptoNote
             else if (result == error::AddBlockErrorCondition::BLOCK_REJECTED)
             {
                 context.m_state = CryptoNoteConnectionContext::state_synchronizing;
-                NOTIFY_REQUEST_CHAIN::request r = boost::value_initialized<NOTIFY_REQUEST_CHAIN::request>();
+                NOTIFY_REQUEST_CHAIN::request r = NOTIFY_REQUEST_CHAIN::request {};
                 r.block_ids = m_core.buildSparseChain();
                 logger(Logging::TRACE) << context
                                        << "-->>NOTIFY_REQUEST_CHAIN: m_block_ids.size()=" << r.block_ids.size();
@@ -1104,7 +1104,7 @@ namespace CryptoNote
         else if (context.m_last_response_height < context.m_remote_blockchain_height - 1)
         { // we have to fetch more objects ids, request blockchain entry
 
-            NOTIFY_REQUEST_CHAIN::request r = boost::value_initialized<NOTIFY_REQUEST_CHAIN::request>();
+            NOTIFY_REQUEST_CHAIN::request r = NOTIFY_REQUEST_CHAIN::request {};
             r.block_ids = m_core.buildSparseChain();
             logger(Logging::TRACE) << context << "-->>NOTIFY_REQUEST_CHAIN: m_block_ids.size()=" << r.block_ids.size();
             post_notify<NOTIFY_REQUEST_CHAIN>(*m_p2p, r, context);
