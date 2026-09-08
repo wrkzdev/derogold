@@ -809,6 +809,15 @@ uint64_t WalletBackend::getTotalUnlockedBalance() const
     return unlockedBalance;
 }
 
+/* Gets the balance that can actually be spent, across all the wallets in the
+   container */
+uint64_t WalletBackend::getSpendableBalance() const
+{
+    const bool takeFromAll = true;
+
+    return m_subWallets->getSpendableBalance({}, takeFromAll, m_daemon->networkBlockCount());
+}
+
 /* This is simply a wrapper for Transfer::sendTransactionBasic - we need to
    pass in the daemon and subwallets instance */
 std::tuple<Error, Crypto::Hash> WalletBackend::sendTransactionBasic(

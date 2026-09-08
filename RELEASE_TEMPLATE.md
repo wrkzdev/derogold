@@ -19,6 +19,13 @@
 - Added `db_status` daemon console command to show database size and file statistics.
 - Added automatic adaptive RocksDB compaction scheduler (60s interval during sync, 30min near chain tip).
 
+## Wallet
+- Removed the `optimize` command, and with it the fusion transactions the wallet used to send.
+- Added `sweep` command to sweep an amount to an address, taking the fees out of the amount swept rather than adding them on top.
+- Added `sweep_all` command to sweep everything that can be spent to an address.
+- Changed `send_all` to sweep, so it no longer needs a balance beyond what is being sent to pay the fee.
+- Changed a transfer too large to fit in a block to be offered as several smaller transactions, instead of optimizing the wallet first.
+
 ## P2P
 - Changed p2p block downloading to dynamic block rate based on system load.
 

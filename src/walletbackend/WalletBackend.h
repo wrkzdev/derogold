@@ -165,6 +165,10 @@ class WalletBackend
 
     uint64_t getTotalUnlockedBalance() const;
 
+    /* The balance we can actually send - the unlocked balance minus the inputs
+       that are too small, or too incomplete, to be spent */
+    uint64_t getSpendableBalance() const;
+
     /* Make a new sub wallet (gens a privateSpendKey) */
     std::tuple<Error, std::string, Crypto::SecretKey> addSubWallet();
 

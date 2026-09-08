@@ -693,6 +693,42 @@ std::tuple<uint64_t, uint64_t> SubWallets::getBalance(
     return {unlockedBalance, lockedBalance};
 }
 
+/* The balance we can actually build a transaction from. The unlocked balance
+   includes inputs that input selection will never pick - inputs below
+   INPUT_NOT_SENDING, and inputs with no global output index - so it overstates
+   what is available to send, and a send of the full unlocked balance fails
+   with NOT_ENOUGH_BALANCE. Sweeping needs the real figure. */
+uint64_t SubWallets::getSpendableBalance(
+    std::vector<Crypto::PublicKey> subWalletsToTakeFrom,
+    const bool takeFromAll,
+    const uint64_t currentHeight) const
+{
+    std::scoped_lock lock(m_mutex);
+
+    /* If we're able to take from every subwallet, set the wallets to take from
+       to all our public spend keys */
+    if (takeFromAll)
+    {
+        subWalletsToTakeFrom = m_publicSpendKeys;
+    }
+
+    uint64_t spendableBalance = 0;
+
+    for (const auto &pubKey : subWalletsToTakeFrom)
+    {
+        /* Mirrors the filtering done by getTransactionInputsForAmount() */
+        for (const auto &input : m_subWallets.at(pubKey).getSpendableInputs(currentHeight))
+        {
+            if (input.input.amount >= CryptoNote::parameters::INPUT_NOT_SENDING)
+            {
+                spendableBalance += input.input.amount;
+            }
+        }
+    }
+
+    return spendableBalance;
+}
+
 /* Mark a key image as spent, no longer can be used in transactions */
 void SubWallets::markInputAsSpent(
     const Crypto::KeyImage keyImage,
