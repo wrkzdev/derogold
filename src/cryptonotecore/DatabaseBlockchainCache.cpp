@@ -8,7 +8,6 @@
 #include "BlockchainUtils.h"
 #include "crypto/hash.h"
 
-#include <boost/iterator/iterator_facade.hpp>
 #include <common/CryptoNoteTools.h>
 #include <common/StringTools.h>
 #include <common/ShuffleGenerator.h>
@@ -18,6 +17,7 @@
 #include <cryptonotecore/DatabaseBlockchainCache.h>
 #include <cstdlib>
 #include <ctime>
+#include <iterator>
 #include <map>
 #include <optional>
 #include <set>
@@ -345,12 +345,19 @@ namespace CryptoNote
             }
         }
 
-        class DbOutputConstIterator :
-            public boost::iterator_facade<DbOutputConstIterator,
-                                          const PackedOutIndex,
-                                          boost::random_access_traversal_tag /*boost::forward_traversal_tag*/>
+        /* A random access iterator over the key outputs for one amount, each
+           read from the database on dereference. Written out by hand in place
+           of boost::iterator_facade; std::lower_bound and std::distance below
+           are the only things that consume it. */
+        class DbOutputConstIterator
         {
         public:
+            using iterator_category = std::random_access_iterator_tag;
+            using value_type = PackedOutIndex;
+            using difference_type = std::ptrdiff_t;
+            using pointer = const PackedOutIndex *;
+            using reference = const PackedOutIndex &;
+
             DbOutputConstIterator(
                 std::function<PackedOutIndex(IBlockchainCache::Amount amount, uint32_t globalOutputIndex)> retriever_,
                 IBlockchainCache::Amount amount_,
@@ -361,37 +368,109 @@ namespace CryptoNote
             {
             }
 
-            const PackedOutIndex &dereference() const
+            reference operator*() const
             {
                 cachedValue = retriever(amount, globalOutputIndex);
                 return cachedValue;
             }
 
-            bool equal(const DbOutputConstIterator &other) const
+            pointer operator->() const
             {
-                return globalOutputIndex == other.globalOutputIndex;
+                return &**this;
             }
 
-            void increment()
+            reference operator[](difference_type n) const
+            {
+                return *(*this + n);
+            }
+
+            DbOutputConstIterator &operator++()
             {
                 ++globalOutputIndex;
+                return *this;
             }
 
-            void decrement()
+            DbOutputConstIterator operator++(int)
+            {
+                DbOutputConstIterator before = *this;
+                ++*this;
+                return before;
+            }
+
+            DbOutputConstIterator &operator--()
             {
                 --globalOutputIndex;
+                return *this;
             }
 
-            void advance(difference_type n)
+            DbOutputConstIterator operator--(int)
+            {
+                DbOutputConstIterator before = *this;
+                --*this;
+                return before;
+            }
+
+            DbOutputConstIterator &operator+=(difference_type n)
             {
                 assert(n >= -static_cast<difference_type>(globalOutputIndex));
                 globalOutputIndex += static_cast<uint32_t>(n);
+                return *this;
             }
 
-            difference_type distance_to(const DbOutputConstIterator &to) const
+            DbOutputConstIterator &operator-=(difference_type n)
             {
-                return static_cast<difference_type>(to.globalOutputIndex)
-                     - static_cast<difference_type>(globalOutputIndex);
+                return *this += -n;
+            }
+
+            friend DbOutputConstIterator operator+(DbOutputConstIterator it, difference_type n)
+            {
+                return it += n;
+            }
+
+            friend DbOutputConstIterator operator+(difference_type n, DbOutputConstIterator it)
+            {
+                return it += n;
+            }
+
+            friend DbOutputConstIterator operator-(DbOutputConstIterator it, difference_type n)
+            {
+                return it -= n;
+            }
+
+            friend difference_type operator-(const DbOutputConstIterator &a, const DbOutputConstIterator &b)
+            {
+                return static_cast<difference_type>(a.globalOutputIndex)
+                     - static_cast<difference_type>(b.globalOutputIndex);
+            }
+
+            friend bool operator==(const DbOutputConstIterator &a, const DbOutputConstIterator &b)
+            {
+                return a.globalOutputIndex == b.globalOutputIndex;
+            }
+
+            friend bool operator!=(const DbOutputConstIterator &a, const DbOutputConstIterator &b)
+            {
+                return !(a == b);
+            }
+
+            friend bool operator<(const DbOutputConstIterator &a, const DbOutputConstIterator &b)
+            {
+                return a.globalOutputIndex < b.globalOutputIndex;
+            }
+
+            friend bool operator>(const DbOutputConstIterator &a, const DbOutputConstIterator &b)
+            {
+                return b < a;
+            }
+
+            friend bool operator<=(const DbOutputConstIterator &a, const DbOutputConstIterator &b)
+            {
+                return !(b < a);
+            }
+
+            friend bool operator>=(const DbOutputConstIterator &a, const DbOutputConstIterator &b)
+            {
+                return !(a < b);
             }
 
         private:
