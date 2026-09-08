@@ -89,6 +89,16 @@ namespace DaemonConfig
 
         uint32_t transactionValidationThreads = std::thread::hardware_concurrency();
 
+        /* Built-in stratum server, so a stock miner can point straight at this
+           node with no pool and no bridge. Port 0 leaves it off. */
+        std::string stratumBindIp = "127.0.0.1";
+        uint16_t stratumBindPort = 0;
+
+        /* 0 hands miners the network difficulty, so a miner only reports when
+           it has actually found a block. */
+        uint64_t stratumShareDifficulty = 0;
+        size_t stratumMaxConnections = 32;
+
         /* Monero-style notification hooks. Each is either a command template
            or an http(s):// URL; empty leaves the hook off. */
         std::string blockNotify;

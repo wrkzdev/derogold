@@ -8,6 +8,7 @@
 // Please see the included LICENSE file for more information.
 
 #include "ChainNotifier.h"
+#include "StratumServer.h"
 #include "DaemonCommandsHandler.h"
 #include "DaemonConfiguration.h"
 #include "common/CryptoNoteTools.h"
@@ -577,6 +578,30 @@ int main(int argc, char *argv[])
 
         rpcServer.start();
 
+        /* The stratum server lets a stock miner hash for this node directly.
+           Optional, and a failure to bind is not fatal: the node keeps running
+           without it rather than refusing to start over a busy port. */
+        std::unique_ptr<Daemon::StratumServer> stratumServer;
+
+        if (config.stratumBindPort != 0)
+        {
+            stratumServer = std::make_unique<Daemon::StratumServer>(
+                dispatcher,
+                *ccore,
+                *cprotocol,
+                logManager,
+                config.stratumBindIp,
+                config.stratumBindPort,
+                config.stratumShareDifficulty,
+                config.stratumMaxConnections);
+
+            if (!stratumServer->start())
+            {
+                logger(WARNING) << "Failed to start the stratum server. Continuing without it.";
+                stratumServer.reset();
+            }
+        }
+
         /* Monero-style --block-notify / --reorg-notify / --tx-notify hooks.
            Delivery runs on the notifier's own worker threads; the dispatcher
            fiber that consumes Core's message stream only formats and enqueues,
@@ -752,6 +777,12 @@ int main(int argc, char *argv[])
         dch.stop_handling();
 
         // stop components
+        if (stratumServer)
+        {
+            logger(INFO) << "Stopping stratum server...";
+            stratumServer->stop();
+        }
+
         if (chainNotifier)
         {
             logger(INFO) << "Stopping chain notifier...";

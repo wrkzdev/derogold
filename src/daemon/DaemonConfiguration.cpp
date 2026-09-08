@@ -116,6 +116,12 @@ namespace DaemonConfig
             ("fee-address", "Sets the convenience charge <address> for light wallets that use the daemon", cxxopts::value<std::string>(config.feeAddress), "<address>")
             ("fee-amount", "Sets the convenience charge amount for light wallets that use the daemon", cxxopts::value<int>(config.feeAmount));
 
+        options.add_options("Mining")
+            ("stratum-bind-ip", "Interface the built-in stratum server listens on. Loopback by default: the port has no authentication, so anyone who can reach it can mine to their own address using this node", cxxopts::value<std::string>(config.stratumBindIp), "<ip>")
+            ("stratum-bind-port", "Port for the built-in stratum server, so a miner can mine straight to this node. 0 disables it", cxxopts::value<uint16_t>(config.stratumBindPort), "#")
+            ("stratum-share-difficulty", "Difficulty stratum miners are given. 0 uses the network difficulty, so a miner only reports when it has found a block; a lower value makes it report progress as well", cxxopts::value<uint64_t>(config.stratumShareDifficulty), "#")
+            ("stratum-max-connections", "Miners allowed on the stratum port at once", cxxopts::value<size_t>(config.stratumMaxConnections), "#");
+
         options.add_options("Notifications")
             ("block-notify", "Run a command or POST to an http(s):// URL for each new main-chain block. Command placeholders: %s block hash, %h height (no shell; quotes group arguments)", cxxopts::value<std::string>(config.blockNotify), "<cmd|url>")
             ("reorg-notify", "Run a command or POST to an http(s):// URL on every chain reorganisation. Placeholders: %s split height, %h new height, %n new blocks, %d discarded blocks", cxxopts::value<std::string>(config.reorgNotify), "<cmd|url>")
@@ -326,6 +332,28 @@ namespace DaemonConfig
             config.daemonMode = DaemonConfiguration::DAEMON_MODE_EXPLORER;
         }
 
+        // Mining Options
+
+        if (j.HasMember("stratum-bind-ip"))
+        {
+            config.stratumBindIp = j["stratum-bind-ip"].GetString();
+        }
+
+        if (j.HasMember("stratum-bind-port"))
+        {
+            config.stratumBindPort = static_cast<uint16_t>(j["stratum-bind-port"].GetUint());
+        }
+
+        if (j.HasMember("stratum-share-difficulty"))
+        {
+            config.stratumShareDifficulty = j["stratum-share-difficulty"].GetUint64();
+        }
+
+        if (j.HasMember("stratum-max-connections"))
+        {
+            config.stratumMaxConnections = j["stratum-max-connections"].GetUint64();
+        }
+
         // Notification Options
 
         if (j.HasMember("block-notify"))
@@ -508,6 +536,11 @@ namespace DaemonConfig
         j.AddMember("enable-cors", config.enableCors, alloc);
         j.AddMember("fee-address", config.feeAddress, alloc);
         j.AddMember("fee-amount", config.feeAmount, alloc);
+
+        j.AddMember("stratum-bind-ip", config.stratumBindIp, alloc);
+        j.AddMember("stratum-bind-port", config.stratumBindPort, alloc);
+        j.AddMember("stratum-share-difficulty", config.stratumShareDifficulty, alloc);
+        j.AddMember("stratum-max-connections", static_cast<uint64_t>(config.stratumMaxConnections), alloc);
 
         j.AddMember("block-notify", config.blockNotify, alloc);
         j.AddMember("reorg-notify", config.reorgNotify, alloc);
