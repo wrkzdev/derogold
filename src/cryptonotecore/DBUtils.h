@@ -14,14 +14,58 @@
 #include "serialization/KVBinaryOutputStreamSerializer.h"
 #include "serialization/SerializationOverloads.h"
 
-#include <boost/archive/basic_archive.hpp>
-#include <boost/archive/binary_iarchive.hpp>
-#include <boost/archive/binary_oarchive.hpp>
 #include <sstream>
 #include <string>
+#include <vector>
 
 namespace CryptoNote::DB
 {
+    /* Walks the two parallel vectors a raw database read returns: the
+       serialized value for each key, and whether that key was found.
+
+       The deserializeValues helpers below each consume as many entries as the
+       container they fill, advancing this cursor as they go, so the caller
+       hands the same cursor to each one in turn. This replaces a zipped range
+       built with boost::combine, whose elements were boost tuples. */
+    class RawResultCursor
+    {
+      public:
+        RawResultCursor(const std::vector<std::string> &values, const std::vector<bool> &found):
+            m_values(values),
+            m_found(found)
+        {
+        }
+
+        const std::string &value() const
+        {
+            return m_values.at(m_index);
+        }
+
+        bool found() const
+        {
+            return m_found.at(m_index);
+        }
+
+        RawResultCursor &operator++()
+        {
+            ++m_index;
+            return *this;
+        }
+
+        /* True once every value handed in has been consumed. */
+        bool exhausted() const
+        {
+            return m_index == m_values.size();
+        }
+
+      private:
+        const std::vector<std::string> &m_values;
+
+        const std::vector<bool> &m_found;
+
+        std::size_t m_index = 0;
+    };
+
     const std::string BLOCK_INDEX_TO_KEY_IMAGE_PREFIX = "0";
     const std::string BLOCK_INDEX_TO_TX_HASHES_PREFIX = "1";
     const std::string BLOCK_INDEX_TO_TRANSACTION_INFO_PREFIX = "2";
@@ -107,9 +151,9 @@ namespace CryptoNote::DB
     {
         for (auto iter = map.begin(); iter != map.end(); ++serializedValuesIter)
         {
-            if (boost::get<1>(*serializedValuesIter))
+            if (serializedValuesIter.found())
             {
-                DB::deserialize(boost::get<0>(*serializedValuesIter), iter->second, name);
+                DB::deserialize(serializedValuesIter.value(), iter->second, name);
                 ++iter;
             }
             else
@@ -124,9 +168,9 @@ namespace CryptoNote::DB
     {
         if (pair.second)
         {
-            if (boost::get<1>(*serializedValuesIter))
+            if (serializedValuesIter.found())
             {
-                DB::deserialize(boost::get<0>(*serializedValuesIter), pair.first, name);
+                DB::deserialize(serializedValuesIter.value(), pair.first, name);
             }
             else
             {
@@ -135,109 +179,5 @@ namespace CryptoNote::DB
             ++serializedValuesIter;
         }
     }
-
-    namespace V2
-    {
-        const std::string RAW_BLOCKS_CF = "RawBlocks";
-        const std::string SPENT_KEY_IMAGES_CF = "SpentKeyImages";
-        const std::string PAYMENT_ID_TXS_CF = "PaymentIdTxs";
-        const std::string TRANSACTIONS_CF = "Transactions";
-        const std::string BLOCKS_CF = "Blocks";
-
-        constexpr uint32_t SERIALIZATION_FLAGS =
-            boost::archive::archive_flags::no_header | boost::archive::archive_flags::no_tracking;
-
-        template<class Key> std::string serializeKey(const Key &key)
-        {
-            std::stringstream ss;
-            ss << key;
-            return ss.str();
-        }
-
-        template<class Key> std::string serializeKey(const std::string &keyPrefix, const Key &key)
-        {
-            std::stringstream ss;
-            ss << keyPrefix << "_" << key;
-            return ss.str();
-        }
-
-        template<class Value> std::string serializeValue(const Value &value)
-        {
-            std::stringstream ss;
-
-            {
-                boost::archive::binary_oarchive o {ss, SERIALIZATION_FLAGS};
-                o << value;
-            }
-
-            return ss.str();
-        }
-
-        template<class Value> void deserializeValue(const std::string &data, Value &value)
-        {
-            std::stringstream ss;
-            ss << data;
-
-            boost::archive::binary_iarchive i {ss, SERIALIZATION_FLAGS};
-            i >> value;
-        }
-
-        template<class Key, class Value>
-        std::pair<std::string, std::string> serialize(const Key &key, const Value &value)
-        {
-            return std::make_pair(V2::serializeKey(key), V2::serializeValue(value));
-        }
-
-        template<class Key, class Value>
-        std::pair<std::string, std::string> serialize(const std::string &keyPrefix, const Key &key, const Value &value)
-        {
-            return std::make_pair(V2::serializeKey(keyPrefix, key), V2::serializeValue(value));
-        }
-
-        template<class Key, class Value>
-        void serializeKeys(std::vector<std::string> &rawKeys,
-                           const std::string keyPrefix,
-                           const std::unordered_map<Key, Value> &map)
-        {
-            for (const std::pair<Key, Value> &kv : map)
-            {
-                rawKeys.emplace_back(V2::serializeKey(keyPrefix, kv.first));
-            }
-        }
-
-        template<class Key, class Value, class Iterator>
-        void deserializeValues(std::unordered_map<Key, Value> &map, Iterator &serializedValuesIter)
-        {
-            for (auto iter = map.begin(); iter != map.end(); ++serializedValuesIter)
-            {
-                if (boost::get<1>(*serializedValuesIter))
-                {
-                    V2::deserializeValue(boost::get<0>(*serializedValuesIter), iter->second);
-                    ++iter;
-                }
-                else
-                {
-                    iter = map.erase(iter);
-                }
-            }
-        }
-
-        template<class Value, class Iterator>
-        void deserializeValue(std::pair<Value, bool> &pair, Iterator &serializedValuesIter)
-        {
-            if (pair.second)
-            {
-                if (boost::get<1>(*serializedValuesIter))
-                {
-                    V2::deserializeValue(boost::get<0>(*serializedValuesIter), pair.first);
-                }
-                else
-                {
-                    pair = {Value {}, false};
-                }
-                ++serializedValuesIter;
-            }
-        }
-    } // namespace V2
 } // namespace CryptoNote::DB
 

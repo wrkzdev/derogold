@@ -598,3 +598,6 @@ FodyWeavers.xsd
 
 # End of https://www.toptal.com/developers/gitignore/api/cmake,c++,visualstudio,visualstudiocode,clion+all,macos
 
+
+# Local syntax-check helper, not part of the build.
+.syntax-check.sh

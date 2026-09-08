@@ -53,17 +53,6 @@ namespace CryptoNote
 
         void serialize(ISerializer &s);
 
-        template<class Archive> void serialize(Archive &ar, const unsigned int version)
-        {
-            // clang-format off
-            ar & BOOST_NVP(blockIndex);
-            ar & BOOST_NVP(transactionIndex);
-            ar & BOOST_NVP(transactionHash);
-            ar & BOOST_NVP(unlockTime);
-            ar & BOOST_NVP(outputs);
-            ar & BOOST_NVP(globalIndexes);
-            // clang-format on
-        }
     };
 
 

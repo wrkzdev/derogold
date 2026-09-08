@@ -8,7 +8,6 @@
 
 #include "DBUtils.h"
 
-#include <boost/serialization/unordered_set.hpp>
 #include <json.hpp>
 
 using namespace CryptoNote;

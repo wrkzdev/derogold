@@ -9,9 +9,7 @@
 #include "JsonHelper.h"
 #include "common/StringTools.h"
 
-#include <boost/serialization/nvp.hpp>
-#include <boost/serialization/vector.hpp>
-#include <boost/serialization/variant.hpp>
+#include <boost/variant.hpp>
 #include <json.hpp>
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>
@@ -34,12 +32,6 @@ namespace CryptoNote
     {
         Crypto::PublicKey key;
 
-        template<class Archive> void serialize(Archive &ar, const unsigned int version)
-        {
-            // clang-format off
-            ar & BOOST_NVP(key);
-            // clang-format on
-        }
     };
 
     typedef boost::variant<BaseInput, KeyInput> TransactionInput;
@@ -51,13 +43,6 @@ namespace CryptoNote
         uint64_t amount;
         TransactionOutputTarget target;
 
-        template<class Archive> void serialize(Archive &ar, const unsigned int version)
-        {
-            // clang-format off
-            ar & BOOST_NVP(amount);
-            ar & BOOST_NVP(target);
-            // clang-format on
-        }
     };
 
     struct TransactionPrefix
@@ -156,13 +141,6 @@ namespace CryptoNote
             }
         }
 
-        template<class Archive> void serialize(Archive &ar, const unsigned int version)
-        {
-            // clang-format off
-            ar & BOOST_NVP(block);
-            ar & BOOST_NVP(transactions);
-            // clang-format on
-        }
     };
 
     inline void to_json(nlohmann::json &j, const CryptoNote::KeyInput &k)

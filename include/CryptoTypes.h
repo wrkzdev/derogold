@@ -9,7 +9,6 @@
 #include "json.hpp"
 
 #include <algorithm>
-#include <boost/serialization/nvp.hpp>
 #include <cstdint>
 #include <iterator>
 #include <rapidjson/stringbuffer.h>
@@ -48,12 +47,6 @@ namespace Crypto
             }
         }
 
-        template<class Archive> void serialize(Archive &ar, const unsigned int version)
-        {
-            // clang-format off
-            ar & BOOST_NVP(data);
-            // clang-format on
-        }
     };
 
     struct PublicKey
@@ -102,12 +95,6 @@ namespace Crypto
             }
         }
 
-        template<class Archive> void serialize(Archive &ar, const unsigned int version)
-        {
-            // clang-format off
-            ar & BOOST_NVP(data);
-            // clang-format on
-        }
     };
 
     struct SecretKey
@@ -250,12 +237,6 @@ namespace Crypto
             }
         }
 
-        template<class Archive> void serialize(Archive &ar, const unsigned int version)
-        {
-            // clang-format off
-            ar & BOOST_NVP(data);
-            // clang-format on
-        }
     };
 
     struct Signature

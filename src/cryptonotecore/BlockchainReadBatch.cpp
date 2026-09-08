@@ -8,7 +8,6 @@
 
 #include "DBUtils.h"
 
-#include <boost/range/combine.hpp>
 #include <json.hpp>
 #include <config/Constants.h>
 
@@ -350,8 +349,7 @@ void BlockchainReadBatch::submitRawResult(const std::vector<std::string> &values
 {
     assert(state.size() == values.size());
     assert(values.size() == resultStates.size());
-    auto range = boost::combine(values, resultStates);
-    auto iter = range.begin();
+    DB::RawResultCursor iter(values, resultStates);
 
     DB::deserializeValues(state.spentKeyImagesByBlock, iter, DB::BLOCK_INDEX_TO_KEY_IMAGE_PREFIX);
     DB::deserializeValues(state.blockIndexesBySpentKeyImages, iter, DB::KEY_IMAGE_TO_BLOCK_INDEX_PREFIX);
@@ -373,11 +371,11 @@ void BlockchainReadBatch::submitRawResult(const std::vector<std::string> &values
     /* Wallet sync blocks are stored as JSON strings — deserialize manually. */
     for (auto it = state.walletSyncBlocks.begin(); it != state.walletSyncBlocks.end(); ++iter)
     {
-        if (boost::get<1>(*iter))
+        if (iter.found())
         {
             try
             {
-                it->second = nlohmann::json::parse(boost::get<0>(*iter)).get<WalletTypes::WalletBlockInfo>();
+                it->second = nlohmann::json::parse(iter.value()).get<WalletTypes::WalletBlockInfo>();
             }
             catch (const std::exception &)
             {
@@ -397,7 +395,7 @@ void BlockchainReadBatch::submitRawResult(const std::vector<std::string> &values
     DB::deserializeValue(state.transactionsCount, iter, DB::TRANSACTION_HASH_TO_TRANSACTION_INFO_PREFIX);
     DB::deserializeValue(state.pruneFloor, iter, DB::PRUNE_FLOOR_PREFIX);
 
-    assert(iter == range.end());
+    assert(iter.exhausted());
 
     resultSubmitted = true;
 }
