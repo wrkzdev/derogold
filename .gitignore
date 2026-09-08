@@ -1,4 +1,9 @@
 build/
+build-*/
+
+# Left over from the old vcpkg-based build. Nothing references it any more,
+# so the directory can be deleted.
+vcpkg/
 
 # Created by https://www.toptal.com/developers/gitignore/api/cmake,c++,visualstudio,visualstudiocode,clion+all,macos
 # Edit at https://www.toptal.com/developers/gitignore?templates=cmake,c++,visualstudio,visualstudiocode,clion+all,macos

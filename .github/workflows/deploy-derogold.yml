@@ -57,14 +57,19 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: windows-latest
-            arch: x64
-            compiler: msvc
-            install: ""
-            configure_preset: windows-x64-msvc-package
-            build_preset: windows-x64-msvc-package
+          # MSVC is disabled. With vcpkg removed there is no package source on
+          # Windows for Boost, OpenSSL, Crypto++ and miniupnpc, so this job has
+          # nothing to link against. The MinGW jobs cover Windows using MSYS2
+          # packages. To bring MSVC back, provide those four libraries and
+          # uncomment this entry.
+          # - os: windows-latest
+          #   arch: x64
+          #   compiler: msvc
+          #   install: ""
+          #   configure_preset: windows-x64-msvc-package
+          #   build_preset: windows-x64-msvc-package
 
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             arch: x64
             compiler: gcc
             install: >-
@@ -72,6 +77,11 @@ jobs:
               cmake
               curl
               git
+              libboost-serialization-dev
+              libcrypto++-dev
+              libminiupnpc-dev
+              libssl-dev
+              libzstd-dev
               ninja-build
               pkg-config
               tar
@@ -80,7 +90,7 @@ jobs:
             configure_preset: linux-x64-gcc-package
             build_preset: linux-x64-gcc-package
 
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             arch: arm64
             compiler: gcc
             install: >-
@@ -88,6 +98,11 @@ jobs:
               crossbuild-essential-arm64
               curl
               git
+              libboost-serialization-dev
+              libcrypto++-dev
+              libminiupnpc-dev
+              libssl-dev
+              libzstd-dev
               ninja-build
               pkg-config
               tar
@@ -138,8 +153,6 @@ jobs:
           ccache-key-prefix: ccache_cache_${{ runner.os }}_${{ matrix.arch }}_${{ matrix.compiler }}
           max-size: 150M
 
-      - name: Setup vcpkg
-        uses: lukka/run-vcpkg@v11.5
 
       - name: Build DeroGold (MSVC/GCC/CLANG)
         uses: lukka/run-cmake@v10.8
@@ -151,8 +164,8 @@ jobs:
         uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: ${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.compiler }}-vcpkg-build-logs
-          path: ${{ github.workspace }}/vcpkg/buildtrees/**/*.log
+          name: ${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.compiler }}-cmake-logs
+          path: ${{ github.workspace }}/build/**/*.log
           if-no-files-found: ignore
 
       - name: Upload Package
@@ -251,8 +264,7 @@ jobs:
           no-cache-filters: |
             build
           build-args: |
-            UBUNTU_VERSION=20.04
-            VCPKG_BINARY_SOURCES=clear;x-gha,readwrite
+            UBUNTU_VERSION=22.04
             ACTIONS_CACHE_URL=${{ steps.env.outputs.ACTIONS_CACHE_URL }}
           secret-envs: |
             ACTIONS_RUNTIME_TOKEN=ACTIONS_RUNTIME_TOKEN

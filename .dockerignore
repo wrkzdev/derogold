@@ -1,14 +1,8 @@
 build/
+build-*/
 
-vcpkg/buildtrees/
-vcpkg/build*/
-vcpkg/downloads/
-vcpkg/installed*/
-vcpkg/vcpkg_installed*/
-vcpkg/packages/
-vcpkg/scripts/buildsystems/tmp/
-vcpkg/*.exe
-vcpkg/*.zip
+# Left over from the old vcpkg-based build; never needed in an image.
+vcpkg/
 
 # Created by https://www.toptal.com/developers/gitignore/api/cmake,c++,visualstudio,visualstudiocode,clion+all,macos
 # Edit at https://www.toptal.com/developers/gitignore?templates=cmake,c++,visualstudio,visualstudiocode,clion+all,macos

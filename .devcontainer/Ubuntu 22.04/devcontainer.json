@@ -28,8 +28,8 @@
 
 	"mounts": [
 		{
-			"source": "vcpkg-cache",
-			"target": "/root/.cache/vcpkg/archives",
+			"source": "derogold-deps-cache",
+			"target": "/root/.cache/derogold-deps",
 			"type": "volume"
 		},
 		{

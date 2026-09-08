@@ -21,12 +21,17 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: windows-latest
-            arch: x64
-            compiler: msvc
-            install: ""
-            configure_preset: windows-x64-msvc-package
-            build_preset: windows-x64-msvc-package
+          # MSVC is disabled. With vcpkg removed there is no package source on
+          # Windows for Boost, OpenSSL, Crypto++ and miniupnpc, so this job has
+          # nothing to link against. The MinGW jobs cover Windows using MSYS2
+          # packages. To bring MSVC back, provide those four libraries and
+          # uncomment this entry.
+          # - os: windows-latest
+          #   arch: x64
+          #   compiler: msvc
+          #   install: ""
+          #   configure_preset: windows-x64-msvc-package
+          #   build_preset: windows-x64-msvc-package
 
           - os: ubuntu-22.04
             arch: x64
@@ -34,9 +39,14 @@ jobs:
             install: >-
               build-essential
               curl
-              gcc-9
               g++-9
+              gcc-9
               git
+              libboost-serialization-dev
+              libcrypto++-dev
+              libminiupnpc-dev
+              libssl-dev
+              libzstd-dev
               ninja-build
               pkg-config
               tar
@@ -50,9 +60,14 @@ jobs:
             compiler: gcc
             install: >-
               curl
-              gcc-9-aarch64-linux-gnu
               g++-9-aarch64-linux-gnu
+              gcc-9-aarch64-linux-gnu
               git
+              libboost-serialization-dev
+              libcrypto++-dev
+              libminiupnpc-dev
+              libssl-dev
+              libzstd-dev
               ninja-build
               pkg-config
               tar
@@ -106,8 +121,6 @@ jobs:
             sudo update-alternatives --set aarch64-linux-gnu-g++ /usr/bin/aarch64-linux-gnu-g++-9
           }
 
-      - name: Setup vcpkg
-        uses: lukka/run-vcpkg@v11.5
 
       - name: Build
         uses: lukka/run-cmake@v10.8
@@ -119,8 +132,8 @@ jobs:
         uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: ${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.compiler }}-vcpkg-build-logs
-          path: ${{ github.workspace }}/vcpkg/buildtrees/**/*.log
+          name: ${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.compiler }}-cmake-logs
+          path: ${{ github.workspace }}/build/**/*.log
           if-no-files-found: ignore
 
       - name: Upload Package Artifact
