@@ -89,6 +89,16 @@ namespace DaemonConfig
 
         uint32_t transactionValidationThreads = std::thread::hardware_concurrency();
 
+        /* Monero-style notification hooks. Each is either a command template
+           or an http(s):// URL; empty leaves the hook off. */
+        std::string blockNotify;
+        std::string reorgNotify;
+        std::string txNotify;
+
+        /* Hooks stay quiet until the node has caught up, so a node syncing
+           from zero does not fire one per block for the whole chain. */
+        bool notifyDuringSync = false;
+
         DaemonConfiguration()
         {
             std::stringstream logfile;

@@ -116,6 +116,12 @@ namespace DaemonConfig
             ("fee-address", "Sets the convenience charge <address> for light wallets that use the daemon", cxxopts::value<std::string>(config.feeAddress), "<address>")
             ("fee-amount", "Sets the convenience charge amount for light wallets that use the daemon", cxxopts::value<int>(config.feeAmount));
 
+        options.add_options("Notifications")
+            ("block-notify", "Run a command or POST to an http(s):// URL for each new main-chain block. Command placeholders: %s block hash, %h height (no shell; quotes group arguments)", cxxopts::value<std::string>(config.blockNotify), "<cmd|url>")
+            ("reorg-notify", "Run a command or POST to an http(s):// URL on every chain reorganisation. Placeholders: %s split height, %h new height, %n new blocks, %d discarded blocks", cxxopts::value<std::string>(config.reorgNotify), "<cmd|url>")
+            ("tx-notify", "Run a command or POST to an http(s):// URL for each transaction entering the pool. Placeholders: %s transaction hash", cxxopts::value<std::string>(config.txNotify), "<cmd|url>")
+            ("notify-during-sync", "Also fire the *-notify hooks while the node is still synchronizing (default: suppressed)", cxxopts::value<bool>(config.notifyDuringSync));
+
         options.add_options("Network")
             ("allow-local-ip", "Allow the local IP to be added to the peer list", cxxopts::value<bool>(config.localIp))
             ("hide-my-port", "Do not announce yourself as a peerlist candidate", cxxopts::value<bool>(config.hideMyPort))
@@ -320,6 +326,28 @@ namespace DaemonConfig
             config.daemonMode = DaemonConfiguration::DAEMON_MODE_EXPLORER;
         }
 
+        // Notification Options
+
+        if (j.HasMember("block-notify"))
+        {
+            config.blockNotify = j["block-notify"].GetString();
+        }
+
+        if (j.HasMember("reorg-notify"))
+        {
+            config.reorgNotify = j["reorg-notify"].GetString();
+        }
+
+        if (j.HasMember("tx-notify"))
+        {
+            config.txNotify = j["tx-notify"].GetString();
+        }
+
+        if (j.HasMember("notify-during-sync"))
+        {
+            config.notifyDuringSync = j["notify-during-sync"].GetBool();
+        }
+
         // Network Options
 
         if (j.HasMember("allow-local-ip"))
@@ -480,6 +508,11 @@ namespace DaemonConfig
         j.AddMember("enable-cors", config.enableCors, alloc);
         j.AddMember("fee-address", config.feeAddress, alloc);
         j.AddMember("fee-amount", config.feeAmount, alloc);
+
+        j.AddMember("block-notify", config.blockNotify, alloc);
+        j.AddMember("reorg-notify", config.reorgNotify, alloc);
+        j.AddMember("tx-notify", config.txNotify, alloc);
+        j.AddMember("notify-during-sync", config.notifyDuringSync, alloc);
 
         j.AddMember("allow-local-ip", config.localIp, alloc);
         j.AddMember("hide-my-port", config.hideMyPort, alloc);

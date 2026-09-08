@@ -7,6 +7,7 @@
 //
 // Please see the included LICENSE file for more information.
 
+#include "ChainNotifier.h"
 #include "DaemonCommandsHandler.h"
 #include "DaemonConfiguration.h"
 #include "common/CryptoNoteTools.h"
@@ -576,6 +577,31 @@ int main(int argc, char *argv[])
 
         rpcServer.start();
 
+        /* Monero-style --block-notify / --reorg-notify / --tx-notify hooks.
+           Delivery runs on the notifier's own worker threads; the dispatcher
+           fiber that consumes Core's message stream only formats and enqueues,
+           so a slow webhook or a wedged child process cannot stall the node. */
+        std::unique_ptr<Daemon::ChainNotifier> chainNotifier;
+
+        if (!config.blockNotify.empty() || !config.reorgNotify.empty() || !config.txNotify.empty())
+        {
+            chainNotifier = std::make_unique<Daemon::ChainNotifier>(
+                dispatcher,
+                *ccore,
+                *cprotocol,
+                logManager,
+                config.blockNotify,
+                config.reorgNotify,
+                config.txNotify,
+                config.notifyDuringSync);
+
+            if (!chainNotifier->start())
+            {
+                logger(WARNING) << "No usable notification hook configured. Continuing without notifications.";
+                chainNotifier.reset();
+            }
+        }
+
         /* Get the RPC IP address and port we are bound to */
         auto [ip, port] = rpcServer.getConnectionInfo();
 
@@ -726,6 +752,12 @@ int main(int argc, char *argv[])
         dch.stop_handling();
 
         // stop components
+        if (chainNotifier)
+        {
+            logger(INFO) << "Stopping chain notifier...";
+            chainNotifier->stop();
+        }
+
         logger(INFO) << "Stopping core rpc server...";
         rpcServer.stop();
 
