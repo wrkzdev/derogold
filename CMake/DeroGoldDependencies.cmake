@@ -283,9 +283,15 @@ function(derogold_require_rocksdb)
         message(FATAL_ERROR "The vendored RocksDB did not define a usable target.")
     endif()
 
-    # RocksDB does not always attach its own include directory to the target
-    # when consumed this way.
-    target_include_directories(rocksdb PUBLIC "${_src}/include")
+    # No target_include_directories here on purpose. RocksDB already exposes
+    # its own include directory, correctly wrapped:
+    #
+    #   target_include_directories(rocksdb PUBLIC
+    #     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>)
+    #
+    # Adding a bare source path on top broke generation, because the target is
+    # part of an install(EXPORT) and CMake refuses a source-tree path in
+    # INTERFACE_INCLUDE_DIRECTORIES that is not guarded by BUILD_INTERFACE.
 
     # RocksDB 10 and newer use defaulted comparison operators in their *public*
     # headers, so it is not only RocksDB's own sources that need C++20: every
