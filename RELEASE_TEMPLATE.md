@@ -6,7 +6,6 @@
 - Fixed daemon rpc method would fail due to missing transactions.
 - Fixed `--db-*` options such that it will no longer get overridden by default values.
 - Added `--db-optimize` option to optimize your database for reading.
-- Added `--enable-trtl-rpc` option to enable turtlecoin rpc api.
 - Changed `--db-enable-compression` to true by default.
 - Changed `status` command behaviour so that it doesn't rely on rpc anymore.
 - Added `--sync-from-height=<height>` option to bootstrap a fresh node from a recent checkpoint, skipping the full 350 GB+ historical chain download. Supported floor heights: 1,000,000 / 1,500,000 / 2,000,000 / 2,500,000 / 2,700,000 (recommended).

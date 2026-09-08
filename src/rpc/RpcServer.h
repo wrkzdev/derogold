@@ -39,8 +39,7 @@ class RpcServer
         RpcMode rpcMode,
         std::shared_ptr<CryptoNote::Core> core,
         std::shared_ptr<CryptoNote::NodeServer> p2p,
-        std::shared_ptr<CryptoNote::ICryptoNoteProtocolHandler> syncManager,
-        bool useTrtlApi);
+        std::shared_ptr<CryptoNote::ICryptoNoteProtocolHandler> syncManager);
 
     ~RpcServer();
 
@@ -82,8 +81,6 @@ class RpcServer
 
     void failRequest(int errorCode, const std::string& body, httplib::Response &res);
 
-    void failRequest(const Error& error, httplib::Response &res);
-
     void failJsonRpcRequest(int64_t errorCode, const std::string &errorMessage, httplib::Response &res);
 
     uint64_t calculateTotalFeeAmount(const std::vector<Crypto::Hash> &transactionHashes);
@@ -108,54 +105,6 @@ class RpcServer
     //////////////////
 
     std::tuple<Error, uint16_t>
-        getBlockHeaderByHashTrtlApi(const httplib::Request &req, httplib::Response &res, const rapidjson::Document &body);
-
-    std::tuple<Error, uint16_t>
-        getBlockHeaderByHeightTrtlApi(const httplib::Request &req, httplib::Response &res, const rapidjson::Document &body);
-
-    std::tuple<Error, uint16_t>
-        getRawBlockByHashTrtlApi(const httplib::Request &req, httplib::Response &res, const rapidjson::Document &body);
-
-    std::tuple<Error, uint16_t>
-        getRawBlockByHeightTrtlApi(const httplib::Request &req, httplib::Response &res, const rapidjson::Document &body);
-
-    std::tuple<Error, uint16_t>
-        getBlockCountTrtlApi(const httplib::Request &req, httplib::Response &res, const rapidjson::Document &body);
-
-    std::tuple<Error, uint16_t>
-        getBlocksByHeightTrtlApi(const httplib::Request &req, httplib::Response &res, const rapidjson::Document &body);
-
-    std::tuple<Error, uint16_t>
-        getLastBlockHeaderTrtlApi(const httplib::Request &req, httplib::Response &res, const rapidjson::Document &body);
-
-    std::tuple<Error, uint16_t>
-        feeTrtlApi(const httplib::Request &req, httplib::Response &res, const rapidjson::Document &body);
-
-    std::tuple<Error, uint16_t>
-        heightTrtlApi(const httplib::Request &req, httplib::Response &res, const rapidjson::Document &body);
-
-    std::tuple<Error, uint16_t>
-        getGlobalIndexesTrtlApi(const httplib::Request &req, httplib::Response &res, const rapidjson::Document &body);
-
-    std::tuple<Error, uint16_t>
-        infoTrtlApi(const httplib::Request &req, httplib::Response &res, const rapidjson::Document &body);
-
-    std::tuple<Error, uint16_t>
-        peersTrtlApi(const httplib::Request &req, httplib::Response &res, const rapidjson::Document &body);
-
-    std::tuple<Error, uint16_t>
-        getTransactionDetailsByHashTrtlApi(const httplib::Request &req, httplib::Response &res, const rapidjson::Document &body);
-
-    std::tuple<Error, uint16_t>
-        getRawTransactionByHashTrtlApi(const httplib::Request &req, httplib::Response &res, const rapidjson::Document &body);
-
-    std::tuple<Error, uint16_t>
-        getTransactionsInPoolTrtlApi(const httplib::Request &req, httplib::Response &res, const rapidjson::Document &body);
-
-    std::tuple<Error, uint16_t>
-        getRawTransactionsInPoolTrtlApi(const httplib::Request &req, httplib::Response &res, const rapidjson::Document &body);
-
-    std::tuple<Error, uint16_t>
         info(const httplib::Request &req, httplib::Response &res, const rapidjson::Document &body);
 
     std::tuple<Error, uint16_t>
@@ -170,30 +119,6 @@ class RpcServer
     ///////////////////
     /* POST REQUESTS */
     ///////////////////
-
-    std::tuple<Error, uint16_t>
-        submitBlockTrtlApi(const httplib::Request &req, httplib::Response &res, const rapidjson::Document &body);
-
-    std::tuple<Error, uint16_t>
-        getBlockTemplateTrtlApi(const httplib::Request &req, httplib::Response &res, const rapidjson::Document &body);
-
-    std::tuple<Error, uint16_t>
-        getRandomOutsTrtlApi(const httplib::Request &req, httplib::Response &res, const rapidjson::Document &body);
-
-    std::tuple<Error, uint16_t>
-        getWalletSyncDataTrtlApi(const httplib::Request &req, httplib::Response &res, const rapidjson::Document &body);
-
-    std::tuple<Error, uint16_t>
-        getRawBlocksTrtlApi(const httplib::Request &req, httplib::Response &res, const rapidjson::Document &body);
-
-    std::tuple<Error, uint16_t>
-        sendTransactionTrtlApi(const httplib::Request &req, httplib::Response &res, const rapidjson::Document &body);
-
-    std::tuple<Error, uint16_t>
-        getPoolChangesTrtlApi(const httplib::Request &req, httplib::Response &res, const rapidjson::Document &body);
-
-    std::tuple<Error, uint16_t>
-        getTransactionsStatusTrtlApi(const httplib::Request &req, httplib::Response &res, const rapidjson::Document &body);
 
     std::tuple<Error, uint16_t>
         sendTransaction(const httplib::Request &req, httplib::Response &res, const rapidjson::Document &body);
@@ -315,5 +240,4 @@ class RpcServer
     const std::shared_ptr<CryptoNote::ICryptoNoteProtocolHandler> m_syncManager;
 
     /* Use turtle api instead of xmr variant */
-    const bool m_useTrtlApi;
 };

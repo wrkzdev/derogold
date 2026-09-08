@@ -113,7 +113,6 @@ namespace DaemonConfig
 
         options.add_options("RPC")
             ("enable-cors", "Adds header 'Access-Control-Allow-Origin' to the RPC responses using the <domain>. Uses the value specified as the domain. Use * for all.", cxxopts::value<std::string>(config.enableCors), "<domain>")
-            ("enable-trtl-rpc", "Enable the turtlecoin RPC API", cxxopts::value<bool>(config.enableTrtlRpc))
             ("fee-address", "Sets the convenience charge <address> for light wallets that use the daemon", cxxopts::value<std::string>(config.feeAddress), "<address>")
             ("fee-amount", "Sets the convenience charge amount for light wallets that use the daemon", cxxopts::value<int>(config.feeAmount));
 
@@ -298,11 +297,6 @@ namespace DaemonConfig
             config.enableCors = j["enable-cors"].GetString();
         }
 
-        if (j.HasMember("enable-trtl-api"))
-        {
-            config.enableTrtlRpc = j["enable-trtl-api"].GetBool();
-        }
-
         if (j.HasMember("fee-address"))
         {
             config.feeAddress = j["fee-address"].GetString();
@@ -484,7 +478,6 @@ namespace DaemonConfig
 
         j.AddMember("daemon-mode", config.daemonMode, alloc);
         j.AddMember("enable-cors", config.enableCors, alloc);
-        j.AddMember("enable-trtl-api", config.enableTrtlRpc, alloc);
         j.AddMember("fee-address", config.feeAddress, alloc);
         j.AddMember("fee-amount", config.feeAmount, alloc);
 

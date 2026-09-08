@@ -559,8 +559,7 @@ int main(int argc, char *argv[])
                             rpcMode,
                             ccore,
                             p2psrv,
-                            cprotocol,
-                            config.enableTrtlRpc);
+                            cprotocol);
 
         cprotocol->set_p2p_endpoint(&*p2psrv);
         logger(INFO) << "Initializing p2p server...";

@@ -54,7 +54,6 @@ namespace DaemonConfig
         std::string outputFile;
 
         std::string enableCors;
-        bool enableTrtlRpc = false;
         std::string feeAddress;
         int feeAmount = 0;
 
