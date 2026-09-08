@@ -31,11 +31,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # MSVC is disabled. With vcpkg removed there is no package source on
-          # Windows for Boost and OpenSSL, so this job has nothing to link
-          # against. The MinGW jobs below cover Windows using MSYS2 packages.
-          # To bring MSVC back, provide those two libraries and uncomment this
-          # entry.
+          # MSVC is disabled. With vcpkg removed there is no package source
+          # on Windows for OpenSSL, so this job has nothing to link against.
+          # The MinGW jobs below cover Windows using MSYS2 packages. To bring
+          # MSVC back, provide OpenSSL and uncomment this entry.
           # - os: windows-latest
           #   arch: x64
           #   compiler: msvc
@@ -54,7 +53,6 @@ jobs:
               mingw-w64-x86_64-cmake
               mingw-w64-x86_64-ninja
               mingw-w64-x86_64-toolchain
-              mingw-w64-x86_64-boost
               mingw-w64-x86_64-openssl
             configure_preset: windows-x64-mingw-gcc-package
             build_preset: windows-x64-mingw-gcc-package
@@ -70,7 +68,6 @@ jobs:
               mingw-w64-clang-x86_64-cmake
               mingw-w64-clang-x86_64-ninja
               mingw-w64-clang-x86_64-toolchain
-              mingw-w64-clang-x86_64-boost
               mingw-w64-clang-x86_64-openssl
             configure_preset: windows-x64-mingw-clang-package
             build_preset: windows-x64-mingw-clang-package
@@ -84,7 +81,6 @@ jobs:
               cmake
               curl
               git
-              libboost-serialization-dev
               libssl-dev
               ninja-build
               pkg-config
@@ -103,7 +99,6 @@ jobs:
               crossbuild-essential-arm64
               curl
               git
-              libboost-serialization-dev
               libssl-dev
               ninja-build
               pkg-config
@@ -122,7 +117,6 @@ jobs:
               cmake
               curl
               git
-              libboost-serialization-dev
               libssl-dev
               ninja-build
               pkg-config
@@ -141,7 +135,6 @@ jobs:
               crossbuild-essential-arm64
               curl
               git
-              libboost-serialization-dev
               libssl-dev
               ninja-build
               pkg-config

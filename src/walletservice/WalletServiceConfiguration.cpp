@@ -12,6 +12,7 @@
 #include <config/CryptoNoteConfig.h>
 #include <cxxopts.hpp>
 #include <fstream>
+#include <iostream>
 #include <logging/ILogger.h>
 #include <rapidjson/document.h>
 #include <rapidjson/istreamwrapper.h>

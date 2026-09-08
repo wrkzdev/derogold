@@ -30,33 +30,6 @@ function(_derogold_missing_dependency name debian fedora arch brew)
         "See BUILDING.md for the full list.")
 endfunction()
 
-function(derogold_require_boost)
-    # Header-only components plus the compiled serialization library.
-    find_package(Boost QUIET COMPONENTS serialization)
-
-    if(NOT Boost_FOUND)
-        _derogold_missing_dependency("Boost (with the serialization component)"
-            "libboost-serialization-dev" "boost-devel" "boost" "boost")
-    endif()
-
-    # Older FindBoost modules do not define the namespaced targets, so create
-    # them when they are absent to keep the link lines identical either way.
-    if(NOT TARGET Boost::boost)
-        add_library(Boost::boost INTERFACE IMPORTED GLOBAL)
-        set_target_properties(Boost::boost PROPERTIES
-            INTERFACE_INCLUDE_DIRECTORIES "${Boost_INCLUDE_DIRS}")
-    endif()
-
-    if(NOT TARGET Boost::serialization)
-        add_library(Boost::serialization UNKNOWN IMPORTED GLOBAL)
-        set_target_properties(Boost::serialization PROPERTIES
-            IMPORTED_LOCATION "${Boost_SERIALIZATION_LIBRARY}"
-            INTERFACE_INCLUDE_DIRECTORIES "${Boost_INCLUDE_DIRS}")
-    endif()
-
-    message(STATUS "Boost: ${Boost_VERSION} (${Boost_INCLUDE_DIRS})")
-endfunction()
-
 function(derogold_require_openssl)
     # Shipped with CMake, so nothing to shim.
     find_package(OpenSSL QUIET)

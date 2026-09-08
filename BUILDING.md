@@ -1,14 +1,13 @@
 # Building DeroGold
 
-There is no package manager to set up. Install a compiler, CMake and two
-libraries from your system's own repositories, then build.
+There is no package manager to set up. Install a compiler, CMake and OpenSSL
+from your system's own repositories, then build.
 
 ## Quick start (Linux)
 
 ```sh
 # Debian / Ubuntu
-sudo apt install build-essential cmake ninja-build git \
-    libboost-serialization-dev libssl-dev
+sudo apt install build-essential cmake ninja-build git libssl-dev
 
 git clone -b development https://github.com/derogold/derogold-core.git
 cd derogold-core
@@ -26,12 +25,11 @@ No `--recursive` clone is needed any more; there are no submodules.
 | --- | --- |
 | rapidjson, cpp-httplib, cxxopts, nlohmann-json, cpp-linenoise | Vendored in `external/`, header-only, nothing to install |
 | Crypto++, miniupnpc, zstd | Vendored in `external/`, compiled with the project |
-| Boost (serialization) | System package |
 | OpenSSL | System package |
 | RocksDB | Vendored in `external/`, compiled with the project, see below |
 
-If a system library is missing, CMake stops with the install command for your
-platform rather than a wall of linker errors.
+If OpenSSL is missing, CMake stops with the install command for your platform
+rather than a wall of linker errors.
 
 ### CMake
 
@@ -47,17 +45,17 @@ can still build by pointing at a system RocksDB, see the next section.
 
 ```sh
 # Fedora / RHEL
-sudo dnf install gcc-c++ cmake ninja-build git boost-devel openssl-devel
+sudo dnf install gcc-c++ cmake ninja-build git openssl-devel
 
 # Arch
-sudo pacman -S base-devel cmake ninja git boost openssl
+sudo pacman -S base-devel cmake ninja git openssl
 
 # macOS
-brew install cmake ninja boost openssl@3
+brew install cmake ninja openssl@3
 
 # Windows, MSYS2 MINGW64 shell
 pacman -S mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake \
-    mingw-w64-x86_64-ninja mingw-w64-x86_64-boost mingw-w64-x86_64-openssl
+    mingw-w64-x86_64-ninja mingw-w64-x86_64-openssl
 ```
 
 ## RocksDB
@@ -112,9 +110,9 @@ library and CMake files only.
 
 ## Windows and MSVC
 
-MSVC is not currently supported. Boost and OpenSSL have no standard source on
-Windows outside MSYS2, which is what the MinGW instructions use. Building with
-MSVC means providing those two yourself and pointing CMake at them.
+MSVC is not currently supported. OpenSSL has no standard source on Windows
+outside MSYS2, which is what the MinGW instructions use. Building with MSVC
+means providing it yourself and pointing CMake at it.
 
 ## Upgrading from the vcpkg build
 

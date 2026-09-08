@@ -57,11 +57,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # MSVC is disabled. With vcpkg removed there is no package source on
-          # Windows for Boost and OpenSSL, so this job has nothing to link
-          # against. The MinGW jobs cover Windows using MSYS2 packages. To
-          # bring MSVC back, provide those two libraries and uncomment this
-          # entry.
+          # MSVC is disabled. With vcpkg removed there is no package source
+          # on Windows for OpenSSL, so this job has nothing to link against.
+          # The MinGW jobs cover Windows using MSYS2 packages. To bring MSVC
+          # back, provide OpenSSL and uncomment this entry.
           # - os: windows-latest
           #   arch: x64
           #   compiler: msvc
@@ -77,7 +76,6 @@ jobs:
               cmake
               curl
               git
-              libboost-serialization-dev
               libssl-dev
               ninja-build
               pkg-config
@@ -95,7 +93,6 @@ jobs:
               crossbuild-essential-arm64
               curl
               git
-              libboost-serialization-dev
               libssl-dev
               ninja-build
               pkg-config

@@ -103,10 +103,9 @@ if(MSVC OR MINGW)
 endif()
 
 # Add the dependencies we need
-target_link_libraries(Common Boost::boost)
 target_link_libraries(Config rapidjson)
 target_link_libraries(Crypto rapidjson)
-target_link_libraries(CryptoNoteCore PUBLIC Common Crypto Http Logging P2P Rpc Serialization System Utilities WalletBackend Boost::boost Boost::serialization rapidjson)
+target_link_libraries(CryptoNoteCore PUBLIC Common Crypto Http Logging P2P Rpc Serialization System Utilities WalletBackend rapidjson)
 
 # RocksDBWrapper.cpp lives in this library, so this is where its headers are
 # needed. Under vcpkg they happened to be on the global include path and no
@@ -119,24 +118,23 @@ target_link_libraries(CryptoNoteCore PUBLIC Common Crypto Http Logging P2P Rpc S
 # this target instead of spreading across the whole project.
 target_link_libraries(CryptoNoteCore PRIVATE RocksDB::rocksdb)
 target_link_libraries(cryptotest Common Crypto rapidjson cxxopts::cxxopts)
-target_link_libraries(DeroGoldd CryptoNoteCore Errors System Boost::boost Boost::serialization cxxopts::cxxopts OpenSSL::Crypto OpenSSL::SSL rapidjson RocksDB::rocksdb)
+target_link_libraries(DeroGoldd CryptoNoteCore Errors System cxxopts::cxxopts OpenSSL::Crypto OpenSSL::SSL rapidjson RocksDB::rocksdb)
 target_link_libraries(Errors Crypto SubWallets Utilities)
-target_link_libraries(JsonRpcServer Boost::boost)
 target_link_libraries(Logging Common)
-target_link_libraries(Mnemonics Errors Boost::boost)
+target_link_libraries(Mnemonics Errors)
 target_link_libraries(miner Crypto Errors Serialization System Utilities cxxopts::cxxopts httplib::httplib OpenSSL::Crypto OpenSSL::SSL rapidjson)
 target_link_libraries(Nigel CryptoNoteCore Errors httplib::httplib OpenSSL::Crypto OpenSSL::SSL)
 target_link_libraries(NodeRpcProxy Rpc)
-target_link_libraries(P2P CryptoNoteCore Serialization System Boost::boost miniupnpc::miniupnpc)
+target_link_libraries(P2P CryptoNoteCore Serialization System miniupnpc::miniupnpc)
 target_link_libraries(Rpc CryptoNoteCore P2P Utilities httplib::httplib rapidjson)
-target_link_libraries(Serialization Common Crypto Boost::boost)
+target_link_libraries(Serialization Common Crypto)
 target_link_libraries(SubWallets Common Logger rapidjson)
 target_link_libraries(Transfers CryptoNoteCore)
 target_link_libraries(Utilities Common Errors rapidjson)
-target_link_libraries(Wallet Common CryptoNoteCore NodeRpcProxy Transfers WalletBackend Boost::boost)
+target_link_libraries(Wallet Common CryptoNoteCore NodeRpcProxy Transfers WalletBackend)
 target_link_libraries(WalletApi WalletBackend cxxopts::cxxopts httplib::httplib OpenSSL::Crypto OpenSSL::SSL)
 target_link_libraries(WalletBackend Config Logger Mnemonics Nigel Serialization SubWallets Utilities Wallet cryptopp::cryptopp rapidjson)
-target_link_libraries(WalletService Errors JsonRpcServer Mnemonics Wallet Boost::boost cxxopts::cxxopts OpenSSL::Crypto OpenSSL::SSL rapidjson)
+target_link_libraries(WalletService Errors JsonRpcServer Mnemonics Wallet cxxopts::cxxopts OpenSSL::Crypto OpenSSL::SSL rapidjson)
 target_link_libraries(WalletUpgrader Common Utilities WalletBackend cxxopts::cxxopts)
 target_link_libraries(zedwallet++ WalletBackend cxxopts::cxxopts OpenSSL::Crypto OpenSSL::SSL rapidjson)
 

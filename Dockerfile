@@ -26,7 +26,7 @@ ARG DEV_PACKAGE="cmake ninja-build"
 # Nothing is downloaded during the build; these are for the CMake apt key
 # fetch above and for pkg-config lookups.
 ARG FETCH_PACKAGE="curl ca-certificates tar pkg-config"
-ARG LIB_PACKAGE="libboost-serialization-dev libssl-dev"
+ARG LIB_PACKAGE="libssl-dev"
 
 ARG AMD64_GCC_PACKAGE="build-essential crossbuild-essential-arm64"
 ARG ARM64_GCC_PACKAGE="build-essential crossbuild-essential-amd64"

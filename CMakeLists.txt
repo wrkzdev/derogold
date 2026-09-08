@@ -26,10 +26,11 @@ project(DeroGold VERSION 1.0.1.0 HOMEPAGE_URL https://derogold.com LANGUAGES C C
 #   1. Libraries vendored under external/ and built with the project:
 #      rapidjson, cpp-httplib, cxxopts, nlohmann-json and cpp-linenoise are
 #      header-only; Crypto++ and miniupnpc are compiled from their checked-in
-#      sources. All of them are pinned by being in the tree, so none can drift
-#      underneath a build and none has to be installed first.
-#   2. Libraries taken from the system: Boost and OpenSSL. Both are large,
-#      ubiquitous, and packaged everywhere. See BUILDING.md.
+#      sources, as are zstd and RocksDB. All of them are pinned by being in
+#      the tree, so none can drift underneath a build and none has to be
+#      installed first.
+#   2. OpenSSL, taken from the system. It is large, ubiquitous and
+#      packaged everywhere. See BUILDING.md.
 #   3. RocksDB, which is built from source by default because the version
 #      packaged by most distributions is older than this code requires.
 #      Set -D DEROGOLD_SYSTEM_ROCKSDB=ON to use the system one instead.
@@ -277,7 +278,6 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake")
 
 include(DeroGoldDependencies)
 
-derogold_require_boost()
 derogold_require_openssl()
 derogold_add_cryptopp()
 derogold_add_miniupnpc()

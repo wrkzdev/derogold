@@ -51,13 +51,12 @@ If you would like to compile yourself, read on.
 
 ## Build Instructions
 
-No package manager and no submodules. Install a compiler, CMake and two
-libraries from your own distribution, then build:
+No package manager and no submodules. Install a compiler, CMake and OpenSSL
+from your own distribution, then build:
 
 ```sh
 # Debian / Ubuntu
-sudo apt install build-essential cmake ninja-build git \
-    libboost-serialization-dev libssl-dev
+sudo apt install build-essential cmake ninja-build git libssl-dev
 
 git clone -b development https://github.com/derogold/derogold-core.git
 cd derogold-core
