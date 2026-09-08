@@ -48,7 +48,7 @@ jobs:
     name: ${{ matrix.build_preset }}
     runs-on: ${{ matrix.os }}
     needs: env
-    if: github.event.inputs.draft_release
+    if: inputs.draft_release
 
     concurrency: 
       group: build_derogold_${{ github.ref }}_${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler }}
@@ -196,8 +196,8 @@ jobs:
         with:
           body_path: ${{ github.workspace }}/RELEASE_TEMPLATE.md
           name: v${{ needs.env.outputs.version }}
-          tag_name: ${{ needs.env.outputs.version }}
-          draft: ${{ github.event.inputs.draft_release }}
+          tag_name: v${{ needs.env.outputs.version }}
+          draft: ${{ inputs.draft_release }}
           files: |
             ${{ github.workspace }}/build/*.zip
             ${{ github.workspace }}/build/*.tar.gz
@@ -259,4 +259,4 @@ jobs:
             ACTIONS_CACHE_URL=${{ steps.env.outputs.ACTIONS_CACHE_URL }}
           secret-envs: |
             ACTIONS_RUNTIME_TOKEN=ACTIONS_RUNTIME_TOKEN
-          push: ${{ github.event.inputs.docker_push }}
+          push: ${{ inputs.docker_push }}

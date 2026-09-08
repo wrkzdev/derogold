@@ -173,7 +173,7 @@ install(TARGETS DeroGoldd zedwallet++ WalletService miner WalletApi WalletUpgrad
 # CPack
 set(CPACK_PACKAGE_NAME "DeroGold")
 set(CPACK_PACKAGE_VENDOR "The DeroGold Developers")
-set(CPACK_PACKAGE_ICON "${CMake_SOURCE_DIR}/src/config/icon.ico")
+set(CPACK_PACKAGE_ICON "${CMAKE_SOURCE_DIR}/src/config/icon.ico")
 set(CPACK_PACKAGE_DIRECTORY "${CMAKE_BINARY_DIR}/Packaging")
 set(CPACK_PACKAGE_CONTACT "goldmember@derogold.com")
 set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${SET_PACKAGE_OUTPUT_SUFFIX}")

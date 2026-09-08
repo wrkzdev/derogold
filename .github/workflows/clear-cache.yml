@@ -53,6 +53,6 @@ jobs:
           echo "Deleting caches..."
           for cacheKey in $cacheKeysForPR
           do
-              gh actions-cache delete $cacheKey -R ${{ github.repository }} -B ${{ github.ref }} --confirm
+              gh actions-cache delete $cacheKey -R ${{ github.repository }} -B ${{ github.ref_name }} --confirm
           done
           echo "Done"
