@@ -315,12 +315,22 @@ namespace CryptoNote
 
     bool Core::hasBlock(const Crypto::Hash &blockHash) const
     {
+        std::shared_lock lock(m_chainMutex);
+
+        return hasBlockUnsafe(blockHash);
+    }
+
+    bool Core::hasBlockUnsafe(const Crypto::Hash &blockHash) const
+    {
+        /* Assumes the caller holds m_chainMutex, shared or exclusive. */
         throwIfNotInitialized();
         return findSegmentContainingBlock(blockHash) != nullptr;
     }
 
     BlockTemplate Core::getBlockByIndex(uint32_t index) const
     {
+        std::shared_lock lock(m_chainMutex);
+
         assert(!chainsStorage.empty());
         assert(!chainsLeaves.empty());
         assert(index <= getTopBlockIndex());
@@ -334,6 +344,8 @@ namespace CryptoNote
 
     BlockTemplate Core::getBlockByHash(const Crypto::Hash &blockHash) const
     {
+        std::shared_lock lock(m_chainMutex);
+
         assert(!chainsStorage.empty());
         assert(!chainsLeaves.empty());
 
@@ -352,6 +364,8 @@ namespace CryptoNote
 
     std::vector<Crypto::Hash> Core::buildSparseChain() const
     {
+        std::shared_lock lock(m_chainMutex);
+
         throwIfNotInitialized();
         Crypto::Hash topBlockHash = chainsLeaves[0]->getTopBlockHash();
         return doBuildSparseChain(topBlockHash);
@@ -359,6 +373,8 @@ namespace CryptoNote
 
     std::vector<RawBlock> Core::getBlocks(uint32_t minIndex, uint32_t count) const
     {
+        std::shared_lock lock(m_chainMutex);
+
         assert(!chainsStorage.empty());
         assert(!chainsLeaves.empty());
 
@@ -403,6 +419,8 @@ namespace CryptoNote
         std::vector<RawBlock> &blocks,
         std::vector<Crypto::Hash> &missedHashes) const
     {
+        std::shared_lock lock(m_chainMutex);
+
         throwIfNotInitialized();
 
         for (const auto &hash : blockHashes)
@@ -460,6 +478,8 @@ namespace CryptoNote
         uint32_t &fullOffset,
         std::vector<BlockFullInfo> &entries) const
     {
+        std::shared_lock lock(m_chainMutex);
+
         assert(entries.empty());
         assert(!chainsLeaves.empty());
         assert(!chainsStorage.empty());
@@ -505,6 +525,8 @@ namespace CryptoNote
         uint32_t &fullOffset,
         std::vector<BlockShortInfo> &entries) const
     {
+        std::shared_lock lock(m_chainMutex);
+
         assert(entries.empty());
         assert(!chainsLeaves.empty());
         assert(!chainsStorage.empty());
@@ -567,6 +589,8 @@ namespace CryptoNote
         std::vector<BlockDetails> &entries,
         uint32_t blockCount) const
     {
+        std::shared_lock lock(m_chainMutex);
+
         assert(entries.empty());
         assert(!chainsLeaves.empty());
         assert(!chainsStorage.empty());
@@ -697,6 +721,8 @@ namespace CryptoNote
         std::optional<WalletTypes::TopBlock> &topBlockInfo,
         uint64_t &resolvedStartIndex) const
     {
+        std::shared_lock lock(m_chainMutex);
+
         throwIfNotInitialized();
 
         try
@@ -888,6 +914,8 @@ namespace CryptoNote
         std::optional<WalletTypes::TopBlock> &topBlockInfo,
         uint64_t &resolvedStartIndex) const
     {
+        std::shared_lock lock(m_chainMutex);
+
         throwIfNotInitialized();
 
         try
@@ -1144,6 +1172,8 @@ namespace CryptoNote
         std::vector<BinaryArray> &transactions,
         std::vector<Crypto::Hash> &missedHashes) const
     {
+        std::shared_lock lock(m_chainMutex);
+
         assert(!chainsLeaves.empty());
         assert(!chainsStorage.empty());
         throwIfNotInitialized();
@@ -1240,6 +1270,8 @@ namespace CryptoNote
         uint32_t &totalBlockCount,
         uint32_t &startBlockIndex) const
     {
+        std::shared_lock lock(m_chainMutex);
+
         assert(!remoteBlockIds.empty());
         assert(remoteBlockIds.back() == getBlockHashByIndex(0));
         throwIfNotInitialized();
@@ -1252,6 +1284,8 @@ namespace CryptoNote
 
     std::error_code Core::addBlock(const CachedBlock &cachedBlock, RawBlock &&rawBlock)
     {
+        std::unique_lock lock(m_chainMutex);
+
         throwIfNotInitialized();
         uint32_t blockIndex = cachedBlock.getBlockIndex();
         Crypto::Hash blockHash = cachedBlock.getBlockHash();
@@ -1260,7 +1294,8 @@ namespace CryptoNote
         std::string blockStr = os.str();
 
         logger(Logging::DEBUGGING) << "Request to add block " << blockStr;
-        if (hasBlock(cachedBlock.getBlockHash()))
+        /* We hold m_chainMutex exclusively already, and it is not recursive. */
+        if (hasBlockUnsafe(cachedBlock.getBlockHash()))
         {
             logger(Logging::DEBUGGING) << "Block " << blockStr << " already exists";
             return error::AddBlockErrorCode::ALREADY_EXISTS;
@@ -1794,6 +1829,8 @@ namespace CryptoNote
         std::vector<uint32_t> &globalIndexes,
         std::vector<Crypto::PublicKey> &publicKeys) const
     {
+        std::shared_lock lock(m_chainMutex);
+
         throwIfNotInitialized();
 
         if (count == 0)
@@ -1865,6 +1902,8 @@ namespace CryptoNote
         const uint64_t endHeight,
         std::unordered_map<Crypto::Hash, std::vector<uint64_t>> &indexes) const
     {
+        std::shared_lock lock(m_chainMutex);
+
         throwIfNotInitialized();
 
         try
@@ -2098,6 +2137,8 @@ namespace CryptoNote
         uint64_t &difficulty,
         uint32_t &height)
     {
+        std::shared_lock lock(m_chainMutex);
+
         throwIfNotInitialized();
 
         height = getTopBlockIndex() + 1;
@@ -2350,6 +2391,8 @@ namespace CryptoNote
 
     size_t Core::getBlockchainTransactionCount() const
     {
+        std::shared_lock lock(m_chainMutex);
+
         throwIfNotInitialized();
         IBlockchainCache *mainChain = chainsLeaves[0];
         return mainChain->getTransactionCount();
@@ -2357,6 +2400,8 @@ namespace CryptoNote
 
     size_t Core::getAlternativeBlockCount() const
     {
+        std::shared_lock lock(m_chainMutex);
+
         throwIfNotInitialized();
 
         using Ptr = decltype(chainsStorage)::value_type;
@@ -3498,7 +3543,8 @@ namespace CryptoNote
         {
             IBlockchainCache *segment = findMainChainSegmentContainingBlock(blockIndex);
             Crypto::Hash blockHash = segment->getBlockHash(blockIndex);
-            BlockDetails block = getBlockDetails(blockHash);
+            /* queryBlocksDetailed, our only caller, already holds m_chainMutex. */
+            BlockDetails block = getBlockDetailsInternal(blockHash);
             entries.emplace_back(std::move(block));
         }
     }
@@ -3795,6 +3841,8 @@ namespace CryptoNote
 
     BlockDetails Core::getBlockDetails(const uint32_t blockHeight, const uint32_t attempt) const
     {
+        std::shared_lock lock(m_chainMutex);
+
         if (attempt > 10)
         {
             throw std::runtime_error("Requested block height wasn't found in blockchain.");
@@ -3810,11 +3858,16 @@ namespace CryptoNote
 
         try
         {
-            return getBlockDetails(segment->getBlockHash(blockHeight));
+            return getBlockDetailsInternal(segment->getBlockHash(blockHeight));
         }
         catch (const std::out_of_range &e)
         {
             logger(Logging::INFO) << "Failed to get block details, mid chain reorg";
+
+            /* Drop the lock before waiting. The reorg this is waiting out is a
+               writer, so holding a reader across the sleep would keep it from
+               ever happening and every attempt would fail the same way. */
+            lock.unlock();
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
             return getBlockDetails(blockHeight, attempt+1);
@@ -3823,6 +3876,14 @@ namespace CryptoNote
 
     BlockDetails Core::getBlockDetails(const Crypto::Hash &blockHash) const
     {
+        std::shared_lock lock(m_chainMutex);
+
+        return getBlockDetailsInternal(blockHash);
+    }
+
+    BlockDetails Core::getBlockDetailsInternal(const Crypto::Hash &blockHash) const
+    {
+        /* Assumes the caller holds m_chainMutex, shared or exclusive. */
         throwIfNotInitialized();
 
         IBlockchainCache *segment = findSegmentContainingBlock(blockHash);

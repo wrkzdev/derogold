@@ -26,6 +26,7 @@
 #include <WalletTypes.h>
 #include <ctime>
 #include <logging/LoggerMessage.h>
+#include <shared_mutex>
 #include <system/ContextGroup.h>
 #include <unordered_map>
 #include <utilities/ThreadPool.h>
@@ -60,6 +61,10 @@ namespace CryptoNote
         virtual uint64_t getBlockTimestampByIndex(uint32_t blockIndex) const override;
 
         virtual bool hasBlock(const Crypto::Hash &blockHash) const override;
+
+        /* hasBlock without taking m_chainMutex, for callers that already hold
+           it. A shared mutex is not recursive, so addBlock must use this. */
+        bool hasBlockUnsafe(const Crypto::Hash &blockHash) const;
 
         virtual BlockTemplate getBlockByIndex(uint32_t index) const override;
 
@@ -450,6 +455,20 @@ namespace CryptoNote
         void cutSegment(IBlockchainCache &segment, uint32_t startIndex);
         
         std::mutex m_submitBlockMutex;
+
+        /* Guards the chain structures - chainsLeaves, chainsStorage and
+           mainChainSet - and the segments they point at. addBlock takes it
+           exclusively; every reader takes it shared. Mutable because the
+           readers are const.
+
+           The RPC server answers on httplib worker threads and calls straight
+           into these, so without this a reorg landing between two reads hands
+           the caller data from two different chains. */
+        mutable std::shared_mutex m_chainMutex;
+
+        /* getBlockDetails(hash) without the lock, for the callers that already
+           hold it: the two public overloads and fillQueryBlockDetails. */
+        BlockDetails getBlockDetailsInternal(const Crypto::Hash &blockHash) const;
     };
 
 } // namespace CryptoNote
