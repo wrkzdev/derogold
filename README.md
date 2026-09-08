@@ -58,7 +58,7 @@ from your own distribution, then build:
 # Debian / Ubuntu
 sudo apt install build-essential cmake ninja-build git libssl-dev
 
-git clone -b development https://github.com/derogold/derogold-core.git
+git clone https://github.com/derogold/derogold-core.git
 cd derogold-core
 cmake -G Ninja -D CMAKE_BUILD_TYPE=Release -S . -B build
 cmake --build build
@@ -101,7 +101,7 @@ docker run -d \
     -p 42069:42069 \
     -p 6969:6969 \
     -v derogold-data:/data \
-    ghcr.io/derogold/derogold-core:latest
+    ghcr.io/derogold/derogold-core:latest --data-dir=/data
 ```
 
 Available tags: `latest`, `v1.0.1.0`, etc.
@@ -131,7 +131,7 @@ docker run -d \
     -p 42069:42069 \
     -p 6969:6969 \
     -v derogold-data:/data \
-    derogoldd:latest
+    derogoldd:latest --data-dir=/data
 ```
 
 **Fast sync from height 2,700,000:**
@@ -141,7 +141,7 @@ docker run -d \
     -p 42069:42069 \
     -p 6969:6969 \
     -v derogold-data:/data \
-    derogoldd:latest --sync-from-height=2700000
+    derogoldd:latest --data-dir=/data --sync-from-height=2700000
 ```
 
 **Pruned node:**
@@ -151,7 +151,7 @@ docker run -d \
     -p 42069:42069 \
     -p 6969:6969 \
     -v derogold-data:/data \
-    derogoldd:latest --prune
+    derogoldd:latest --data-dir=/data --prune
 ```
 
 ### Useful commands
@@ -170,7 +170,11 @@ docker stop derogoldd
 docker rm derogoldd
 ```
 
-> **Note:** The blockchain data is stored in the `derogold-data` Docker volume and persists across container restarts and removals. To start fresh, remove the volume with `docker volume rm derogold-data`.
+> **Note:** `--data-dir=/data` is what puts the blockchain on the mounted
+> volume. Without it the daemon writes to `~/.DeroGold` inside the container,
+> which is lost when the container is removed. With it, the data lives in the
+> `derogold-data` volume and persists across restarts and removals. To start
+> fresh, remove the volume with `docker volume rm derogold-data`.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 

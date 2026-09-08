@@ -29,15 +29,22 @@
 - Changed p2p block downloading to dynamic block rate based on system load.
 
 ## RocksDB
-- Update RocksDB provider to v9.2.1.
+- Update RocksDB to v11.8.1, now vendored in `external/rocksdb` and compiled with the project rather than downloaded during the build.
 - Changed RocksDB default read/write buffer to 256 MB and 64 MB respectively.
 - Changed RocksDB logger output and reduced the file history to 1.
 
 ## External Dependencies Version
+
+All vendored in `external/` and built with the project, except OpenSSL. There
+are no submodules and nothing is downloaded during the build. See
+[external/README.md](external/README.md).
+
 - cpp-httplib 0.14.3
+- cpp-linenoise (upstream snapshot)
 - cryptopp 8.9.0
 - cxxopts 3.2.0
 - miniupnpc 2.2.8
+- nlohmann-json 3.2.0
 - openssl (system package)
 - rapidjson 1.1.0
 - rocksdb 11.8.1
@@ -45,18 +52,16 @@
 
 # Install Notes
 
-## For Windows user: (x64)
-- Download `DeroGold-windows-x64-msvc.zip` and unzip.
+Release binaries are built for Linux. Windows and macOS are supported by the
+build itself — see [BUILDING.md](BUILDING.md) — but are not published here.
 
 ## For Linux user: (x64)
 - (**Debian package installer**) Download `DeroGold-linux-x64-gcc.deb` to install via `sudo apt install ./DeroGold-linux-x64-gcc.deb`.
 - Download `DeroGold-linux-x64-gcc.tar.gz` and use `tar -xf DeroGold-linux-x64-gcc.tar.gz` to unzip.
 
 ## For Linux user: (arm64 / aarch64 — OrangePi5, Raspberry Pi, etc.)
-- Download `DeroGold-linux-arm64-gcc.tar.gz` and use `tar -xf DeroGold-linux-arm64-gcc.tar.gz` to unzip.
-
-## For MacOS user: (x64)
-- Download `DeroGold-osx-x64-clang.tar.gz` and use `tar -xf DeroGold-osx-x64-clang.tar.gz` to unzip.
+- (**Debian package installer**) Download `DeroGold-linux-arm64-gcc-cross.deb` to install via `sudo apt install ./DeroGold-linux-arm64-gcc-cross.deb`.
+- Download `DeroGold-linux-arm64-gcc-cross.tar.gz` and use `tar -xf DeroGold-linux-arm64-gcc-cross.tar.gz` to unzip.
 
 # Fast Sync Note
 
