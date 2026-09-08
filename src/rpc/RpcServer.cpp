@@ -29,6 +29,11 @@ namespace
        are the biggest legitimate request and are far below this. */
     constexpr size_t RPC_PAYLOAD_MAX_LENGTH = 16 * 1024 * 1024;
 
+    /* Ceiling on how many transaction hashes one payment ID lookup returns.
+       Payment IDs get reused - a shared exchange deposit ID names every
+       deposit ever made to it - so the index behind this is unbounded. */
+    constexpr size_t RPC_MAX_PAYMENT_ID_TRANSACTIONS = 1000;
+
     /* Largest height span a single global-index request may cover. Wallets ask
        for a window of ten blocks; anything near this bound is already abusive. */
     constexpr uint64_t RPC_MAX_INDEX_RANGE = 1000;
@@ -154,9 +159,44 @@ RpcServer::RpcServer(
             router(
                 &RpcServer::getTransactionsInPoolJsonRpc, RpcMode::BlockExplorerEnabled, bodyNotRequired, syncNotRequired)(req, res);
         }
+        else if (method == "f_transactions_by_payment_id_json")
+        {
+            /* Explorer mode: this walks a database index, so it is not
+               something a plain node should answer for anyone who asks. */
+            router(
+                &RpcServer::getTransactionHashesByPaymentIdJsonRpc,
+                RpcMode::BlockExplorerEnabled,
+                bodyRequired,
+                syncNotRequired)(req, res);
+        }
         else
         {
             res.status = 404;
+        }
+
+        /* JSON-RPC 2.0 says the answer carries the request's id back, and we
+           never did. Most callers here never looked, but a client that follows
+           the spec has no way to tell whose answer this is, so it throws the
+           response away - xmrig's solo miner drops it and retries, forever,
+           without printing anything. Fill it in centrally so every method and
+           every error answers correctly. */
+        if (res.status == 200 && !res.body.empty() && hasMember(*body, "id"))
+        {
+            rapidjson::Document response;
+
+            if (!response.Parse(res.body.c_str()).HasParseError() && response.IsObject()
+                && !response.HasMember("id"))
+            {
+                rapidjson::Value id;
+                id.CopyFrom((*body)["id"], response.GetAllocator());
+                response.AddMember("id", id, response.GetAllocator());
+
+                rapidjson::StringBuffer sb;
+                rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+                response.Accept(writer);
+
+                res.body = sb.GetString();
+            }
         }
     };
 
@@ -166,6 +206,14 @@ RpcServer::RpcServer(
         .Get("/fee", router(&RpcServer::fee, RpcMode::Default, bodyNotRequired, syncNotRequired))
         .Get("/height", router(&RpcServer::height, RpcMode::Default, bodyNotRequired, syncNotRequired))
         .Get("/peers", router(&RpcServer::peers, RpcMode::Default, bodyNotRequired, syncNotRequired))
+
+        /* Monero-lineage solo miners - xmrig among them - poll /getheight and
+           fall back to /getinfo when the answer carries no "hash" member, which
+           is how they tell a CryptoNote daemon from a Monero one. Ours answers
+           without it, so serving the same two handlers under their spelling is
+           the whole of what those miners need to drive this daemon directly. */
+        .Get("/getinfo", router(&RpcServer::info, RpcMode::Default, bodyNotRequired, syncNotRequired))
+        .Get("/getheight", router(&RpcServer::height, RpcMode::Default, bodyNotRequired, syncNotRequired))
 
         .Post("/json_rpc", jsonRpc)
         .Post("/sendrawtransaction", router(&RpcServer::sendTransaction, RpcMode::Default, bodyRequired, syncRequired))
@@ -2625,6 +2673,76 @@ std::tuple<Error, uint16_t> RpcServer::getTransactionsInPoolJsonRpc(
             }
         }
         writer.EndArray();
+    }
+    writer.EndObject();
+
+    writer.EndObject();
+
+    res.body = sb.GetString();
+
+    return {SUCCESS, 200};
+}
+
+std::tuple<Error, uint16_t> RpcServer::getTransactionHashesByPaymentIdJsonRpc(
+    const httplib::Request &req,
+    httplib::Response &res,
+    const rapidjson::Document &body)
+{
+    const auto params = getObjectFromJSON(body, "params");
+    const auto paymentIdStr = getStringFromJSON(params, "paymentId");
+
+    Crypto::Hash paymentId;
+
+    if (!Common::podFromHex(paymentIdStr, paymentId))
+    {
+        failJsonRpcRequest(-1, "Payment ID specified is not 64 valid hex characters!", res);
+
+        return {SUCCESS, 200};
+    }
+
+    std::vector<Crypto::Hash> hashes = m_core->getTransactionHashesByPaymentId(paymentId);
+
+    /* A payment ID that has been reused - a shared exchange deposit ID, say -
+       can name a very large number of transactions. Bound the answer so one
+       lookup cannot pull an unbounded amount out of the database, and tell the
+       caller when the list was cut short rather than silently truncating. */
+    const size_t total = hashes.size();
+    const bool truncated = total > RPC_MAX_PAYMENT_ID_TRANSACTIONS;
+
+    if (truncated)
+    {
+        hashes.resize(RPC_MAX_PAYMENT_ID_TRANSACTIONS);
+    }
+
+    rapidjson::StringBuffer sb;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+
+    writer.StartObject();
+
+    writer.Key("jsonrpc");
+    writer.String("2.0");
+
+    writer.Key("result");
+    writer.StartObject();
+    {
+        writer.Key("status");
+        writer.String("OK");
+
+        writer.Key("transactionHashes");
+        writer.StartArray();
+        {
+            for (const auto &hash : hashes)
+            {
+                writer.String(Common::podToHex(hash));
+            }
+        }
+        writer.EndArray();
+
+        writer.Key("totalCount");
+        writer.Uint64(total);
+
+        writer.Key("truncated");
+        writer.Bool(truncated);
     }
     writer.EndObject();
 

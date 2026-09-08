@@ -202,6 +202,11 @@ class RpcServer
         httplib::Response &res,
         const rapidjson::Document &body);
 
+    std::tuple<Error, uint16_t> getTransactionHashesByPaymentIdJsonRpc(
+        const httplib::Request &req,
+        httplib::Response &res,
+        const rapidjson::Document &body);
+
     //////////////////////////////
     /* Private member variables */
     //////////////////////////////
