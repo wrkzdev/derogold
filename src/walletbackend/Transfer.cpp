@@ -892,7 +892,7 @@ namespace SendTransaction
                post signature generation will invalidate the signatures. */
             const auto [success, signatures] = Crypto::crypto_ops::generateRingSignatures(
                 txPrefixHash,
-                boost::get<CryptoNote::KeyInput>(tx.inputs[i]).keyImage,
+                std::get<CryptoNote::KeyInput>(tx.inputs[i]).keyImage,
                 publicKeys,
                 tmpSecretKeys[i],
                 input.realOutput);
@@ -921,7 +921,7 @@ namespace SendTransaction
 
             if (!Crypto::crypto_ops::checkRingSignature(
                     txPrefixHash,
-                    boost::get<CryptoNote::KeyInput>(tx.inputs[i]).keyImage,
+                    std::get<CryptoNote::KeyInput>(tx.inputs[i]).keyImage,
                     publicKeys,
                     tx.signatures[i]))
             {
@@ -1150,7 +1150,7 @@ namespace SendTransaction
 
         for (const auto &input : tx.inputs)
         {
-            inputTotal += boost::get<CryptoNote::KeyInput>(input).amount;
+            inputTotal += std::get<CryptoNote::KeyInput>(input).amount;
         }
 
         for (const auto &output : tx.outputs)

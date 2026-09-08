@@ -9,7 +9,7 @@
 #include "JsonHelper.h"
 #include "common/StringTools.h"
 
-#include <boost/variant.hpp>
+#include <variant>
 #include <json.hpp>
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>
@@ -34,9 +34,9 @@ namespace CryptoNote
 
     };
 
-    typedef boost::variant<BaseInput, KeyInput> TransactionInput;
+    typedef std::variant<BaseInput, KeyInput> TransactionInput;
 
-    typedef boost::variant<KeyOutput> TransactionOutputTarget;
+    typedef std::variant<KeyOutput> TransactionOutputTarget;
 
     struct TransactionOutput
     {

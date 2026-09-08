@@ -483,7 +483,7 @@ namespace CryptoNote
             poi.transactionIndex = transactionInBlockIndex;
             poi.outputIndex = outputCount++;
 
-            if (output.target.type() == typeid(KeyOutput))
+            if (std::holds_alternative<KeyOutput>(output.target))
             {
                 transactionCacheInfo.globalIndexes.push_back(
                     insertKeyOutputToGlobalIndex(output.amount, poi, blockIndex));
@@ -1141,8 +1141,8 @@ namespace CryptoNote
                     return ExtractOutputKeysResult::OUTPUT_LOCKED;
                 }
 
-                assert(info.outputs[index.outputIndex].type() == typeid(KeyOutput));
-                publicKeys.push_back(boost::get<KeyOutput>(info.outputs[index.outputIndex]).key);
+                assert(std::holds_alternative<KeyOutput>(info.outputs[index.outputIndex]));
+                publicKeys.push_back(std::get<KeyOutput>(info.outputs[index.outputIndex]).key);
                 return ExtractOutputKeysResult::SUCCESS;
             });
     }

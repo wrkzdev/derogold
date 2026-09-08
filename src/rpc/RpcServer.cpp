@@ -602,9 +602,9 @@ uint64_t RpcServer::calculateTotalFeeAmount(const std::vector<Crypto::Hash> &tra
             0ull,
             [](const auto acc, const auto in)
             {
-                if (in.type() == typeid(CryptoNote::KeyInput))
+                if (std::holds_alternative<CryptoNote::KeyInput>(in))
                 {
-                    return acc + boost::get<CryptoNote::KeyInput>(in).amount;
+                    return acc + std::get<CryptoNote::KeyInput>(in).amount;
                 }
 
                 return acc;
@@ -753,9 +753,9 @@ void RpcServer::generateBlockHeader(
                             0ull,
                             [](const auto acc, const auto in)
                             {
-                                if (in.type() == typeid(CryptoNote::KeyInput))
+                                if (std::holds_alternative<CryptoNote::KeyInput>(in))
                                 {
-                                    return acc + boost::get<CryptoNote::KeyInput>(in).amount;
+                                    return acc + std::get<CryptoNote::KeyInput>(in).amount;
                                 }
 
                                 return acc;
@@ -802,18 +802,18 @@ void RpcServer::generateTransactionPrefix(
         {
             for (const auto &input : transaction.inputs)
             {
-                const auto type = input.type() == typeid(CryptoNote::BaseInput) ? "ff" : "02";
+                const auto type = std::holds_alternative<CryptoNote::BaseInput>(input) ? "ff" : "02";
 
                 writer.StartObject();
                 {
-                    if (input.type() == typeid(CryptoNote::BaseInput))
+                    if (std::holds_alternative<CryptoNote::BaseInput>(input))
                     {
                         writer.Key("height");
-                        writer.Uint64(boost::get<CryptoNote::BaseInput>(input).blockIndex);
+                        writer.Uint64(std::get<CryptoNote::BaseInput>(input).blockIndex);
                     }
                     else
                     {
-                        const auto keyInput = boost::get<CryptoNote::KeyInput>(input);
+                        const auto keyInput = std::get<CryptoNote::KeyInput>(input);
 
                         writer.Key("amount");
                         writer.Uint64(keyInput.amount);
@@ -851,7 +851,7 @@ void RpcServer::generateTransactionPrefix(
                     writer.Uint64(output.amount);
 
                     writer.Key("key");
-                    const auto key = boost::get<CryptoNote::KeyOutput>(output.target).key;
+                    const auto key = std::get<CryptoNote::KeyOutput>(output.target).key;
                     key.toJSON(writer);
 
                     writer.Key("type");
@@ -1553,9 +1553,9 @@ std::tuple<Error, uint16_t> RpcServer::getTransactionsInPoolTrtlApi(
                 0ull,
                 [](const auto acc, const auto in)
                 {
-                    if (in.type() == typeid(CryptoNote::KeyInput))
+                    if (std::holds_alternative<CryptoNote::KeyInput>(in))
                     {
-                        return acc + boost::get<CryptoNote::KeyInput>(in).amount;
+                        return acc + std::get<CryptoNote::KeyInput>(in).amount;
                     }
 
                     return acc;
@@ -3829,9 +3829,9 @@ std::tuple<Error, uint16_t> RpcServer::getBlockDetailsByHashJsonRpc(
 
                         const uint64_t inputAmount = std::accumulate(tx.inputs.begin(), tx.inputs.end(), 0ull,
                             [](const auto acc, const auto in) {
-                                if (in.type() == typeid(CryptoNote::KeyInput))
+                                if (std::holds_alternative<CryptoNote::KeyInput>(in))
                                 {
-                                    return acc + boost::get<CryptoNote::KeyInput>(in).amount;
+                                    return acc + std::get<CryptoNote::KeyInput>(in).amount;
                                 }
 
                                 return acc;
@@ -3976,7 +3976,7 @@ std::tuple<Error, uint16_t> RpcServer::getTransactionDetailsByHashJsonRpc(
             {
                 for (const auto &input : transaction.inputs)
                 {
-                    const auto type = input.type() == typeid(CryptoNote::BaseInput)
+                    const auto type = std::holds_alternative<CryptoNote::BaseInput>(input)
                         ? "ff"
                         : "02";
 
@@ -3988,14 +3988,14 @@ std::tuple<Error, uint16_t> RpcServer::getTransactionDetailsByHashJsonRpc(
                         writer.Key("value");
                         writer.StartObject();
                         {
-                            if (input.type() == typeid(CryptoNote::BaseInput))
+                            if (std::holds_alternative<CryptoNote::BaseInput>(input))
                             {
                                 writer.Key("height");
-                                writer.Uint64(boost::get<CryptoNote::BaseInput>(input).blockIndex);
+                                writer.Uint64(std::get<CryptoNote::BaseInput>(input).blockIndex);
                             }
                             else
                             {
-                                const auto keyInput = boost::get<CryptoNote::KeyInput>(input);
+                                const auto keyInput = std::get<CryptoNote::KeyInput>(input);
 
                                 writer.Key("k_image");
                                 writer.String(Common::podToHex(keyInput.keyImage));
@@ -4038,7 +4038,7 @@ std::tuple<Error, uint16_t> RpcServer::getTransactionDetailsByHashJsonRpc(
                             writer.StartObject();
                             {
                                 writer.Key("key");
-                                writer.String(Common::podToHex(boost::get<CryptoNote::KeyOutput>(output.target).key));
+                                writer.String(Common::podToHex(std::get<CryptoNote::KeyOutput>(output.target).key));
                             }
                             writer.EndObject();
 
@@ -4127,9 +4127,9 @@ std::tuple<Error, uint16_t> RpcServer::getTransactionsInPoolJsonRpc(
 
                 const uint64_t inputAmount = std::accumulate(tx.inputs.begin(), tx.inputs.end(), 0ull,
                     [](const auto acc, const auto in) {
-                        if (in.type() == typeid(CryptoNote::KeyInput))
+                        if (std::holds_alternative<CryptoNote::KeyInput>(in))
                         {
-                            return acc + boost::get<CryptoNote::KeyInput>(in).amount;
+                            return acc + std::get<CryptoNote::KeyInput>(in).amount;
                         }
 
                         return acc;
@@ -4267,7 +4267,7 @@ std::tuple<Error, uint16_t> RpcServer::queryBlocksLite(
                                 {
                                     for (const auto &input : prefix.txPrefix.inputs)
                                     {
-                                        const auto type = input.type() == typeid(CryptoNote::BaseInput)
+                                        const auto type = std::holds_alternative<CryptoNote::BaseInput>(input)
                                             ? "ff"
                                             : "02";
 
@@ -4279,14 +4279,14 @@ std::tuple<Error, uint16_t> RpcServer::queryBlocksLite(
                                             writer.Key("value");
                                             writer.StartObject();
                                             {
-                                                if (input.type() == typeid(CryptoNote::BaseInput))
+                                                if (std::holds_alternative<CryptoNote::BaseInput>(input))
                                                 {
                                                     writer.Key("height");
-                                                    writer.Uint64(boost::get<CryptoNote::BaseInput>(input).blockIndex);
+                                                    writer.Uint64(std::get<CryptoNote::BaseInput>(input).blockIndex);
                                                 }
                                                 else
                                                 {
-                                                    const auto keyInput = boost::get<CryptoNote::KeyInput>(input);
+                                                    const auto keyInput = std::get<CryptoNote::KeyInput>(input);
 
                                                     writer.Key("k_image");
                                                     writer.String(Common::podToHex(keyInput.keyImage));
@@ -4329,7 +4329,7 @@ std::tuple<Error, uint16_t> RpcServer::queryBlocksLite(
                                                 writer.StartObject();
                                                 {
                                                     writer.Key("key");
-                                                    writer.String(Common::podToHex(boost::get<CryptoNote::KeyOutput>(output.target).key));
+                                                    writer.String(Common::podToHex(std::get<CryptoNote::KeyOutput>(output.target).key));
                                                 }
                                                 writer.EndObject();
 
@@ -4511,7 +4511,7 @@ std::tuple<Error, uint16_t> RpcServer::getPoolChanges(
                     {
                         for (const auto &input : prefix.txPrefix.inputs)
                         {
-                            const auto type = input.type() == typeid(CryptoNote::BaseInput)
+                            const auto type = std::holds_alternative<CryptoNote::BaseInput>(input)
                                 ? "ff"
                                 : "02";
 
@@ -4523,14 +4523,14 @@ std::tuple<Error, uint16_t> RpcServer::getPoolChanges(
                                 writer.Key("value");
                                 writer.StartObject();
                                 {
-                                    if (input.type() == typeid(CryptoNote::BaseInput))
+                                    if (std::holds_alternative<CryptoNote::BaseInput>(input))
                                     {
                                         writer.Key("height");
-                                        writer.Uint64(boost::get<CryptoNote::BaseInput>(input).blockIndex);
+                                        writer.Uint64(std::get<CryptoNote::BaseInput>(input).blockIndex);
                                     }
                                     else
                                     {
-                                        const auto keyInput = boost::get<CryptoNote::KeyInput>(input);
+                                        const auto keyInput = std::get<CryptoNote::KeyInput>(input);
 
                                         writer.Key("k_image");
                                         writer.String(Common::podToHex(keyInput.keyImage));
@@ -4573,7 +4573,7 @@ std::tuple<Error, uint16_t> RpcServer::getPoolChanges(
                                     writer.StartObject();
                                     {
                                         writer.Key("key");
-                                        writer.String(Common::podToHex(boost::get<CryptoNote::KeyOutput>(output.target).key));
+                                        writer.String(Common::podToHex(std::get<CryptoNote::KeyOutput>(output.target).key));
                                     }
                                     writer.EndObject();
 
@@ -4783,7 +4783,7 @@ std::tuple<Error, uint16_t> RpcServer::queryBlocksDetailed(
                             {
                                 for (const auto &input : tx.inputs)
                                 {
-                                    const auto type = input.type() == typeid(CryptoNote::BaseInputDetails)
+                                    const auto type = std::holds_alternative<CryptoNote::BaseInputDetails>(input)
                                         ? "ff"
                                         : "02";
 
@@ -4795,9 +4795,9 @@ std::tuple<Error, uint16_t> RpcServer::queryBlocksDetailed(
                                         writer.Key("data");
                                         writer.StartObject();
                                         {
-                                            if (input.type() == typeid(CryptoNote::BaseInputDetails))
+                                            if (std::holds_alternative<CryptoNote::BaseInputDetails>(input))
                                             {
-                                                const auto in = boost::get<CryptoNote::BaseInputDetails>(input);
+                                                const auto in = std::get<CryptoNote::BaseInputDetails>(input);
 
                                                 writer.Key("amount");
                                                 writer.Uint64(in.amount);
@@ -4812,7 +4812,7 @@ std::tuple<Error, uint16_t> RpcServer::queryBlocksDetailed(
                                             }
                                             else
                                             {
-                                                const auto in = boost::get<CryptoNote::KeyInputDetails>(input);
+                                                const auto in = std::get<CryptoNote::KeyInputDetails>(input);
 
                                                 writer.Key("input");
                                                 writer.StartObject();
@@ -4884,7 +4884,7 @@ std::tuple<Error, uint16_t> RpcServer::queryBlocksDetailed(
                                                 writer.StartObject();
                                                 {
                                                     writer.Key("key");
-                                                    writer.String(Common::podToHex(boost::get<CryptoNote::KeyOutput>(output.output.target).key));
+                                                    writer.String(Common::podToHex(std::get<CryptoNote::KeyOutput>(output.output.target).key));
                                                 }
                                                 writer.EndObject();
 

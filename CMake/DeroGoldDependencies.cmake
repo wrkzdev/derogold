@@ -236,4 +236,11 @@ function(derogold_require_rocksdb)
     # RocksDB does not always attach its own include directory to the target
     # when consumed this way.
     target_include_directories(rocksdb PUBLIC "${rocksdb_SOURCE_DIR}/include")
+
+    # RocksDB 10 and newer use defaulted comparison operators in their *public*
+    # headers, so it is not only RocksDB's own sources that need C++20: every
+    # file of ours that includes one does too. Requiring it on the interface
+    # raises those translation units to C++20 and leaves the rest of the
+    # project on C++17.
+    target_compile_features(rocksdb INTERFACE cxx_std_20)
 endfunction()

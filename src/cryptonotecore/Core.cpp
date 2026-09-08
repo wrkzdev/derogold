@@ -61,9 +61,9 @@ namespace CryptoNote
             {
                 for (const auto &input : transaction.inputs)
                 {
-                    if (input.type() == typeid(KeyInput))
+                    if (std::holds_alternative<KeyInput>(input))
                     {
-                        auto inserted = alreadySpentKeyImages.insert(boost::get<KeyInput>(input).keyImage);
+                        auto inserted = alreadySpentKeyImages.insert(std::get<KeyInput>(input).keyImage);
                         if (!inserted.second)
                         {
                             return true;
@@ -136,9 +136,9 @@ namespace CryptoNote
 
             for (const auto &input : cryptonoteTransaction.inputs)
             {
-                if (input.type() == typeid(KeyInput))
+                if (std::holds_alternative<KeyInput>(input))
                 {
-                    const KeyInput &in = boost::get<KeyInput>(input);
+                    const KeyInput &in = std::get<KeyInput>(input);
                     bool r = spentOutputs.spentKeyImages.insert(in.keyImage).second;
                     if (r)
                     {
@@ -1070,7 +1070,7 @@ namespace CryptoNote
             WalletTypes::KeyOutput keyOutput;
 
             keyOutput.amount = output.amount;
-            keyOutput.key = boost::get<CryptoNote::KeyOutput>(output.target).key;
+            keyOutput.key = std::get<CryptoNote::KeyOutput>(output.target).key;
 
             transaction.keyOutputs.push_back(keyOutput);
         }
@@ -1107,7 +1107,7 @@ namespace CryptoNote
             WalletTypes::KeyOutput keyOutput;
 
             keyOutput.amount = output.amount;
-            keyOutput.key = boost::get<CryptoNote::KeyOutput>(output.target).key;
+            keyOutput.key = std::get<CryptoNote::KeyOutput>(output.target).key;
 
             transaction.keyOutputs.push_back(keyOutput);
         }
@@ -1115,7 +1115,7 @@ namespace CryptoNote
         /* Simplify the inputs */
         for (const auto &input : t.inputs)
         {
-            transaction.keyInputs.push_back(boost::get<CryptoNote::KeyInput>(input));
+            transaction.keyInputs.push_back(std::get<CryptoNote::KeyInput>(input));
         }
 
         return transaction;
@@ -2537,12 +2537,12 @@ namespace CryptoNote
             return error::TransactionValidationError::INPUT_WRONG_COUNT;
         }
 
-        if (block.baseTransaction.inputs[0].type() != typeid(BaseInput))
+        if (!std::holds_alternative<BaseInput>(block.baseTransaction.inputs[0]))
         {
             return error::TransactionValidationError::INPUT_UNEXPECTED_TYPE;
         }
 
-        if (boost::get<BaseInput>(block.baseTransaction.inputs[0]).blockIndex != previousBlockIndex + 1)
+        if (std::get<BaseInput>(block.baseTransaction.inputs[0]).blockIndex != previousBlockIndex + 1)
         {
             return error::TransactionValidationError::BASE_INPUT_WRONG_BLOCK_INDEX;
         }
@@ -2572,9 +2572,9 @@ namespace CryptoNote
                 return error::TransactionValidationError::OUTPUT_ZERO_AMOUNT;
             }
 
-            if (output.target.type() == typeid(KeyOutput))
+            if (std::holds_alternative<KeyOutput>(output.target))
             {
-                if (!check_key(boost::get<KeyOutput>(output.target).key))
+                if (!check_key(std::get<KeyOutput>(output.target).key))
                 {
                     return error::TransactionValidationError::OUTPUT_INVALID_KEY;
                 }
@@ -4047,14 +4047,14 @@ namespace CryptoNote
             if (transaction->getInputType(i) == TransactionTypes::InputType::Generating)
             {
                 BaseInputDetails baseDetails;
-                baseDetails.input = boost::get<BaseInput>(rawTransaction.inputs[i]);
+                baseDetails.input = std::get<BaseInput>(rawTransaction.inputs[i]);
                 baseDetails.amount = transaction->getOutputTotalAmount();
                 txInDetails = baseDetails;
             }
             else if (transaction->getInputType(i) == TransactionTypes::InputType::Key)
             {
                 KeyInputDetails txInToKeyDetails;
-                txInToKeyDetails.input = boost::get<KeyInput>(rawTransaction.inputs[i]);
+                txInToKeyDetails.input = std::get<KeyInput>(rawTransaction.inputs[i]);
                 std::vector<std::pair<Crypto::Hash, size_t>> outputReferences;
                 outputReferences.reserve(txInToKeyDetails.input.outputIndexes.size());
                 std::vector<uint32_t> globalIndexes =
@@ -4071,7 +4071,7 @@ namespace CryptoNote
                 txInDetails = txInToKeyDetails;
             }
 
-            assert(!txInDetails.empty());
+            assert(!txInDetails.valueless_by_exception());
             transactionDetails.inputs.push_back(std::move(txInDetails));
         }
 
