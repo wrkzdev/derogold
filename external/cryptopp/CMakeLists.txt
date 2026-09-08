@@ -1051,9 +1051,17 @@ if (${CMAKE_VERSION} VERSION_LESS "3.12")
   # https://stackoverflow.com/q/61250087
   add_definitions(${CMAKE_CPP_FLAGS} ${CRYPTOPP_COMPILE_DEFINITIONS} ${CRYPTOPP_COMPILE_OPTIONS})
 else()
-  # Fucking CMake blows. It does not honor add_compile_definitions.
+  # Local change: ${CMAKE_CXX_FLAGS} removed from add_compile_options.
+  #
+  # CMAKE_CXX_FLAGS is a single space-separated string, and CMake already
+  # passes it to every compile. Feeding it to add_compile_options adds it a
+  # second time as one indivisible argument, so the compiler sees the entire
+  # warning list as a single token, decides it must be a file name, and fails
+  # with "linker input file not found: File name too long". That only shows up
+  # when the enclosing project has set CMAKE_CXX_FLAGS to something non-empty,
+  # which DeroGold does.
   add_compile_definitions(${CMAKE_CPP_FLAGS} ${CRYPTOPP_COMPILE_DEFINITIONS})
-  add_compile_options(${CMAKE_CXX_FLAGS} ${CRYPTOPP_COMPILE_DEFINITIONS} ${CRYPTOPP_COMPILE_OPTIONS})
+  add_compile_options(${CRYPTOPP_COMPILE_DEFINITIONS} ${CRYPTOPP_COMPILE_OPTIONS})
 endif()
 
 #============================================================================
