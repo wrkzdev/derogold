@@ -31,7 +31,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
           fetch-tags: true
@@ -50,38 +50,26 @@ jobs:
     needs: env
     if: inputs.draft_release
 
-    concurrency: 
+    concurrency:
       group: build_derogold_${{ github.ref }}_${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler }}
 
     strategy:
       fail-fast: false
       matrix:
         include:
-          # MSVC is disabled. With vcpkg removed there is no package source
-          # on Windows for OpenSSL, so this job has nothing to link against.
-          # The MinGW jobs cover Windows using MSYS2 packages. To bring MSVC
-          # back, provide OpenSSL and uncomment this entry.
-          # - os: windows-latest
-          #   arch: x64
-          #   compiler: msvc
-          #   install: ""
-          #   configure_preset: windows-x64-msvc-package
-          #   build_preset: windows-x64-msvc-package
-
+          # Linux only. Windows packages are produced by the MSYS2 MinGW jobs
+          # in build-derogold.yml; there is no MSVC job anywhere, because with
+          # vcpkg gone there is no OpenSSL package source for MSVC.
           - os: ubuntu-22.04
             arch: x64
             compiler: gcc
             install: >-
               build-essential
               cmake
-              curl
               git
               libssl-dev
               ninja-build
               pkg-config
-              tar
-              unzip
-              zip
             configure_preset: linux-x64-gcc-package
             build_preset: linux-x64-gcc-package
 
@@ -91,61 +79,35 @@ jobs:
             install: >-
               cmake
               crossbuild-essential-arm64
-              curl
               git
               libssl-dev
               ninja-build
               pkg-config
-              tar
-              unzip
-              zip
             configure_preset: linux-arm64-gcc-cross-package
             build_preset: linux-arm64-gcc-cross-package
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
-          submodules: recursive
 
       - name: Install Program / Dependencies
+        if: runner.os == 'Linux'
         run: |
-          if ("${{ runner.os }}" -eq "Windows")
-          {
-            if (![string]::IsNullOrWhiteSpace("${{ matrix.install }}"))
-            {
-              choco install -y ${{ matrix.install }}
-            }
-          }
-          elseif ("${{ runner.os }}" -eq "Linux")
-          {
-            if (![string]::IsNullOrWhiteSpace("${{ matrix.install }}"))
-            {
-              sudo apt-get update
-              sudo apt-get install -y ${{ matrix.install }}
-            }
-          }
-          elseif ("${{ runner.os }}" -eq "macOS")
-          {
-            if (![string]::IsNullOrWhiteSpace("${{ matrix.install }}"))
-            {
-              brew update
-              brew install ${{ matrix.install }}
-            }
-          }
+          sudo apt-get update
+          sudo apt-get install -y ${{ matrix.install }}
 
       - name: Install CMake
-        uses: lukka/get-cmake@latest
+        uses: lukka/get-cmake@v3.31.6
 
       - name: Setup ccache
-        uses: jianmingyong/ccache-action@v1
+        uses: jianmingyong/ccache-action@v1.4.0
         with:
           ccache-key-prefix: ccache_cache_${{ runner.os }}_${{ matrix.arch }}_${{ matrix.compiler }}
           max-size: 150M
 
-
-      - name: Build DeroGold (MSVC/GCC/CLANG)
+      - name: Build DeroGold
         uses: lukka/run-cmake@v10.8
         with:
           configurePreset: '${{ matrix.configure_preset }}'
@@ -161,7 +123,7 @@ jobs:
 
       - name: Upload Package
         uses: actions/upload-artifact@v4
-        if: success() 
+        if: success()
         with:
           name: ${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.compiler }}-build
           path: |
@@ -177,7 +139,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
 
@@ -224,12 +186,6 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - uses: actions/github-script@v7
-        with:
-          script: |
-            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
-            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
-
       - id: env
         run: |
           $output = @()
@@ -241,7 +197,6 @@ jobs:
           }
 
           echo tags=$([string]::Join(",", $output)) >> "$env:GITHUB_OUTPUT"
-          echo ACTIONS_CACHE_URL=$env:ACTIONS_CACHE_URL >> "$env:GITHUB_OUTPUT"
 
       - name: Build and push
         uses: docker/build-push-action@v6
@@ -256,7 +211,4 @@ jobs:
             build
           build-args: |
             UBUNTU_VERSION=22.04
-            ACTIONS_CACHE_URL=${{ steps.env.outputs.ACTIONS_CACHE_URL }}
-          secret-envs: |
-            ACTIONS_RUNTIME_TOKEN=ACTIONS_RUNTIME_TOKEN
           push: ${{ inputs.docker_push }}

@@ -21,30 +21,19 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # MSVC is disabled. With vcpkg removed there is no package source
-          # on Windows for OpenSSL, so this job has nothing to link against.
-          # The MinGW jobs cover Windows using MSYS2 packages. To bring MSVC
-          # back, provide OpenSSL and uncomment this entry.
-          # - os: windows-latest
-          #   arch: x64
-          #   compiler: msvc
-          #   install: ""
-          #   configure_preset: windows-x64-msvc-package
-          #   build_preset: windows-x64-msvc-package
-
+          # Linux only. Windows packages are produced by the MSYS2 MinGW jobs
+          # in build-derogold.yml; there is no MSVC job anywhere, because with
+          # vcpkg gone there is no OpenSSL package source for MSVC.
           - os: ubuntu-22.04
             arch: x64
             compiler: gcc
             install: >-
               build-essential
-              curl
+              cmake
               git
               libssl-dev
               ninja-build
               pkg-config
-              tar
-              unzip
-              zip
             configure_preset: linux-x64-gcc-package
             build_preset: linux-x64-gcc-package
 
@@ -52,41 +41,32 @@ jobs:
             arch: arm64
             compiler: gcc
             install: >-
-              curl
+              cmake
               crossbuild-essential-arm64
               git
               libssl-dev
               ninja-build
               pkg-config
-              tar
-              unzip
-              zip
             configure_preset: linux-arm64-gcc-cross-package
             build_preset: linux-arm64-gcc-cross-package
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
-          submodules: recursive
 
       - name: Install Prerequisites
+        if: runner.os == 'Linux'
         run: |
-          if ("${{ runner.os }}" -eq "Linux")
-          {
-            if (![string]::IsNullOrWhiteSpace("${{ matrix.install }}"))
-            {
-              sudo apt-get update
-              sudo apt-get install -y ${{ matrix.install }}
-            }
-          }
+          sudo apt-get update
+          sudo apt-get install -y ${{ matrix.install }}
 
       - name: Install CMake
         uses: lukka/get-cmake@v3.31.6
 
       - name: Setup ccache
-        uses: jianmingyong/ccache-action@v1
+        uses: jianmingyong/ccache-action@v1.4.0
         with:
           ccache-key-prefix: ccache_cache_${{ runner.os }}_${{ matrix.arch }}_${{ matrix.compiler }}
           max-size: 150M
@@ -117,6 +97,7 @@ jobs:
           path: |
             ${{ github.workspace }}/build/Packaging/*.zip
             ${{ github.workspace }}/build/Packaging/*.tar.gz
+            ${{ github.workspace }}/build/Packaging/*.deb
           if-no-files-found: ignore
 
   release:
@@ -126,7 +107,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
 
@@ -145,3 +126,4 @@ jobs:
           files: |
             ${{ github.workspace }}/build/*.zip
             ${{ github.workspace }}/build/*.tar.gz
+            ${{ github.workspace }}/build/*.deb

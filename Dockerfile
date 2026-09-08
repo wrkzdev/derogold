@@ -25,7 +25,7 @@ ARG VCS_PACKAGE="git gpg"
 ARG DEV_PACKAGE="cmake ninja-build"
 # Nothing is downloaded during the build; these are for the CMake apt key
 # fetch above and for pkg-config lookups.
-ARG FETCH_PACKAGE="curl ca-certificates tar pkg-config"
+ARG FETCH_PACKAGE="curl ca-certificates pkg-config"
 ARG LIB_PACKAGE="libssl-dev"
 
 ARG AMD64_GCC_PACKAGE="build-essential crossbuild-essential-arm64"
@@ -56,12 +56,7 @@ FROM dev_env_default AS build
 
 RUN --mount=type=bind,target=/usr/local/src/DeroGold,rw \
     --mount=type=cache,id=ccache_${TARGETOS}_${TARGETARCH},target=/root/.ccache \
-    --mount=type=cache,id=deps_${TARGETOS}_${TARGETARCH},target=/root/.cache/derogold-deps \
-    --mount=type=secret,id=ACTIONS_RUNTIME_TOKEN \
     cd /usr/local/src/DeroGold && \
-    if [ -s /run/secrets/ACTIONS_RUNTIME_TOKEN ]; then \
-        export ACTIONS_RUNTIME_TOKEN=$(cat /run/secrets/ACTIONS_RUNTIME_TOKEN); \
-    fi && \
     if [ "${BUILDPLATFORM}" != "${TARGETPLATFORM}" ]; then \
         cmake --preset linux-${TARGETARCH}-gcc-cross-all -D CMAKE_INSTALL_PREFIX=/usr/local && cmake --build --preset linux-${TARGETARCH}-gcc-cross-all -t install -j $(nproc); \
     else \

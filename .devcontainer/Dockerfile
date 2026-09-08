@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-ARG UBUNTU_VERSION=20.04
+ARG UBUNTU_VERSION=22.04
 ARG CCACHE_VERSION=4.10.2
 ARG NVM_VERSION=0.40.1
 
@@ -22,7 +22,7 @@ ARG VCS_PACKAGE="git gpg"
 ARG DEV_PACKAGE="cmake ninja-build"
 # Nothing is downloaded during the build; these are for the CMake apt key
 # fetch above and for pkg-config lookups.
-ARG FETCH_PACKAGE="curl ca-certificates tar pkg-config"
+ARG FETCH_PACKAGE="curl ca-certificates pkg-config"
 ARG LIB_PACKAGE="libssl-dev"
 
 ARG AMD64_GCC_PACKAGE="build-essential crossbuild-essential-arm64"
