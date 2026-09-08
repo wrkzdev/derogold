@@ -10,7 +10,7 @@
 #include "crypto/hash.h"
 #include "p2p/PendingLiteBlock.h"
 
-#include <boost/uuid/uuid.hpp>
+#include <Uuid.h>
 #include <chrono>
 #include <list>
 #include <optional>
@@ -22,7 +22,7 @@ namespace CryptoNote
     struct CryptoNoteConnectionContext
     {
         uint8_t version;
-        boost::uuids::uuid m_connection_id;
+        Common::Uuid m_connection_id;
         uint32_t m_remote_ip = 0;
         uint32_t m_remote_port = 0;
         bool m_is_income = false;

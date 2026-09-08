@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <boost/uuid/uuid.hpp>
+#include <Uuid.h>
 #include <crypto/hash.h>
 #include <cstddef>
 #include <cstdint>
@@ -377,7 +377,7 @@ namespace CryptoNote
 
     const std::string LICENSE_URL = "https://github.com/derogold/derogold/blob/master/LICENSE";
 
-    const static boost::uuids::uuid CRYPTONOTE_NETWORK = {
+    const static Common::Uuid CRYPTONOTE_NETWORK = {
         {0x20, 0x69, 0x6e, 0x73, 0x74, 0x61, 0x6c, 0x6c, 0x20, 0x67, 0x65, 0x6e, 0x74, 0x6f, 0x6f, 0x20}};
 
     const char *const SEED_NODES[] = {

@@ -31,10 +31,8 @@
 #endif /* BOOST_PENDING_INTEGER_LOG2_HPP */
 #endif /* BOOST_VERSION */
 
-#include <boost/uuid/random_generator.hpp>
 // clang-format on
 
-#include <boost/uuid/uuid_io.hpp>
 #include <config/CryptoNoteConfig.h>
 #include <crypto/random.h>
 #include <fstream>
@@ -414,7 +412,7 @@ namespace CryptoNote
     void NodeServer::externalRelayNotifyToAll(
         int command,
         const BinaryArray &data_buff,
-        const boost::uuids::uuid *excludeConnection)
+        const Common::Uuid *excludeConnection)
     {
         m_dispatcher.remoteSpawn([this, command, data_buff, excludeConnection] {
             relay_notify_to_all(command, data_buff, excludeConnection);
@@ -425,7 +423,7 @@ namespace CryptoNote
     void NodeServer::externalRelayNotifyToList(
         int command,
         const BinaryArray &data_buff,
-        const std::list<boost::uuids::uuid> relayList)
+        const std::list<Common::Uuid> relayList)
     {
         m_dispatcher.remoteSpawn([this, command, data_buff, relayList] {
             forEachConnection([&](P2pConnectionContext &conn) {
@@ -780,7 +778,7 @@ namespace CryptoNote
     void NodeServer::forEachConnection(std::function<void(P2pConnectionContext &)> action)
     {
         // create copy of connection ids because the list can be changed during action
-        std::vector<boost::uuids::uuid> connectionIds;
+        std::vector<Common::Uuid> connectionIds;
         connectionIds.reserve(m_connections.size());
         for (const auto &c : m_connections)
         {
@@ -870,7 +868,7 @@ namespace CryptoNote
 
             P2pConnectionContext ctx(m_dispatcher, logger.getLogger(), std::move(connection));
 
-            ctx.m_connection_id = boost::uuids::random_generator()();
+            ctx.m_connection_id = Common::randomUuid();
             ctx.m_remote_ip = na.ip;
             ctx.m_remote_port = na.port;
             ctx.m_is_income = false;
@@ -921,7 +919,7 @@ namespace CryptoNote
             }
 
             auto iter = m_connections.emplace(ctx.m_connection_id, std::move(ctx)).first;
-            const boost::uuids::uuid &connectionId = iter->first;
+            const Common::Uuid &connectionId = iter->first;
             P2pConnectionContext &connectionContext = iter->second;
 
             m_workingContextGroup.spawn(
@@ -1293,10 +1291,10 @@ namespace CryptoNote
     void NodeServer::relay_notify_to_all(
         int command,
         const BinaryArray &data_buff,
-        const boost::uuids::uuid *excludeConnection)
+        const Common::Uuid *excludeConnection)
     {
-        boost::uuids::uuid excludeId =
-            excludeConnection ? *excludeConnection : boost::uuids::uuid {};
+        Common::Uuid excludeId =
+            excludeConnection ? *excludeConnection : Common::Uuid {};
 
         forEachConnection([&](P2pConnectionContext &conn) {
             if (conn.peerId && conn.m_connection_id != excludeId
@@ -1566,7 +1564,7 @@ namespace CryptoNote
             try
             {
                 P2pConnectionContext ctx(m_dispatcher, logger.getLogger(), m_listener.accept());
-                ctx.m_connection_id = boost::uuids::random_generator()();
+                ctx.m_connection_id = Common::randomUuid();
                 ctx.m_is_income = true;
                 ctx.m_started = time(nullptr);
 
@@ -1575,7 +1573,7 @@ namespace CryptoNote
                 ctx.m_remote_port = addressAndPort.second;
 
                 auto iter = m_connections.emplace(ctx.m_connection_id, std::move(ctx)).first;
-                const boost::uuids::uuid &connectionId = iter->first;
+                const Common::Uuid &connectionId = iter->first;
                 P2pConnectionContext &connection = iter->second;
 
                 m_workingContextGroup.spawn(
@@ -1695,7 +1693,7 @@ namespace CryptoNote
         logger(DEBUGGING) << "timedSyncLoop finished";
     }
 
-    void NodeServer::connectionHandler(const boost::uuids::uuid &connectionId, P2pConnectionContext &ctx)
+    void NodeServer::connectionHandler(const Common::Uuid &connectionId, P2pConnectionContext &ctx)
     {
         // This inner context is necessary in order to stop connection handler at any moment
         System::Context<> context(m_dispatcher, [this, &connectionId, &ctx] {

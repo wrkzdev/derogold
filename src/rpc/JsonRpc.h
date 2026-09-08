@@ -174,7 +174,7 @@ namespace CryptoNote
             {
                 if (id.has_value())
                 {
-                    psResp.insert("id", id.get());
+                    psResp.insert("id", id.value());
                 }
             }
 

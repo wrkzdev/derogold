@@ -17,8 +17,7 @@
 #include "logging/LoggerRef.h"
 #include "p2p/OnceInInterval.h"
 
-#include <boost/functional/hash.hpp>
-#include <boost/uuid/uuid.hpp>
+#include <Uuid.h>
 #include <functional>
 #include <system/Context.h>
 #include <system/ContextGroup.h>
@@ -264,7 +263,7 @@ namespace CryptoNote
         virtual void relay_notify_to_all(
             int command,
             const BinaryArray &data_buff,
-            const boost::uuids::uuid *excludeConnection) override;
+            const Common::Uuid *excludeConnection) override;
 
         virtual bool invoke_notify_to_peer(
             int command,
@@ -277,12 +276,12 @@ namespace CryptoNote
         virtual void externalRelayNotifyToAll(
             int command,
             const BinaryArray &data_buff,
-            const boost::uuids::uuid *excludeConnection) override;
+            const Common::Uuid *excludeConnection) override;
 
         virtual void externalRelayNotifyToList(
             int command,
             const BinaryArray &data_buff,
-            const std::list<boost::uuids::uuid> relayList) override;
+            const std::list<Common::Uuid> relayList) override;
 
         //-----------------------------------------------------------------------------------------------
         bool handleConfig(const NetNodeConfig &config);
@@ -325,7 +324,7 @@ namespace CryptoNote
         // debug functions
         std::string print_connections_container();
 
-        typedef std::unordered_map<boost::uuids::uuid, P2pConnectionContext, boost::hash<boost::uuids::uuid>>
+        typedef std::unordered_map<Common::Uuid, P2pConnectionContext>
             ConnectionContainer;
 
         typedef ConnectionContainer::iterator ConnectionIterator;
@@ -334,7 +333,7 @@ namespace CryptoNote
 
         void acceptLoop();
 
-        void connectionHandler(const boost::uuids::uuid &connectionId, P2pConnectionContext &connection);
+        void connectionHandler(const Common::Uuid &connectionId, P2pConnectionContext &connection);
 
         void writeHandler(P2pConnectionContext &ctx);
 
@@ -426,6 +425,6 @@ namespace CryptoNote
 
         uint64_t m_peer_livetime;
 
-        boost::uuids::uuid m_network_id;
+        Common::Uuid m_network_id;
     };
 } // namespace CryptoNote

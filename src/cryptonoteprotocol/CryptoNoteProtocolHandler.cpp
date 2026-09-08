@@ -13,7 +13,6 @@
 #include "cryptonotecore/Currency.h"
 #include "p2p/LevinProtocol.h"
 
-#include <boost/uuid/uuid_io.hpp>
 #include <chrono>
 #include <config/Ascii.h>
 #include <config/CryptoNoteConfig.h>
@@ -40,7 +39,7 @@ namespace CryptoNote
         }
 
         template<class t_parameter>
-        void relay_post_notify(IP2pEndpoint &p2p, typename t_parameter::request &arg, const boost::uuids::uuid *excludeConnection = nullptr)
+        void relay_post_notify(IP2pEndpoint &p2p, typename t_parameter::request &arg, const Common::Uuid *excludeConnection = nullptr)
         {
             p2p.externalRelayNotifyToAll(t_parameter::ID, LevinProtocol::encode(arg), excludeConnection);
         }
@@ -1347,7 +1346,7 @@ namespace CryptoNote
         logger(Logging::DEBUGGING) << "NOTIFY_NEW_BLOCK - MSG_SIZE = " << buf.size();
         logger(Logging::DEBUGGING) << "NOTIFY_NEW_LITE_BLOCK - MSG_SIZE = " << lite_buf.size();
 
-        std::list<boost::uuids::uuid> liteBlockConnections, normalBlockConnections;
+        std::list<Common::Uuid> liteBlockConnections, normalBlockConnections;
 
         // sort the peers into their support categories.
         m_p2p->for_each_connection([this, &liteBlockConnections, &normalBlockConnections](
