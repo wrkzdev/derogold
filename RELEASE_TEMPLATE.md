@@ -28,14 +28,14 @@
 - Changed RocksDB logger output and reduced the file history to 1.
 
 ## External Dependencies Version
-- boost 1.90.0
-- cpp-httplib 0.37.0
-- cryptopp 2026-03-02
-- cxxopts 3.3.1
-- miniupnpc 2.3.2
-- openssl 3.6.1
-- rapidjson 2025-02-26
-- rocksdb 9.10.0
+- cpp-httplib 0.14.3
+- cryptopp 8.9.0
+- cxxopts 3.2.0
+- miniupnpc 2.2.8
+- openssl (system package)
+- rapidjson 1.1.0
+- rocksdb 11.8.1
+- zstd 1.5.7
 
 # Install Notes
 
