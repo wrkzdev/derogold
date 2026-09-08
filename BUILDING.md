@@ -29,7 +29,7 @@ No `--recursive` clone is needed any more; there are no submodules.
 | Boost (serialization) | System package |
 | OpenSSL | System package |
 | zstd | System package, used by RocksDB |
-| RocksDB | Downloaded and built during the build, see below |
+| RocksDB | Vendored in `external/`, compiled with the project, see below |
 
 If a system library is missing, CMake stops with the install command for your
 platform rather than a wall of linker errors.
@@ -66,9 +66,10 @@ pacman -S mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake \
 ## RocksDB
 
 DeroGold needs a recent RocksDB. It calls `WaitForCompact`, which arrived in
-8.1, and most distributions still ship 6.x or 7.x. So by default the build
-downloads and compiles RocksDB itself. This makes the first build considerably
-longer; afterwards it is cached in the build directory.
+8.1, and most distributions still ship 6.x or 7.x. A trimmed copy of 11.8.1
+therefore lives in `external/rocksdb` and is compiled with the project. Nothing
+is downloaded during the build. This makes the first build considerably longer;
+afterwards it is cached in the build directory.
 
 To use your distribution's RocksDB instead:
 
@@ -78,12 +79,6 @@ cmake -D DEROGOLD_SYSTEM_ROCKSDB=ON -S . -B build
 
 The build refuses a system RocksDB older than 8.1 rather than failing later
 with confusing compiler errors.
-
-To pin a different bundled version:
-
-```sh
-cmake -D DEROGOLD_ROCKSDB_VERSION=10.10.1 -S . -B build
-```
 
 Databases are not backward compatible across major RocksDB versions. A chain
 database written by this build cannot be opened by an older binary, so keep a
@@ -105,12 +100,15 @@ By default the build targets the machine it is compiled on. Pass
 `-D ARCH=default` for a binary that runs on other machines, at some cost in
 performance.
 
-## Vendored Crypto++ and miniupnpc
+## Vendored libraries
 
-Both are compiled from the sources in `external/cryptopp` and
-`external/miniupnpc`, so there is nothing to install and no version to match.
-Crypto++ carries a small local patch to its CMake build, described at the top
-of `external/cryptopp/CMakeLists.txt`.
+Crypto++, miniupnpc and RocksDB are compiled from the sources in
+`external/cryptopp`, `external/miniupnpc` and `external/rocksdb`, so there is
+nothing to install and no version to match. Crypto++ carries a small local
+patch to its CMake build, described at the top of
+`external/cryptopp/CMakeLists.txt`. The RocksDB copy is upstream 11.8.1 with
+the documentation, Java bindings, tests, benchmarks and code generators
+removed; only what the library build compiles is kept.
 
 ## Windows and MSVC
 

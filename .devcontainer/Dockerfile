@@ -20,8 +20,8 @@ ARG NVM_VERSION
 ARG CMAKE_APT_PACKAGE="ca-certificates curl gpg"
 ARG VCS_PACKAGE="git gpg"
 ARG DEV_PACKAGE="cmake ninja-build"
-# Downloading the RocksDB source at configure time, plus the libraries this
-# project links against.
+# Nothing is downloaded during the build; these are for the CMake apt key
+# fetch above and for pkg-config lookups.
 ARG FETCH_PACKAGE="curl ca-certificates tar pkg-config"
 ARG LIB_PACKAGE="libboost-serialization-dev libssl-dev libzstd-dev"
 

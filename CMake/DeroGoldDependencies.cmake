@@ -4,16 +4,15 @@
 # links against, so the link lines do not care where a library came from.
 #
 # Everything here uses plain CMake and system packages. There is deliberately
-# no package manager: the header-only libraries are vendored under external/,
-# and the rest are ordinary distribution packages. The one exception is
-# RocksDB, which is built from source by default because this code needs a
-# newer release than most distributions carry.
+# no package manager and nothing is downloaded during the build: everything
+# that is not a plain system package lives under external/ and is compiled with
+# the project.
 
-include(FetchContent)
 include(FindPackageHandleStandardArgs)
 
-# Version of RocksDB built when DEROGOLD_SYSTEM_ROCKSDB is OFF.
-set(DEROGOLD_ROCKSDB_VERSION "11.8.1" CACHE STRING "RocksDB version to build from source")
+# Version of the RocksDB copy checked into external/rocksdb. Informational;
+# change it only when that tree is replaced.
+set(DEROGOLD_ROCKSDB_VERSION "11.8.1")
 
 # Oldest RocksDB accepted when using a system install. RocksDBWrapper calls
 # WaitForCompact(WaitForCompactOptions), which was added in 8.1.
@@ -169,15 +168,15 @@ function(derogold_require_rocksdb)
             message(FATAL_ERROR
                 "Found RocksDB ${RocksDB_VERSION}, but this code needs "
                 "${DEROGOLD_ROCKSDB_MINIMUM} or newer. Re-run without "
-                "-D DEROGOLD_SYSTEM_ROCKSDB=ON to build "
-                "${DEROGOLD_ROCKSDB_VERSION} from source instead.")
+                "-D DEROGOLD_SYSTEM_ROCKSDB=ON to build the "
+                "${DEROGOLD_ROCKSDB_VERSION} copy in external/rocksdb instead.")
         endif()
 
         message(STATUS "RocksDB: system install ${RocksDB_VERSION}")
         return()
     endif()
 
-    message(STATUS "RocksDB: building ${DEROGOLD_ROCKSDB_VERSION} from source")
+    message(STATUS "RocksDB: building the ${DEROGOLD_ROCKSDB_VERSION} copy in external/rocksdb")
 
     # Compression: the wrapper writes with kZSTD when compression is enabled,
     # so an existing database cannot be opened without zstd support. Keep the
@@ -217,21 +216,13 @@ function(derogold_require_rocksdb)
     set(CMAKE_CXX_STANDARD 20)
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-    # DOWNLOAD_EXTRACT_TIMESTAMP only exists from CMake 3.24. Passing it to an
-    # older CMake is not ignored: FetchContent hands it through to
-    # ExternalProject, which rejects it as an unknown argument and fails the
-    # download step. Ubuntu 22.04 still ships 3.22, so this has to be
-    # conditional rather than always set.
-    if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.24")
-        FetchContent_Declare(rocksdb
-            URL "https://github.com/facebook/rocksdb/archive/refs/tags/v${DEROGOLD_ROCKSDB_VERSION}.tar.gz"
-            DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
-    else()
-        FetchContent_Declare(rocksdb
-            URL "https://github.com/facebook/rocksdb/archive/refs/tags/v${DEROGOLD_ROCKSDB_VERSION}.tar.gz")
+    set(_src "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../external/rocksdb")
+
+    if(NOT EXISTS "${_src}/CMakeLists.txt")
+        message(FATAL_ERROR "external/rocksdb is missing from the checkout.")
     endif()
 
-    FetchContent_MakeAvailable(rocksdb)
+    add_subdirectory("${_src}" "${CMAKE_BINARY_DIR}/external/rocksdb" EXCLUDE_FROM_ALL)
 
     # RocksDB's own CMake exports "rocksdb"; the rest of this project links the
     # namespaced name, so bridge the two.
@@ -240,12 +231,12 @@ function(derogold_require_rocksdb)
     endif()
 
     if(NOT TARGET RocksDB::rocksdb)
-        message(FATAL_ERROR "RocksDB was fetched but did not define a usable target.")
+        message(FATAL_ERROR "The vendored RocksDB did not define a usable target.")
     endif()
 
     # RocksDB does not always attach its own include directory to the target
     # when consumed this way.
-    target_include_directories(rocksdb PUBLIC "${rocksdb_SOURCE_DIR}/include")
+    target_include_directories(rocksdb PUBLIC "${_src}/include")
 
     # RocksDB 10 and newer use defaulted comparison operators in their *public*
     # headers, so it is not only RocksDB's own sources that need C++20: every

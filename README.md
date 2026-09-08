@@ -67,10 +67,11 @@ cmake --build build
 
 Binaries land in `build/src`.
 
-RocksDB is downloaded and built as part of the build, because the version most
-distributions package is older than this code needs. That makes the first build
-noticeably longer. Pass `-D DEROGOLD_SYSTEM_ROCKSDB=ON` to link your own copy
-instead, provided it is 8.1 or newer.
+RocksDB is compiled from the copy in `external/`, because the version most
+distributions package is older than this code needs. Nothing is downloaded
+during the build, but it does make the first build noticeably longer. Pass
+`-D DEROGOLD_SYSTEM_ROCKSDB=ON` to link your own copy instead, provided it is
+8.1 or newer.
 
 By default the build targets the machine it is compiled on. Pass
 `-D ARCH=default` for binaries that run on other machines, at some cost in

@@ -601,3 +601,9 @@ FodyWeavers.xsd
 
 # Local syntax-check helper, not part of the build.
 .syntax-check.sh
+
+# Everything under external/ is vendored source, not build output. Several of
+# the generic rules above (Makefile, [Bb]ackup/, *.a, [Bb]in/, [Ll]og/ and so
+# on) match real files in those trees and would silently drop them from a
+# clone, which then fails to build with a missing source file.
+!external/**
