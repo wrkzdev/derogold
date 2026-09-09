@@ -44,6 +44,18 @@ using namespace CryptoNote;
 
 namespace
 {
+    /* How far down the peer list a connection attempt can reach. Entries are
+       ordered by last_seen, so this is a recency window and not the whole
+       list: at 20, the freshest 21 white peers out of a possible 1000 were the
+       only ones ever dialled. Nothing refreshes last_seen on a peer that has
+       gone away, so the ones that were freshest when the network went quiet
+       keep the newest timestamps and hold the window against everything
+       behind them - the node retries the same 21 dead addresses and never
+       reaches the live peers further down its own list. Matches WrkzCoin. */
+    constexpr size_t PEER_SELECTION_RECENCY_WINDOW = 256;
+
+    constexpr size_t PEER_SELECTION_MAX_TRIES = 16;
+
     size_t get_random_index_with_fixed_probability(size_t max_index)
     {
         // divide by zero workaround
@@ -1093,7 +1105,7 @@ namespace CryptoNote
             return false;
         } // no peers
 
-        size_t max_random_index = std::min<uint64_t>(peers_count() - 1, 20);
+        size_t max_random_index = std::min<uint64_t>(peers_count() - 1, PEER_SELECTION_RECENCY_WINDOW);
 
         /* Addresses rather than indices: a peer that will not answer is taken
            out of the list below, which shifts every index after it, so a set of
@@ -1102,7 +1114,7 @@ namespace CryptoNote
 
         size_t try_count = 0;
         size_t rand_count = 0;
-        while (rand_count < (max_random_index + 1) * 3 && try_count < 10 && !m_stop)
+        while (rand_count < (max_random_index + 1) * 3 && try_count < PEER_SELECTION_MAX_TRIES && !m_stop)
         {
             ++rand_count;
 
@@ -1114,7 +1126,7 @@ namespace CryptoNote
             }
 
             /* Re-read every round: the list shrinks as dead peers are dropped. */
-            max_random_index = std::min<uint64_t>(local_peers_count - 1, 20);
+            max_random_index = std::min<uint64_t>(local_peers_count - 1, PEER_SELECTION_RECENCY_WINDOW);
 
             const size_t random_index = get_random_index_with_fixed_probability(max_random_index);
 
