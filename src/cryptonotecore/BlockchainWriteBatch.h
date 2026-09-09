@@ -18,11 +18,22 @@ namespace CryptoNote
     class BlockchainWriteBatch final : public IWriteBatch
     {
     public:
+        /* storeRewindIndex also writes the block index -> key image list, which
+           exists so a rewind can undo the block. A lite node leaves it out below
+           its lite height: it never rewinds that far, and the key image -> block
+           index entries it does keep are what double spend checks actually read. */
         BlockchainWriteBatch &insertSpentKeyImages(uint32_t blockIndex,
-                                                   const std::unordered_set<Crypto::KeyImage> &spentKeyImages);
+                                                   const std::unordered_set<Crypto::KeyImage> &spentKeyImages,
+                                                   bool storeRewindIndex = true);
 
         BlockchainWriteBatch &insertCachedTransaction(const ExtendedTransactionInfo &transaction,
                                                       uint64_t totalTxsCount);
+
+        /* Bumps the running transaction counter without storing the transaction
+           record itself. A lite node drops the records below its lite height but
+           must still count them, or getBlockchainTransactionCount and the
+           tx_count in /info would only cover the blocks stored in full. */
+        BlockchainWriteBatch &insertTransactionCount(uint64_t totalTxsCount);
 
         BlockchainWriteBatch &insertPaymentId(const Crypto::Hash &transactionHash,
                                               const Crypto::Hash &paymentId,

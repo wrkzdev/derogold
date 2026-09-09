@@ -94,6 +94,12 @@ namespace CryptoNote
            flags. Applied once at startup. */
         void setSyncTuning(uint32_t syncBatchMin, uint32_t syncBatchMax, uint64_t blockSyncBytes);
 
+        /* Zero for a normal node. Above zero this is the height from which full
+           block data is stored; see LITENODE.md. */
+        void setLiteNodeConfig(uint32_t liteHeight);
+
+        uint32_t getLiteNodeHeight() const override;
+
         /* Peers currently being synced from, and the mean batch size across
            them; for the sync_info console command. */
         uint32_t getSyncActivePeers() const override;
@@ -209,6 +215,22 @@ namespace CryptoNote
         std::atomic<size_t> m_peersCount;
 
         Tools::ObserverManager<ICryptoNoteProtocolObserver> m_observerManager;
+
+        /* 0 = full node. Above 0, the height this node stores full blocks from. */
+        uint32_t m_liteHeight = 0;
+
+        /* The lite height is only safe once we know how tall the network is, and
+           that is first knowable at the opening handshake. Settled once, either
+           way, and never revisited. */
+        bool m_liteDepthChecked = false;
+
+        /* Tallest chain any peer has claimed so far. A max, so a peer reporting
+           a short chain - honestly or otherwise - cannot drag the answer down. */
+        uint64_t m_liteMaxPeerHeight = 0;
+
+        /* How many peers have contributed to the above. The verdict that stops
+           the daemon waits for several, so one peer cannot deliver it alone. */
+        uint32_t m_liteDepthSamples = 0;
 
         /* Sync tuning, from the --sync-batch-* and --block-sync-bytes flags. */
         uint32_t m_syncBatchMin = 20;

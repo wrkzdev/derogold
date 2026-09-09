@@ -35,6 +35,10 @@ namespace CryptoNote
         virtual uint32_t getSyncActivePeers() const = 0;
 
         virtual uint32_t getSyncAvgBatchSize() const = 0;
+
+        /* 0 for a full node; otherwise the height from which this node stores
+           full block data. See LITENODE.md. */
+        virtual uint32_t getLiteNodeHeight() const = 0;
     };
 
 } // namespace CryptoNote

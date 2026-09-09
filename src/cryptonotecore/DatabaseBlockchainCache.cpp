@@ -627,11 +627,13 @@ namespace CryptoNote
     DatabaseBlockchainCache::DatabaseBlockchainCache(const Currency &curr,
                                                      IDataBase &dataBase,
                                                      IBlockchainCacheFactory &blockchainCacheFactory,
-                                                     std::shared_ptr<Logging::ILogger> _logger) :
+                                                     std::shared_ptr<Logging::ILogger> _logger,
+                                                     const uint32_t liteHeight) :
         currency(curr),
         database(dataBase),
         blockchainCacheFactory(blockchainCacheFactory),
-        logger(std::move(_logger), "DatabaseBlockchainCache")
+        logger(std::move(_logger), "DatabaseBlockchainCache"),
+        liteHeight(liteHeight)
     {
         DatabaseVersionReadBatch readBatch;
         auto ec = database.read(readBatch);
@@ -746,6 +748,21 @@ namespace CryptoNote
     std::unique_ptr<IBlockchainCache> DatabaseBlockchainCache::split(uint32_t splitBlockIndex)
     {
         assert(splitBlockIndex <= getTopBlockIndex());
+
+        /* Splitting means undoing blocks, which needs the transaction records
+           and the block-index-to-key-image lists that index-only heights never
+           stored. The lite height sits far enough below the top that no honest
+           reorg reaches here, so this is a corrupt or hostile chain rather than
+           something to attempt and half finish. */
+        if (isLiteIndexOnlyHeight(splitBlockIndex))
+        {
+            logger(Logging::ERROR) << "Refusing to split at index " << splitBlockIndex
+                                   << ", below this lite node's full block height " << liteHeight
+                                   << ". The data needed to undo those blocks was never stored.";
+
+            throw std::runtime_error("Cannot split below the lite node height");
+        }
+
         logger(Logging::DEBUGGING) << "split at index " << splitBlockIndex
                                    << " started, top block index: " << getTopBlockIndex();
 
@@ -827,6 +844,19 @@ namespace CryptoNote
 
     void DatabaseBlockchainCache::rewind(const uint64_t height)
     {
+        /* Same reasoning as split(): the blocks below the lite height cannot be
+           undone, because what undoing them needs was never written. Checked
+           before the height <= 1 shortcut, so a lite node cannot quietly wipe
+           itself back to genesis either. */
+        if (isLiteIndexOnlyHeight(static_cast<uint32_t>(height)))
+        {
+            logger(Logging::ERROR) << "Refusing to rewind to " << height
+                                   << ", below this lite node's full block height " << liteHeight
+                                   << ". The data needed to undo those blocks was never stored.";
+
+            throw std::runtime_error("Cannot rewind below the lite node height");
+        }
+
         /* 0 height, much much faster to just remove DB and recreate it than
          * remove everything. */
         if (height <= 1)
@@ -1153,6 +1183,14 @@ namespace CryptoNote
         logger(Logging::DEBUGGING) << "push transaction with hash " << cachedTransaction.getTransactionHash();
         const auto &tx = cachedTransaction.getTransaction();
 
+        /* Below a lite node's lite height the transaction record, the payment ID
+           index and the transaction public key index are never written, and the
+           per-output transaction hash is zeroed. Everything consensus needs from
+           this transaction still goes into the batch: the key output info, the
+           per-amount global indexes and the amount list, which are what ring
+           member resolution and decoy selection read. See LITENODE.md. */
+        const bool indexOnly = isLiteIndexOnlyHeight(blockIndex);
+
         ExtendedTransactionInfo transactionCacheInfo;
         transactionCacheInfo.blockIndex = blockIndex;
         transactionCacheInfo.transactionIndex = transactionBlockIndex;
@@ -1194,7 +1232,16 @@ namespace CryptoNote
 
                 KeyOutputInfo outputInfo;
                 outputInfo.publicKey = std::get<KeyOutput>(output.target).key;
-                outputInfo.transactionHash = transactionCacheInfo.transactionHash;
+
+                /* Only a rescan or an explorer reads this back, and a lite node
+                   offers neither below its lite height. It is 32 bytes of high
+                   entropy per key output that nothing can ever read, and the one
+                   part of the database a compressor cannot help with. Zeroed
+                   rather than removed: the record layout and the schema version
+                   stay exactly as they are, no reader needs to know, and a great
+                   many identical zero hashes cost almost nothing once RocksDB
+                   has compressed them. */
+                outputInfo.transactionHash = indexOnly ? Crypto::Hash {} : transactionCacheInfo.transactionHash;
                 outputInfo.unlockTime = transactionCacheInfo.unlockTime;
                 outputInfo.outputIndex = poi.outputIndex;
 
@@ -1223,6 +1270,18 @@ namespace CryptoNote
         {
             assert(keyOutputAmountsCount.has_value());
             batch.insertKeyOutputAmounts(newKeyAmounts, *keyOutputAmountsCount);
+        }
+
+        if (indexOnly)
+        {
+            /* Still count it, or the chain-wide transaction total would only
+               cover the blocks stored in full. */
+            batch.insertTransactionCount(getCachedTransactionsCount() + 1);
+            transactionsCount = *transactionsCount + 1;
+
+            logger(Logging::DEBUGGING) << "push transaction with hash " << cachedTransaction.getTransactionHash()
+                                       << " completed (index only)";
+            return;
         }
 
         Crypto::Hash paymentId;
@@ -1367,7 +1426,14 @@ namespace CryptoNote
 
         const uint32_t newBlockIndex = getTopBlockIndex() + 1;
 
-        batch.insertSpentKeyImages(newBlockIndex, validatorState.spentKeyImages);
+        /* Below a lite node's lite height only the indexes that later blocks
+           actually read are kept: the key image -> block index entries, the key
+           output info and per-amount counts written by pushTransaction, and the
+           block info itself. The block body, its transaction hash list, the
+           rewind index and the wallet sync archive all go. See LITENODE.md. */
+        const bool indexOnly = isLiteIndexOnlyHeight(newBlockIndex);
+
+        batch.insertSpentKeyImages(newBlockIndex, validatorState.spentKeyImages, !indexOnly);
 
         auto txHashes = cachedBlock.getBlock().transactionHashes;
         auto baseTransaction = cachedBlock.getBlock().baseTransaction;
@@ -1376,8 +1442,12 @@ namespace CryptoNote
         // base transaction's hash is always the first one in index for this block
         txHashes.insert(txHashes.begin(), cachedBaseTransaction.getTransactionHash());
 
-        batch.insertCachedBlock(blockInfo, newBlockIndex, txHashes);
-        batch.insertRawBlock(newBlockIndex, rawBlock);
+        batch.insertCachedBlock(blockInfo, newBlockIndex, indexOnly ? std::vector<Crypto::Hash> {} : txHashes);
+
+        if (!indexOnly)
+        {
+            batch.insertRawBlock(newBlockIndex, rawBlock);
+        }
 
         /* Push transactions and simultaneously collect compact wallet sync data */
         auto transactionIndex = 0;
@@ -1392,7 +1462,11 @@ namespace CryptoNote
             pushTransaction(transaction, newBlockIndex, transactionIndex++, batch, &txWalletData.back());
         }
 
-        /* Assemble and store compact WalletBlockInfo — survives raw-block pruning */
+        /* Assemble and store compact WalletBlockInfo — survives raw-block pruning.
+           A lite node skips it below the lite height: it exists so a wallet can
+           sync across pruned raw blocks, and a lite node does not offer a sync
+           that reaches down there at all. */
+        if (!indexOnly)
         {
             WalletTypes::WalletBlockInfo walletBlock;
             walletBlock.blockHeight = newBlockIndex;
@@ -1411,19 +1485,26 @@ namespace CryptoNote
             batch.insertWalletSyncBlock(newBlockIndex, walletBlock);
         }
 
-        auto closestBlockIndexDb =
-            requestClosestBlockIndexByTimestamp(roundToMidnight(cachedBlock.getBlock().timestamp), database);
-        if (!closestBlockIndexDb.second)
+        /* The timestamp index exists to answer "which height was this date",
+           which is how a wallet starts a scan from a date. A lite node cannot
+           serve a scan starting below its lite height at all, so it is dead
+           weight down there. */
+        if (!indexOnly)
         {
-            logger(Logging::ERROR) << "push block " << cachedBlock.getBlockHash()
-                                   << " request closest block index by timestamp failed";
-            throw std::runtime_error("Couldn't get closest to timestamp block index");
-        }
+            auto closestBlockIndexDb =
+                requestClosestBlockIndexByTimestamp(roundToMidnight(cachedBlock.getBlock().timestamp), database);
+            if (!closestBlockIndexDb.second)
+            {
+                logger(Logging::ERROR) << "push block " << cachedBlock.getBlockHash()
+                                       << " request closest block index by timestamp failed";
+                throw std::runtime_error("Couldn't get closest to timestamp block index");
+            }
 
-        if (!closestBlockIndexDb.first)
-        {
-            batch.insertClosestTimestampBlockIndex(roundToMidnight(cachedBlock.getBlock().timestamp),
-                                                   getTopBlockIndex() + 1);
+            if (!closestBlockIndexDb.first)
+            {
+                batch.insertClosestTimestampBlockIndex(roundToMidnight(cachedBlock.getBlock().timestamp),
+                                                       getTopBlockIndex() + 1);
+            }
         }
 
         // We aren't even using this so why add this?
@@ -3182,7 +3263,15 @@ namespace CryptoNote
             const auto &pf = res.getPruneFloor();
             m_pruneFloor = pf.second ? pf.first : 0;
         }
-        return *m_pruneFloor;
+
+        /* A lite node holds no raw block below its lite height either, and the
+           floor is exactly the question every caller is asking: the lowest
+           height a block body can be read from. Reporting it here means the
+           peer-serving, wallet-sync and getrawblocks paths that already handle
+           a pruned floor handle the lite region too, rather than each having to
+           learn about lite mode separately. The two are mutually exclusive at
+           the command line, so in practice only one of them is ever non-zero. */
+        return std::max(*m_pruneFloor, liteHeight);
     }
 
     void DatabaseBlockchainCache::pruneRawBlocksBefore(uint32_t height)
@@ -3190,6 +3279,17 @@ namespace CryptoNote
         /* Never prune genesis block (index 0); clamp to 1. */
         if (height <= 1)
         {
+            return;
+        }
+
+        /* --lite and --prune cannot be combined, so this is only reachable if
+           something asks a lite node to prune anyway. There is nothing below
+           the lite height to delete, and writing a prune floor there would
+           record a deletion that never happened. */
+        if (liteHeight != 0)
+        {
+            logger(Logging::DEBUGGING)
+                << "pruneRawBlocksBefore: ignoring on a lite node; nothing is stored below height " << liteHeight;
             return;
         }
 

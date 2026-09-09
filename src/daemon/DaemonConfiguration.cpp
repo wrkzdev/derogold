@@ -84,6 +84,10 @@ namespace DaemonConfig
              cxxopts::value<bool>(config.backgroundPrune)->default_value(config.backgroundPrune ? "true" : "false"))
             ("prune-depth", "When prune mode is enabled, retain at least this many recent blocks locally.",
              cxxopts::value<uint32_t>(config.pruneDepth), "<blocks>")
+            ("lite", "Lite-node mode: store full block data only from --lite-height upward. Permanent for this database, and cannot be combined with --prune or --daemon-mode explorer.",
+             cxxopts::value<bool>(config.lite))
+            ("lite-height", "Height at and above which a lite node stores full block data. Required with --lite.",
+             cxxopts::value<uint32_t>(config.liteHeight), "<height>")
             ("rewind-to-height", "Rewinds the local blockchain cache to the specified height.", cxxopts::value<uint32_t>(config.rewindToHeight), "<height>")
             ("sync-from-height", "Skip downloading blocks below <height> by bootstrapping from a trusted checkpoint state. "
              "Must be used on a fresh data directory (or combined with --resync). "
@@ -359,6 +363,16 @@ namespace DaemonConfig
             config.stratumMaxConnections = j["stratum-max-connections"].GetUint64();
         }
 
+        if (j.HasMember("lite"))
+        {
+            config.lite = j["lite"].GetBool();
+        }
+
+        if (j.HasMember("lite-height"))
+        {
+            config.liteHeight = j["lite-height"].GetUint();
+        }
+
         if (j.HasMember("sync-batch-min"))
         {
             config.syncBatchMin = j["sync-batch-min"].GetUint();
@@ -566,6 +580,9 @@ namespace DaemonConfig
         j.AddMember("enable-cors", config.enableCors, alloc);
         j.AddMember("fee-address", config.feeAddress, alloc);
         j.AddMember("fee-amount", config.feeAmount, alloc);
+
+        j.AddMember("lite", config.lite, alloc);
+        j.AddMember("lite-height", config.liteHeight, alloc);
 
         j.AddMember("sync-batch-min", config.syncBatchMin, alloc);
         j.AddMember("sync-batch-max", config.syncBatchMax, alloc);

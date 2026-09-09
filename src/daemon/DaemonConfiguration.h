@@ -87,6 +87,13 @@ namespace DaemonConfig
         bool backgroundPrune = true;
         uint32_t pruneDepth = DEFAULT_PRUNE_DEPTH;
 
+        /* Lite node: store full block data only from liteHeight upward, keeping
+           just the indexes later blocks read below it. Permanent for the
+           database once chosen, and mutually exclusive with prune and explorer
+           mode. Zero leaves the node a full node. */
+        bool lite = false;
+        uint32_t liteHeight = 0;
+
         uint32_t transactionValidationThreads = std::thread::hardware_concurrency();
 
         /* Bounds on the per-peer block request batch. The node adapts inside

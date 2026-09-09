@@ -286,6 +286,14 @@ namespace CryptoNote
         /* Maximum allowable blocks to rewind from existing chain */
         const uint64_t MAX_BLOCK_ALLOWED_TO_REWIND = EXPECTED_NUMBER_OF_BLOCKS_PER_DAY * 3;
 
+        /* A lite node keeps no block bodies below its lite height, so it can
+           neither split nor rewind into that region - the records an undo needs
+           were never written. It must therefore stay at least this far below the
+           network top, so a reorg can never reach it. Well clear of
+           MAX_BLOCK_ALLOWED_TO_REWIND, which is three days. */
+        const uint32_t MIN_LITE_FULL_BLOCK_DEPTH =
+            static_cast<uint32_t>(EXPECTED_NUMBER_OF_BLOCKS_PER_DAY * 14);
+
         const uint64_t INPUT_NOT_SENDING = 1000;
     } // namespace parameters
 

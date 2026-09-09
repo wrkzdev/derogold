@@ -50,11 +50,24 @@ namespace CryptoNote
          * Constructs new DatabaseBlockchainCache object. Currnetly, only factories that produce
          * BlockchainCache objects as children are supported.
          */
+        /* liteHeight of 0 means full storage. Above zero, blocks below that
+           height are written index-only: the block bodies, transaction records,
+           payment ID index and timestamp index are never stored. Permanent for
+           the database, and settled once by the daemon before the cache is
+           built. See LITENODE.md. */
         DatabaseBlockchainCache(
             const Currency &currency,
             IDataBase &dataBase,
             IBlockchainCacheFactory &blockchainCacheFactory,
-            std::shared_ptr<Logging::ILogger> logger);
+            std::shared_ptr<Logging::ILogger> logger,
+            uint32_t liteHeight = 0);
+
+        /* 0 for a full node; otherwise the height from which full block data is
+           stored. */
+        uint32_t getLiteHeight() const
+        {
+            return liteHeight;
+        }
 
         static bool checkDBSchemeVersion(IDataBase &dataBase, std::shared_ptr<Logging::ILogger> logger);
 
@@ -326,6 +339,18 @@ namespace CryptoNote
         std::deque<CachedBlockInfo> unitsCache;
 
         const size_t unitsCacheSize = 1000;
+
+        /* 0 = full storage. Above zero, the height at and above which full block
+           data is kept. */
+        uint32_t liteHeight = 0;
+
+        /* True for the heights a lite node stores index-only. Genesis is always
+           excluded: the chain is anchored on it and several reads assume its
+           body is present. */
+        bool isLiteIndexOnlyHeight(const uint32_t blockIndex) const
+        {
+            return liteHeight != 0 && blockIndex != 0 && blockIndex < liteHeight;
+        }
 
         struct ExtendedPushedBlockInfo;
 

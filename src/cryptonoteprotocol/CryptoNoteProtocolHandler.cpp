@@ -43,6 +43,11 @@ namespace CryptoNote
            the dominant cost, short enough that a peer going quiet is noticed. */
         constexpr float SYNC_BATCH_TARGET_SECONDS = 30.0f;
 
+        /* How many peers must agree on the network height before a lite node
+           will act on the verdict that its lite height is too shallow. One peer
+           could otherwise stop the daemon by understating its own chain. */
+        constexpr uint32_t LITE_DEPTH_CHECK_MIN_SAMPLES = 4;
+
         template<class t_parameter>
         bool post_notify(IP2pEndpoint &p2p, typename t_parameter::request &arg, const CryptoNoteConnectionContext &context)
         {
@@ -376,11 +381,65 @@ namespace CryptoNote
         return m_core.getTopBlockIndex() + 1;
     }
 
+    void CryptoNoteProtocolHandler::setLiteNodeConfig(const uint32_t liteHeight)
+    {
+        m_liteHeight = liteHeight;
+    }
+
+    uint32_t CryptoNoteProtocolHandler::getLiteNodeHeight() const
+    {
+        return m_liteHeight;
+    }
+
     bool CryptoNoteProtocolHandler::process_payload_sync_data(
         const CORE_SYNC_DATA &hshd,
         CryptoNoteConnectionContext &context,
         bool is_initial)
     {
+        /* A lite node keeps no block bodies below its lite height and so can
+           never undo a block down there - the records an undo needs were never
+           written. The height therefore has to sit far enough below the network
+           top that no reorg can reach it, and how tall the network is only
+           becomes knowable once peers start talking. Settle it here, once.
+
+           A peer claiming an inflated height can still let a bad lite height
+           through. That is the far less interesting direction: the worst it does
+           is allow a configuration the operator asked for. */
+        if (m_liteHeight != 0 && !m_liteDepthChecked && hshd.current_height > 0)
+        {
+            const uint64_t required = CryptoNote::parameters::MIN_LITE_FULL_BLOCK_DEPTH;
+            const uint64_t needed = static_cast<uint64_t>(m_liteHeight) + required;
+            const uint64_t ourHeight = static_cast<uint64_t>(m_core.getTopBlockIndex()) + 1;
+
+            m_liteMaxPeerHeight = std::max<uint64_t>(m_liteMaxPeerHeight, hshd.current_height);
+            ++m_liteDepthSamples;
+
+            const uint64_t networkHeight = std::max(ourHeight, m_liteMaxPeerHeight);
+
+            if (networkHeight >= needed)
+            {
+                /* Settled, and it stays settled: the margin only widens as the
+                   chain grows. */
+                m_liteDepthChecked = true;
+            }
+            else if (m_liteDepthSamples >= LITE_DEPTH_CHECK_MIN_SAMPLES)
+            {
+                m_liteDepthChecked = true;
+
+                const uint64_t maxAllowed = networkHeight > required ? networkHeight - required : 0;
+
+                logger(Logging::FATAL, Logging::BRIGHT_RED)
+                    << "--lite-height " << m_liteHeight << " is too close to the network top (" << networkHeight
+                    << ", the tallest chain seen across " << m_liteDepthSamples
+                    << " peers). A lite node must keep at least " << required
+                    << " blocks of full data above its lite height, so a reorg can never reach the part it did not "
+                       "store. The highest value this network currently allows is "
+                    << maxAllowed << ". Delete the data directory and restart with a lower --lite-height.";
+
+                exit(1);
+            }
+        }
+
         if (context.m_state == CryptoNoteConnectionContext::state_before_handshake && !is_initial)
         {
             return true;

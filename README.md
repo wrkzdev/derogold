@@ -221,6 +221,31 @@ RocksDB compaction is also triggered **automatically** by a background scheduler
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
+## Lite Node Mode
+
+A lite node stores full block data only from a chosen height upward, keeping just
+the indexes later blocks actually read below it. It syncs, mines, relays and
+validates like a full node, but cannot serve or rescan any height below its lite
+height — which makes it a good fit for a node running your own wallet, and a poor
+one for a public node.
+
+| Flag | Description |
+|---|---|
+| `--lite` | Enable lite mode. Permanent for the database. |
+| `--lite-height=<height>` | Height at and above which full block data is kept. Required. |
+
+```bash
+# A node for a wallet created at height 4,000,000
+./DeroGoldd --lite --lite-height=4000000
+```
+
+Unlike `--prune`, this is decided at write time and cannot be undone without
+resyncing, and it cannot be combined with `--prune` or `--daemon-mode explorer`.
+See **[LITENODE.md](LITENODE.md)** for what is kept, what is lost, and how to
+choose the height.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ## Fast Sync (--sync-from-height)
 
 The DeroGold blockchain is 350 GB+ from genesis. The `--sync-from-height` flag lets a fresh node skip the historical chain and start syncing from a recent checkpoint instead, reducing initial sync time from days to hours.

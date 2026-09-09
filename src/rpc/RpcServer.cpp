@@ -909,6 +909,12 @@ std::tuple<Error, uint16_t> RpcServer::info(const httplib::Request &req, httplib
     writer.Key("start_time");
     writer.Uint64(m_core->getStartTime());
 
+    /* 0 means this node holds every block. Above zero it is the height below
+       which only indexes were stored, so a wallet cannot sync or rescan from
+       any point beneath it against this node. See LITENODE.md. */
+    writer.Key("lite_node_height");
+    writer.Uint64(m_syncManager->getLiteNodeHeight());
+
     writer.EndObject();
 
     res.body = sb.GetString();

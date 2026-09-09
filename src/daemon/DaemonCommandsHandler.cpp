@@ -1189,6 +1189,7 @@ bool DaemonCommandsHandler::sync_height_status(const std::vector<std::string> &a
 
 bool DaemonCommandsHandler::sync_info(const std::vector<std::string> &args)
 {
+    const uint32_t liteHeight = m_syncManager->getLiteNodeHeight();
     const uint32_t activePeers = m_syncManager->getSyncActivePeers();
     const uint32_t avgBatch = m_syncManager->getSyncAvgBatchSize();
     const uint64_t topIndex = m_core.getTopBlockIndex();
@@ -1206,6 +1207,13 @@ bool DaemonCommandsHandler::sync_info(const std::vector<std::string> &args)
               << InformationMsg(" bytes per request") << std::endl
               << InformationMsg("Peer limits:      ") << SuccessMsg(m_config.outPeers)
               << InformationMsg(" out, ") << SuccessMsg(m_config.inPeers) << InformationMsg(" in") << std::endl;
+
+    if (liteHeight != 0)
+    {
+        std::cout << InformationMsg("Lite node:        ")
+                  << SuccessMsg("full block data from height ") << SuccessMsg(liteHeight)
+                  << InformationMsg(" upward; below that only indexes were stored") << std::endl;
+    }
 
     return true;
 }

@@ -14,10 +14,15 @@ using namespace CryptoNote;
 
 BlockchainWriteBatch &BlockchainWriteBatch::insertSpentKeyImages(
     const uint32_t blockIndex,
-    const std::unordered_set<Crypto::KeyImage> &spentKeyImages)
+    const std::unordered_set<Crypto::KeyImage> &spentKeyImages,
+    const bool storeRewindIndex)
 {
     rawDataToInsert.reserve(rawDataToInsert.size() + spentKeyImages.size() + 1);
-    rawDataToInsert.emplace_back(DB::serialize(DB::BLOCK_INDEX_TO_KEY_IMAGE_PREFIX, blockIndex, spentKeyImages));
+
+    if (storeRewindIndex)
+    {
+        rawDataToInsert.emplace_back(DB::serialize(DB::BLOCK_INDEX_TO_KEY_IMAGE_PREFIX, blockIndex, spentKeyImages));
+    }
 
     for (const Crypto::KeyImage &keyImage : spentKeyImages)
     {
@@ -46,6 +51,14 @@ BlockchainWriteBatch &BlockchainWriteBatch::insertCachedTransaction(const Extend
     //    DB::V2::serialize(transaction.transactionHash, transaction));
     //rawDataToInsertWithCF[DB::V2::TRANSACTIONS_CF].emplace_back(
     //    DB::V2::serialize(DB::TRANSACTIONS_COUNT_KEY, totalTxsCount));
+
+    return *this;
+}
+
+BlockchainWriteBatch &BlockchainWriteBatch::insertTransactionCount(const uint64_t totalTxsCount)
+{
+    rawDataToInsert.emplace_back(
+        DB::serialize(DB::TRANSACTION_HASH_TO_TRANSACTION_INFO_PREFIX, DB::TRANSACTIONS_COUNT_KEY, totalTxsCount));
 
     return *this;
 }
