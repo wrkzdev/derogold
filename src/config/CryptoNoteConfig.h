@@ -379,6 +379,16 @@ namespace CryptoNote
        address is followed without a restart. */
     const uint32_t P2P_SEED_RERESOLVE_INTERVAL_SECONDS = 60 * 60;
 
+    /* How long an address that would not connect is passed over for. Short
+       enough that a peer which was merely restarting comes back into play,
+       long enough that a dead one stops eating connection attempts. */
+    const uint32_t P2P_FAILED_PEER_FORGET_SECONDS = 30 * 60;
+
+    /* How often one gray peer is probed to find out whether it is still
+       there. Gray entries are hearsay from other nodes and are otherwise
+       never checked, so dead addresses circulate the network forever. */
+    const uint32_t P2P_GRAY_HOUSEKEEPING_INTERVAL_SECONDS = 30;
+
     const uint32_t P2P_DEFAULT_CONNECTION_TIMEOUT = 5000; // 5 seconds
     const uint32_t P2P_DEFAULT_PING_CONNECTION_TIMEOUT = 2000; // 2 seconds
     const uint64_t P2P_DEFAULT_INVOKE_TIMEOUT = 60 * 2 * 1000; // 2 minutes

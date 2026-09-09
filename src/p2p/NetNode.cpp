@@ -250,6 +250,7 @@ namespace CryptoNote
         // m_peer_handshake_idle_maker_interval(CryptoNote::P2P_DEFAULT_HANDSHAKE_INTERVAL),
         m_connections_maker_interval(1),
         m_seed_retry_interval(CryptoNote::P2P_SEED_RETRY_INTERVAL_SECONDS),
+        m_gray_housekeeping_interval(CryptoNote::P2P_GRAY_HOUSEKEEPING_INTERVAL_SECONDS),
         m_peerlist_store_interval(60 * 30, false),
         m_seedResolveReady(false),
         m_seed_resolve_in_flight(false),
@@ -1083,35 +1084,40 @@ namespace CryptoNote
     //-----------------------------------------------------------------------------------
     bool NodeServer::make_new_connection_from_peerlist(bool use_white_list)
     {
-        size_t local_peers_count =
-            use_white_list ? m_peerlist.get_white_peers_count() : m_peerlist.get_gray_peers_count();
-        if (!local_peers_count)
+        const auto peers_count = [&] {
+            return use_white_list ? m_peerlist.get_white_peers_count() : m_peerlist.get_gray_peers_count();
+        };
+
+        if (peers_count() == 0)
         {
             return false;
         } // no peers
 
-        size_t max_random_index = std::min<uint64_t>(local_peers_count - 1, 20);
+        size_t max_random_index = std::min<uint64_t>(peers_count() - 1, 20);
 
-        std::set<size_t> tried_peers;
+        /* Addresses rather than indices: a peer that will not answer is taken
+           out of the list below, which shifts every index after it, so a set of
+           indices would start pointing at the wrong peers. */
+        std::set<NetworkAddress> tried_peers;
 
         size_t try_count = 0;
         size_t rand_count = 0;
         while (rand_count < (max_random_index + 1) * 3 && try_count < 10 && !m_stop)
         {
             ++rand_count;
-            size_t random_index = get_random_index_with_fixed_probability(max_random_index);
-            if (random_index >= local_peers_count)
+
+            const size_t local_peers_count = peers_count();
+
+            if (local_peers_count == 0)
             {
-                logger(ERROR, BRIGHT_RED) << "random_starter_index < peers_local.size() failed!!";
                 return false;
             }
 
-            if (tried_peers.count(random_index))
-            {
-                continue;
-            }
+            /* Re-read every round: the list shrinks as dead peers are dropped. */
+            max_random_index = std::min<uint64_t>(local_peers_count - 1, 20);
 
-            tried_peers.insert(random_index);
+            const size_t random_index = get_random_index_with_fixed_probability(max_random_index);
+
             PeerlistEntry pe = PeerlistEntry {};
             bool r = use_white_list ? m_peerlist.get_white_peer_by_index(pe, random_index)
                                     : m_peerlist.get_gray_peer_by_index(pe, random_index);
@@ -1121,12 +1127,25 @@ namespace CryptoNote
                 return false;
             }
 
-            ++try_count;
+            if (!tried_peers.insert(pe.adr).second)
+            {
+                continue;
+            }
 
             if (is_peer_used(pe))
             {
                 continue;
             }
+
+            /* Passing over an address that just refused us costs nothing, so it
+               does not count as one of the tries. Otherwise a few dead peers at
+               the top of the list use up every attempt, every round. */
+            if (is_addr_recently_failed(pe.adr))
+            {
+                continue;
+            }
+
+            ++try_count;
 
             logger(DEBUGGING) << "Selected peer: " << pe.id << " " << pe.adr << " [white=" << use_white_list
                               << "] last_seen: "
@@ -1134,6 +1153,18 @@ namespace CryptoNote
 
             if (!try_to_connect_and_handshake_with_new_peer(pe.adr, false, pe.last_seen, use_white_list))
             {
+                mark_addr_failed(pe.adr);
+
+                /* A white peer earned its place by answering once. Now that it
+                   does not, move it back to gray: the white list is what the
+                   node prefers and what it hands to other nodes, and nothing
+                   else ever takes an entry out of it. */
+                if (use_white_list)
+                {
+                    m_peerlist.remove_from_white(pe.adr);
+                    m_peerlist.append_with_peer_gray(pe);
+                }
+
                 continue;
             }
 
@@ -1326,12 +1357,93 @@ namespace CryptoNote
         try
         {
             m_connections_maker_interval.call([this] { return connections_maker(); });
+            m_gray_housekeeping_interval.call([this] { return gray_peerlist_housekeeping(); });
             m_peerlist_store_interval.call([this] { return store_config(); });
         }
         catch (std::exception &e)
         {
             logger(DEBUGGING) << "exception in idle_worker: " << e.what();
         }
+        return true;
+    }
+
+    //-----------------------------------------------------------------------------------
+    bool NodeServer::is_addr_recently_failed(const NetworkAddress &addr)
+    {
+        const auto it = m_recentlyFailedPeers.find(addr);
+
+        if (it == m_recentlyFailedPeers.end())
+        {
+            return false;
+        }
+
+        if (time(nullptr) - it->second >= static_cast<time_t>(CryptoNote::P2P_FAILED_PEER_FORGET_SECONDS))
+        {
+            m_recentlyFailedPeers.erase(it);
+            return false;
+        }
+
+        return true;
+    }
+
+    void NodeServer::mark_addr_failed(const NetworkAddress &addr)
+    {
+        const time_t now = time(nullptr);
+        m_recentlyFailedPeers[addr] = now;
+
+        /* Entries expire lazily on lookup, so sweep once the map outgrows the
+           gray list to keep address churn from growing it without bound. */
+        if (m_recentlyFailedPeers.size() > CryptoNote::P2P_LOCAL_GRAY_PEERLIST_LIMIT)
+        {
+            for (auto it = m_recentlyFailedPeers.begin(); it != m_recentlyFailedPeers.end();)
+            {
+                it = now - it->second >= static_cast<time_t>(CryptoNote::P2P_FAILED_PEER_FORGET_SECONDS)
+                    ? m_recentlyFailedPeers.erase(it)
+                    : std::next(it);
+            }
+        }
+    }
+
+    //-----------------------------------------------------------------------------------
+    /* Once per interval, dial one random gray peer, take its peer list and
+       close. Reachable peers move to the white list, dead ones leave the gray
+       list, so the addresses nodes keep relaying to each other get verified
+       instead of circulating forever. The connection maker already does this
+       for the peers it dials to fill its slots; this covers the rest. */
+    bool NodeServer::gray_peerlist_housekeeping()
+    {
+        if (!m_exclusive_peers.empty())
+        {
+            return true;
+        }
+
+        const size_t count = m_peerlist.get_gray_peers_count();
+
+        if (count == 0)
+        {
+            return true;
+        }
+
+        PeerlistEntry pe = PeerlistEntry {};
+
+        if (!m_peerlist.get_gray_peer_by_index(pe, Random::randomValue<size_t>() % count) || is_peer_used(pe)
+            || is_addr_recently_failed(pe.adr))
+        {
+            return true;
+        }
+
+        if (try_to_connect_and_handshake_with_new_peer(pe.adr, true, pe.last_seen, false))
+        {
+            m_peerlist.set_peer_just_seen(pe.id, pe.adr);
+            logger(DEBUGGING) << "Gray peer " << pe.adr << " answered, moved to the white list";
+        }
+        else
+        {
+            m_peerlist.remove_from_gray(pe.adr);
+            mark_addr_failed(pe.adr);
+            logger(DEBUGGING) << "Gray peer " << pe.adr << " did not answer, dropped";
+        }
+
         return true;
     }
 

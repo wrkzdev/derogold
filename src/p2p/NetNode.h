@@ -20,6 +20,7 @@
 #include <Uuid.h>
 #include <atomic>
 #include <functional>
+#include <map>
 #include <mutex>
 #include <thread>
 #include <system/Context.h>
@@ -320,6 +321,15 @@ namespace CryptoNote
 
         void join_seed_resolve_thread();
 
+        /* An address that just refused a connection is passed over for
+           P2P_FAILED_PEER_FORGET_SECONDS, so a handful of dead peers cannot
+           consume every connection attempt round after round. */
+        bool is_addr_recently_failed(const NetworkAddress &addr);
+
+        void mark_addr_failed(const NetworkAddress &addr);
+
+        bool gray_peerlist_housekeeping();
+
         bool make_new_connection_from_peerlist(bool use_white_list);
 
         bool try_to_connect_and_handshake_with_new_peer(
@@ -431,6 +441,8 @@ namespace CryptoNote
            can trigger down to one per P2P_SEED_RETRY_INTERVAL_SECONDS. */
         OnceInInterval m_seed_retry_interval;
 
+        OnceInInterval m_gray_housekeeping_interval;
+
         OnceInInterval m_peerlist_store_interval;
 
         System::Timer m_timedSyncTimer;
@@ -469,6 +481,11 @@ namespace CryptoNote
         uint64_t m_seed_resolve_due;
 
         std::list<PeerlistEntry> m_command_line_peers;
+
+        /* Address -> when it last refused us. Entries expire on lookup, and the
+           map is swept when it outgrows the gray list so address churn cannot
+           make it grow without bound. */
+        std::map<NetworkAddress, time_t> m_recentlyFailedPeers;
 
         uint64_t m_peer_livetime;
 
