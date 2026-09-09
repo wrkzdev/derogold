@@ -29,11 +29,17 @@ ApiDispatcher::ApiDispatcher(
     const std::string rpcBindIp,
     const std::string rpcPassword,
     const std::string corsHeader,
-    unsigned int walletSyncThreads):
+    unsigned int walletSyncThreads,
+    const std::string defaultDaemonHost,
+    const uint16_t defaultDaemonPort,
+    const bool defaultDaemonSSL):
     m_port(bindPort),
     m_host(rpcBindIp),
     m_corsHeader(corsHeader),
-    m_rpcPassword(rpcPassword)
+    m_rpcPassword(rpcPassword),
+    m_defaultDaemonHost(defaultDaemonHost),
+    m_defaultDaemonPort(defaultDaemonPort),
+    m_defaultDaemonSSL(defaultDaemonSSL)
 {
     if (walletSyncThreads == 0)
     {
@@ -1470,9 +1476,12 @@ void ApiDispatcher::handleOptions(const httplib::Request &req, httplib::Response
 std::tuple<std::string, uint16_t, bool, std::string, std::string>
     ApiDispatcher::getDefaultWalletParams(const nlohmann::json body) const
 {
-    std::string daemonHost = "127.0.0.1";
-    uint16_t daemonPort = CryptoNote::RPC_DEFAULT_PORT;
-    bool daemonSSL = false;
+    /* What --daemon-address gave us, unless this request names its own. A
+       socket path is a daemon address like any other: Nigel recognises an
+       absolute path or an "@name" where a host goes. */
+    std::string daemonHost = m_defaultDaemonHost;
+    uint16_t daemonPort = m_defaultDaemonPort;
+    bool daemonSSL = m_defaultDaemonSSL;
 
     const std::string filename = getJsonValue<std::string>(body, "filename");
     const std::string password = getJsonValue<std::string>(body, "password");

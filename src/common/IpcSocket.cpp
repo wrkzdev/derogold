@@ -11,6 +11,7 @@
 #include <cstdio>
 #include <cstring>
 #include <stdexcept>
+#include <utility>
 
 #if DEROGOLD_IPC_SOCKET_SUPPORTED
 #include <fcntl.h>
@@ -36,6 +37,115 @@ namespace
         sockaddr_un probe {};
         return sizeof(probe.sun_path) - 1;
     }
+
+    /* A blocking std::streambuf over a connected AF_UNIX stream socket, so
+       the HTTP client that talks through a std::iostream can use one. It owns
+       the descriptor and closes it when destroyed. Blocking is deliberate:
+       the caller serialises its requests behind a mutex and waits for each
+       response anyway. */
+    class SocketStreambuf : public std::streambuf
+    {
+      public:
+        explicit SocketStreambuf(const int fd): m_fd(fd)
+        {
+            setg(m_in, m_in, m_in);
+            setp(m_out, m_out + sizeof(m_out));
+        }
+
+        ~SocketStreambuf() override
+        {
+            sync();
+
+            if (m_fd != -1)
+            {
+                ::close(m_fd);
+            }
+        }
+
+        SocketStreambuf(const SocketStreambuf &) = delete;
+
+        SocketStreambuf &operator=(const SocketStreambuf &) = delete;
+
+      protected:
+        int_type underflow() override
+        {
+            if (gptr() < egptr())
+            {
+                return traits_type::to_int_type(*gptr());
+            }
+
+            ssize_t received = 0;
+
+            do
+            {
+                received = ::recv(m_fd, m_in, sizeof(m_in), 0);
+            } while (received == -1 && errno == EINTR);
+
+            /* Zero is the peer closing, which is end of input rather than an
+               error - a response with no Content-Length ends that way. */
+            if (received <= 0)
+            {
+                return traits_type::eof();
+            }
+
+            setg(m_in, m_in, m_in + received);
+
+            return traits_type::to_int_type(*gptr());
+        }
+
+        int_type overflow(int_type ch) override
+        {
+            if (sync() != 0)
+            {
+                return traits_type::eof();
+            }
+
+            if (!traits_type::eq_int_type(ch, traits_type::eof()))
+            {
+                *pptr() = traits_type::to_char_type(ch);
+                pbump(1);
+            }
+
+            return traits_type::not_eof(ch);
+        }
+
+        int sync() override
+        {
+            const char *data = pbase();
+            size_t remaining = static_cast<size_t>(pptr() - pbase());
+
+            while (remaining > 0)
+            {
+                /* MSG_NOSIGNAL so a daemon that went away is an error return
+                   rather than a SIGPIPE that kills the wallet. */
+                const ssize_t written = ::send(m_fd, data, remaining, MSG_NOSIGNAL);
+
+                if (written == -1)
+                {
+                    if (errno == EINTR)
+                    {
+                        continue;
+                    }
+
+                    return -1;
+                }
+
+                data += written;
+                remaining -= static_cast<size_t>(written);
+            }
+
+            setp(m_out, m_out + sizeof(m_out));
+
+            return 0;
+        }
+
+      private:
+        int m_fd;
+
+        char m_in[8192];
+
+        char m_out[8192];
+    };
 
     /* Distinguishes "a previous run crashed and left the file behind" from
        "another daemon is running right now". Unlinking the latter would leave
@@ -185,6 +295,22 @@ namespace Common
             return "socket " + path;
         }
 
+        bool validateClientAddress(const std::string &address, std::string &error)
+        {
+            if (!looksLikePath(address))
+            {
+                return true;
+            }
+
+            if (!supported())
+            {
+                error = unsupportedReason();
+                return false;
+            }
+
+            return validatePath(address, error);
+        }
+
 #if !DEROGOLD_IPC_SOCKET_SUPPORTED
 
         bool validatePath(const std::string &, std::string &error)
@@ -219,6 +345,12 @@ namespace Common
         }
 
         void configureClient(httplib::Client &) {}
+
+        std::unique_ptr<std::streambuf> connectStream(const std::string &, std::string &error)
+        {
+            error = unsupportedReason();
+            return nullptr;
+        }
 
 #else
 
@@ -434,6 +566,44 @@ namespace Common
         void configureClient(httplib::Client &client)
         {
             client.set_address_family(AF_UNIX);
+        }
+
+        std::unique_ptr<std::streambuf> connectStream(const std::string &path, std::string &error)
+        {
+            if (!validatePath(path, error))
+            {
+                return nullptr;
+            }
+
+            const int fd = ::socket(AF_UNIX, SOCK_STREAM, 0);
+
+            if (fd == -1)
+            {
+                error = errnoMessage();
+                return nullptr;
+            }
+
+            ::fcntl(fd, F_SETFD, FD_CLOEXEC);
+
+            /* The name goes into sun_path verbatim and the length stops at its
+               end, which is what cpp-httplib does when it binds one. Writing
+               it the same way round is the whole reason a wallet reaches a
+               daemon serving through httplib. */
+            sockaddr_un addr {};
+            addr.sun_family = AF_UNIX;
+            std::memcpy(addr.sun_path, path.data(), path.size());
+
+            const socklen_t length =
+                static_cast<socklen_t>(sizeof(addr) - sizeof(addr.sun_path) + path.size());
+
+            if (::connect(fd, reinterpret_cast<sockaddr *>(&addr), length) != 0)
+            {
+                error = errnoMessage();
+                ::close(fd);
+                return nullptr;
+            }
+
+            return std::make_unique<SocketStreambuf>(fd);
         }
 
 #endif

@@ -56,7 +56,10 @@ class ApiDispatcher
         const std::string rpcBindIp,
         const std::string rpcPassword,
         std::string corsHeader,
-        unsigned int walletSyncThreads = std::thread::hardware_concurrency());
+        unsigned int walletSyncThreads = std::thread::hardware_concurrency(),
+        const std::string defaultDaemonHost = "127.0.0.1",
+        const uint16_t defaultDaemonPort = CryptoNote::RPC_DEFAULT_PORT,
+        const bool defaultDaemonSSL = false);
 
     /////////////////////////////
     /* Public member functions */
@@ -314,4 +317,13 @@ class ApiDispatcher
 
     /* Amount of threads to use during wallet syncing */
     unsigned int m_walletSyncThreads;
+
+    /* Where to reach the daemon when a request does not name one. Set from
+       the command line, so an operator can point the whole service at a
+       socket once instead of every caller repeating it. */
+    std::string m_defaultDaemonHost;
+
+    uint16_t m_defaultDaemonPort;
+
+    bool m_defaultDaemonSSL;
 };

@@ -290,7 +290,17 @@ either, so a hostname is never mistaken for a path.
 ```bash
 ./zedwallet++ --remote-daemon /run/derogold/daemon.sock
 ./WalletService --daemon-address /run/derogold/daemon.sock
+./WalletApi --rpc-password <password> --daemon-address /run/derogold/daemon.sock
+./miner --daemon-address /run/derogold/daemon.sock --address <address>
 ```
+
+For the wallet API that is the daemon used by requests which do not name one
+of their own; a request carrying its own `daemonHost` may put a socket path
+there just the same.
+
+An address this build cannot open - any socket path on Windows - is refused
+where it is read, saying why, rather than being resolved as a hostname and
+coming back later as a daemon that will not answer.
 
 ### Attaching a console
 

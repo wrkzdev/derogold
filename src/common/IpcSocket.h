@@ -8,6 +8,8 @@
 #include "httplib_fwd.h"
 
 #include <cstdint>
+#include <memory>
+#include <streambuf>
 #include <string>
 
 /* An IPC endpoint here means an AF_UNIX stream socket, and the thing that
@@ -76,6 +78,12 @@ namespace Common
         /* Points an already constructed client at an AF_UNIX path. */
         void configureClient(httplib::Client &client);
 
+        /* Connects to a daemon's socket and hands back a blocking stream over
+           it, for the callers that speak HTTP through a std::iostream instead
+           of through cpp-httplib. Null on failure, with the reason in error.
+           The buffer owns the descriptor and closes it when destroyed. */
+        std::unique_ptr<std::streambuf> connectStream(const std::string &path, std::string &error);
+
         /* True when a daemon address is a socket path rather than a hostname.
            An absolute path or an "@name" abstract socket; a hostname can be
            neither, so the two can never be confused. */
@@ -83,5 +91,11 @@ namespace Common
 
         /* Describes an endpoint for logs and status output. */
         std::string describe(const std::string &path);
+
+        /* True when a client can reach this daemon address on this build. A
+           hostname always can. A socket path needs the AF_UNIX support that
+           Windows does not get, and saying so where the address is read beats
+           resolving it as a hostname and reporting the daemon unreachable. */
+        bool validateClientAddress(const std::string &address, std::string &error);
     } // namespace Ipc
 } // namespace Common
