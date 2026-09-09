@@ -250,8 +250,16 @@ namespace CryptoNote
         // m_peer_handshake_idle_maker_interval(CryptoNote::P2P_DEFAULT_HANDSHAKE_INTERVAL),
         m_connections_maker_interval(1),
         m_seed_retry_interval(CryptoNote::P2P_SEED_RETRY_INTERVAL_SECONDS),
-        m_peerlist_store_interval(60 * 30, false)
+        m_peerlist_store_interval(60 * 30, false),
+        m_seedResolveReady(false),
+        m_seed_resolve_in_flight(false),
+        m_seed_resolve_due(0)
     {
+    }
+
+    NodeServer::~NodeServer()
+    {
+        join_seed_resolve_thread();
     }
 
     void NodeServer::serialize(ISerializer &s)
@@ -459,8 +467,9 @@ namespace CryptoNote
         auto priorityNodes = config.getPriorityNodes();
         std::copy(priorityNodes.begin(), priorityNodes.end(), std::back_inserter(m_priority_peers));
 
-        auto seedNodes = config.getSeedNodes();
-        std::copy(seedNodes.begin(), seedNodes.end(), std::back_inserter(m_seed_nodes));
+        /* Left unresolved on purpose: init() and every later lookup turn these
+           into addresses, so a seed hostname is followed if it moves. */
+        m_seed_node_hosts = config.getSeedNodeAddresses();
 
         m_hide_my_port = config.getHideMyPort();
 
@@ -473,34 +482,149 @@ namespace CryptoNote
         return true;
     }
 
-    bool NodeServer::append_net_address(std::vector<NetworkAddress> &nodes, const std::string &addr)
+    void NodeServer::resolve_seed_nodes(const std::vector<std::string> &extraHosts, std::vector<NetworkAddress> &nodes)
     {
-        size_t pos = addr.find_last_of(':');
-        if (!(std::string::npos != pos && addr.length() - 1 != pos && 0 != pos))
+        const auto resolveHost = [&](const std::string &host, uint32_t port) {
+            try
+            {
+                /* Every A record, not one of them at random: a seed behind
+                   round robin DNS is several machines, and we want all of
+                   them, not whichever one this lookup happened to land on. */
+                const auto addresses = System::Ipv4Resolver::resolveAll(host);
+
+                if (addresses.empty())
+                {
+                    logger(WARNING) << "The seed node " << host << " returned no addresses";
+                    return;
+                }
+
+                for (const auto &address : addresses)
+                {
+                    const NetworkAddress na {hostToNetwork(address.getValue()), port};
+
+                    if (std::find(nodes.begin(), nodes.end(), na) == nodes.end())
+                    {
+                        nodes.push_back(na);
+                        logger(TRACE) << "Added seed node: " << na << " (" << host << ")";
+                    }
+                }
+            }
+            catch (const std::exception &e)
+            {
+                logger(WARNING) << "Failed to resolve the seed node " << host << ": " << e.what();
+            }
+        };
+
+        const auto resolveHostAndPort = [&](const std::string &addr) {
+            const size_t pos = addr.find_last_of(':');
+
+            if (pos == std::string::npos || pos == 0 || pos == addr.length() - 1)
+            {
+                logger(ERROR, BRIGHT_RED) << "Failed to parse seed address from string: " << addr;
+                return;
+            }
+
+            try
+            {
+                resolveHost(addr.substr(0, pos), Common::fromString<uint32_t>(addr.substr(pos + 1)));
+            }
+            catch (const std::exception &e)
+            {
+                logger(ERROR, BRIGHT_RED) << "Failed to parse the port of seed address " << addr << ": " << e.what();
+            }
+        };
+
+        for (const auto &seed : CryptoNote::SEED_NODES)
         {
-            logger(ERROR, BRIGHT_RED) << "Failed to parse seed address from string: '" << addr << '\'';
-            return false;
+            resolveHostAndPort(seed);
         }
 
-        std::string host = addr.substr(0, pos);
-
-        try
+        for (const auto &seed : extraHosts)
         {
-            uint32_t port = Common::fromString<uint32_t>(addr.substr(pos + 1));
-
-            System::Ipv4Resolver resolver(m_dispatcher);
-            auto addr = resolver.resolve(host);
-            nodes.push_back(NetworkAddress {hostToNetwork(addr.getValue()), port});
-
-            logger(TRACE) << "Added seed node: " << nodes.back() << " (" << host << ")";
+            resolveHostAndPort(seed);
         }
-        catch (const std::exception &e)
+    }
+
+    //-----------------------------------------------------------------------------------
+
+    void NodeServer::start_seed_resolve()
+    {
+        if (m_seed_resolve_in_flight)
         {
-            logger(ERROR, BRIGHT_YELLOW) << "Failed to resolve host name '" << host << "': " << e.what();
-            return false;
+            return;
         }
 
-        return true;
+        /* The previous lookup has finished; reap it before starting another. */
+        join_seed_resolve_thread();
+
+        m_seed_resolve_in_flight = true;
+        logger(DEBUGGING) << "Looking up the seed node hostnames again";
+
+        m_seedResolveThread = std::thread([this, hosts = m_seed_node_hosts] {
+            std::vector<NetworkAddress> nodes;
+            resolve_seed_nodes(hosts, nodes);
+
+            {
+                std::lock_guard<std::mutex> lock(m_seedResolveMutex);
+                m_seedResolveResult = std::move(nodes);
+                m_seedResolveReady = true;
+            }
+
+            m_seed_resolve_in_flight = false;
+        });
+    }
+
+    //-----------------------------------------------------------------------------------
+
+    void NodeServer::collect_seed_resolve_result()
+    {
+        std::vector<NetworkAddress> nodes;
+
+        {
+            std::lock_guard<std::mutex> lock(m_seedResolveMutex);
+
+            if (!m_seedResolveReady)
+            {
+                return;
+            }
+
+            m_seedResolveReady = false;
+            nodes.swap(m_seedResolveResult);
+        }
+
+        const uint64_t now = static_cast<uint64_t>(time(nullptr));
+
+        if (nodes.empty())
+        {
+            /* Keep the addresses we have: a lookup that fails now may work at
+               the next seed round, and stale addresses beat none at all. */
+            m_seed_resolve_due = now + CryptoNote::P2P_SEED_RETRY_INTERVAL_SECONDS;
+            return;
+        }
+
+        const bool hadNone = m_seed_nodes.empty();
+
+        m_seed_nodes.swap(nodes);
+        m_seed_resolve_due = now + CryptoNote::P2P_SEED_RERESOLVE_INTERVAL_SECONDS;
+
+        logger(INFO) << "Resolved " << m_seed_nodes.size() << " seed node addresses";
+
+        if (hadNone)
+        {
+            /* This is what the seed rounds have been waiting for: dial at the
+               next one instead of sitting out the rest of the interval. */
+            m_seed_retry_interval.reset();
+        }
+    }
+
+    //-----------------------------------------------------------------------------------
+
+    void NodeServer::join_seed_resolve_thread()
+    {
+        if (m_seedResolveThread.joinable())
+        {
+            m_seedResolveThread.join();
+        }
     }
 
 
@@ -508,15 +632,31 @@ namespace CryptoNote
 
     bool NodeServer::init(const NetNodeConfig &config)
     {
-        for (const auto &seed : CryptoNote::SEED_NODES)
-        {
-            append_net_address(m_seed_nodes, seed);
-        }
-
         if (!handleConfig(config))
         {
             logger(ERROR, BRIGHT_RED) << "Failed to handle command line";
             return false;
+        }
+
+        /* Synchronous this once: the node has nowhere to go until it holds at
+           least one address. Every later lookup runs on the helper thread, so
+           a slow or dead DNS server cannot stall the dispatcher. */
+        resolve_seed_nodes(m_seed_node_hosts, m_seed_nodes);
+
+        const uint64_t now = static_cast<uint64_t>(time(nullptr));
+
+        if (!m_seed_nodes.empty())
+        {
+            logger(INFO) << "Resolved " << m_seed_nodes.size() << " seed node addresses";
+            m_seed_resolve_due = now + CryptoNote::P2P_SEED_RERESOLVE_INTERVAL_SECONDS;
+        }
+        else
+        {
+            /* DNS down at boot, most likely, which used to leave the seed list
+               empty for the rest of the process. Look again at the next seed
+               round instead of giving up on the seeds for good. */
+            m_seed_resolve_due = now;
+            logger(WARNING) << "No seed node address could be resolved; will keep trying in the background";
         }
         m_config_folder = config.getConfigFolder();
         m_p2p_state_filename = config.getP2pStateFilename();
@@ -1007,6 +1147,11 @@ namespace CryptoNote
        false only when the node is stopping, so the caller can bail out. */
     bool NodeServer::connect_to_seeds()
     {
+        if (!m_seed_resolve_in_flight && static_cast<uint64_t>(time(nullptr)) >= m_seed_resolve_due)
+        {
+            start_seed_resolve();
+        }
+
         if (m_seed_nodes.empty())
         {
             logger(DEBUGGING) << "No seed node address is known, nothing to bootstrap from";
@@ -1046,6 +1191,8 @@ namespace CryptoNote
 
     bool NodeServer::connections_maker()
     {
+        collect_seed_resolve_result();
+
         connect_to_peerlist(m_exclusive_peers);
 
         if (!m_exclusive_peers.empty())

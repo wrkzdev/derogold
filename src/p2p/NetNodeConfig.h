@@ -59,6 +59,11 @@ namespace CryptoNote
 
         std::vector<NetworkAddress> getSeedNodes() const;
 
+        /* --seed-node exactly as it was typed. Kept unresolved so a hostname
+           can be looked up again while the node runs, and so one that does not
+           resolve at startup is not lost for the rest of the process. */
+        std::vector<std::string> getSeedNodeAddresses() const;
+
         bool getHideMyPort() const;
 
         std::string getConfigFolder() const;
@@ -83,6 +88,8 @@ namespace CryptoNote
         std::vector<NetworkAddress> exclusiveNodes;
 
         std::vector<NetworkAddress> seedNodes;
+
+        std::vector<std::string> seedNodeAddresses;
 
         bool hideMyPort;
 

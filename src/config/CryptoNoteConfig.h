@@ -375,6 +375,10 @@ namespace CryptoNote
 
     const uint32_t P2P_SEED_RETRY_OUT_PEERS_FLOOR = 3;
 
+    /* Seed hostnames are looked up again this often, so a seed that changes
+       address is followed without a restart. */
+    const uint32_t P2P_SEED_RERESOLVE_INTERVAL_SECONDS = 60 * 60;
+
     const uint32_t P2P_DEFAULT_CONNECTION_TIMEOUT = 5000; // 5 seconds
     const uint32_t P2P_DEFAULT_PING_CONNECTION_TIMEOUT = 2000; // 2 seconds
     const uint64_t P2P_DEFAULT_INVOKE_TIMEOUT = 60 * 2 * 1000; // 2 minutes

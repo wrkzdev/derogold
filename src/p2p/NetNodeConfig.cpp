@@ -120,11 +120,18 @@ namespace CryptoNote
             }
         }
 
-        if (!addSeedNodes.empty())
+        /* Seeds are kept as text as well: NodeServer resolves them itself, so
+           --seed-node takes a hostname and not only an ip:port. Whatever does
+           parse as an ip:port is still filled into seedNodes for the callers
+           that want addresses without resolving anything. */
+        seedNodeAddresses = addSeedNodes;
+
+        for (const std::string &seed : addSeedNodes)
         {
-            if (!parsePeersAndAddToNetworkContainer(addSeedNodes, seedNodes))
+            NetworkAddress networkAddress = NetworkAddress();
+            if (parsePeerFromString(networkAddress, seed))
             {
-                return false;
+                seedNodes.push_back(networkAddress);
             }
         }
 
@@ -179,6 +186,11 @@ namespace CryptoNote
     std::vector<NetworkAddress> NetNodeConfig::getSeedNodes() const
     {
         return seedNodes;
+    }
+
+    std::vector<std::string> NetNodeConfig::getSeedNodeAddresses() const
+    {
+        return seedNodeAddresses;
     }
 
     bool NetNodeConfig::getHideMyPort() const

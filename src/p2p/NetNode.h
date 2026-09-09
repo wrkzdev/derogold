@@ -18,7 +18,10 @@
 #include "p2p/OnceInInterval.h"
 
 #include <Uuid.h>
+#include <atomic>
 #include <functional>
+#include <mutex>
+#include <thread>
 #include <system/Context.h>
 #include <system/ContextGroup.h>
 #include <system/Dispatcher.h>
@@ -160,7 +163,9 @@ namespace CryptoNote
             CryptoNote::CryptoNoteProtocolHandler &payload_handler,
             std::shared_ptr<Logging::ILogger> log);
 
-        ~NodeServer() override = default;
+        /* Not defaulted: the seed resolver thread has to be joined before the
+           members it captures go away. */
+        ~NodeServer() override;
 
         bool run();
 
@@ -288,8 +293,6 @@ namespace CryptoNote
         //-----------------------------------------------------------------------------------------------
         bool handleConfig(const NetNodeConfig &config);
 
-        bool append_net_address(std::vector<NetworkAddress> &nodes, const std::string &addr);
-
         bool idle_worker();
 
         bool handle_remote_peerlist(
@@ -306,6 +309,16 @@ namespace CryptoNote
         bool connections_maker();
 
         bool connect_to_seeds();
+
+        /* Turns the seed hostnames into addresses. Runs on the resolver thread
+           as well as in init(), so it touches nothing but its arguments. */
+        void resolve_seed_nodes(const std::vector<std::string> &extraHosts, std::vector<NetworkAddress> &nodes);
+
+        void start_seed_resolve();
+
+        void collect_seed_resolve_result();
+
+        void join_seed_resolve_thread();
 
         bool make_new_connection_from_peerlist(bool use_white_list);
 
@@ -435,6 +448,25 @@ namespace CryptoNote
         std::vector<NetworkAddress> m_exclusive_peers;
 
         std::vector<NetworkAddress> m_seed_nodes;
+
+        /* Seed hostnames, kept so they can be looked up again: a seed that
+           moves, or a name that would not resolve when the daemon started
+           before the network was up, must not be lost for good. Resolution
+           happens on m_seedResolveThread because getaddrinfo blocks, and the
+           dispatcher thread cannot afford to stall on a dead DNS server. */
+        std::vector<std::string> m_seed_node_hosts;
+
+        std::thread m_seedResolveThread;
+
+        std::mutex m_seedResolveMutex;
+
+        std::vector<NetworkAddress> m_seedResolveResult;
+
+        bool m_seedResolveReady;
+
+        std::atomic<bool> m_seed_resolve_in_flight;
+
+        uint64_t m_seed_resolve_due;
 
         std::list<PeerlistEntry> m_command_line_peers;
 
