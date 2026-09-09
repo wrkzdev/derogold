@@ -2555,24 +2555,24 @@ namespace CryptoNote
             }
         }
 
-	uint64_t futureTimeLimit;
+        /* Six blocks' worth of time at the rate in force here. The ladder
+           this replaces had its lower two rungs the wrong way round: heights
+           between DIFFICULTY_TARGET_V2_HEIGHT and DIFFICULTY_TARGET_V3_HEIGHT
+           were allowed 60 seconds ahead of now when their block time says 120,
+           and the heights below them 120 when theirs says 60.
 
-        if (previousBlockIndex + 1 >= CryptoNote::parameters::DIFFICULTY_TARGET_V3_HEIGHT)
-        {
-            futureTimeLimit = CryptoNote::parameters::DIFFICULTY_TARGET_V3 * 6;
-						        }
-        else if (previousBlockIndex + 1 >= CryptoNote::parameters::DIFFICULTY_TARGET_V2_HEIGHT)        
-        {
-            futureTimeLimit = CryptoNote::parameters::DIFFICULTY_TARGET * 6;
-        }
-        else
-        {
-            futureTimeLimit = CryptoNote::parameters::DIFFICULTY_TARGET_V2 * 6;
-        }
+           Putting them back cannot change which blocks this chain accepts. The
+           comparison is against the clock at validation time, and every height
+           below DIFFICULTY_TARGET_V3_HEIGHT was mined years ago, so no
+           timestamp down there is ahead of now by either figure. Only the V3
+           rung is live, and that one was already right. */
+        const uint64_t futureTimeLimit =
+            CryptoNote::parameters::getCurrentDifficultyTarget(previousBlockIndex + 1) * 6;
 
-	if (block.timestamp > getAdjustedTime() + futureTimeLimit) {
-		return error::BlockValidationError::TIMESTAMP_TOO_FAR_IN_FUTURE;
-	}
+        if (block.timestamp > getAdjustedTime() + futureTimeLimit)
+        {
+            return error::BlockValidationError::TIMESTAMP_TOO_FAR_IN_FUTURE;
+        }
 
 	auto timestamps = cache->getLastTimestamps(currency.timestampCheckWindow(previousBlockIndex+1), previousBlockIndex, addGenesisBlock);
 	if (timestamps.size() >= currency.timestampCheckWindow(previousBlockIndex+1)) {
