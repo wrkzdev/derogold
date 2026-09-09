@@ -2083,24 +2083,45 @@ namespace CryptoNote
 
     std::tuple<bool, uint64_t> DatabaseBlockchainCache::getBlockHeightForTimestamp(uint64_t timestamp) const
     {
-        const auto midnight = roundToMidnight(timestamp);
+        /* One entry per day, holding the first block mined that day. Asking
+           for a day with no entry used to give up here, and a day with no
+           entry is ordinary: a node that fast-synced or a lite node has none
+           below its floor, a stalled chain skips days outright, and every day
+           has none until its first block is mined. A wallet whose scan start
+           landed on such a day was served nothing at all.
 
-        const auto [blockHeight, success] = requestClosestBlockIndexByTimestamp(midnight, database);
+           So walk back to the nearest earlier day that does have an entry, as
+           getTimestampLowerBoundBlockIndex below already does. The genesis day
+           is always indexed, so the walk ends there at the latest. Starting a
+           scan earlier than asked costs time; not starting one costs the
+           wallet every transaction it has. */
+        auto midnight = roundToMidnight(timestamp);
 
-        /* Failed to read from DB */
-        if (!success)
+        while (true)
         {
-            logger(Logging::DEBUGGING) << "getTimestampLowerBoundBlockIndex failed: failed to read database";
-            throw std::runtime_error("Couldn't get closest to timestamp block index");
-        }
+            const auto [blockHeight, success] = requestClosestBlockIndexByTimestamp(midnight, database);
 
-        /* Failed to find the block height with this timestamp */
-        if (!blockHeight)
-        {
-            return {false, 0};
-        }
+            /* Failed to read from DB */
+            if (!success)
+            {
+                logger(Logging::DEBUGGING) << "getBlockHeightForTimestamp failed: failed to read database";
+                throw std::runtime_error("Couldn't get closest to timestamp block index");
+            }
 
-        return {true, *blockHeight};
+            if (blockHeight)
+            {
+                return {true, *blockHeight};
+            }
+
+            /* Ran out of days before finding one. Nothing in this database is
+               older than the timestamp asked for. */
+            if (midnight < ONE_DAY_SECONDS)
+            {
+                return {false, 0};
+            }
+
+            midnight -= ONE_DAY_SECONDS;
+        }
     }
 
     uint32_t DatabaseBlockchainCache::getTimestampLowerBoundBlockIndex(uint64_t timestamp) const

@@ -313,6 +313,26 @@ bool BlockDownloader::downloadBlocks()
     if (success && blocks.empty() && topBlock && m_storedBlocks.size() == 0)
     {
         m_synchronizationStatus.storeBlockHash(topBlock->hash, topBlock->height);
+
+        /* Taking the top block is the wallet saying it has scanned as far as
+           here, which answers the date it was going to start from: it starts
+           from here. Leaving the timestamp set meant every later request still
+           asked the daemon to place that date, and a daemon that could not
+           place it answered nothing however many blocks had since been mined -
+           the wallet sat at the tip calling itself fully synced, showing no
+           transactions, and only a reset (which starts from a height) moved
+           it. A height cannot fail to be placed. */
+        if (m_startTimestamp != 0)
+        {
+            m_startTimestamp = 0;
+            m_startHeight = topBlock->height;
+
+            if (m_subWallets != nullptr)
+            {
+                m_subWallets->convertSyncTimestampToHeight(m_startTimestamp, m_startHeight);
+            }
+        }
+
         return false;
     }
     /* If we get no blocks, we are fully synced.

@@ -750,10 +750,21 @@ namespace CryptoNote
                 timestampBlockHeight = 0;
             }
 
-            /* If we couldn't get the first block timestamp, then the node is
-           synced less than the current height, so return no blocks till we're
-           synced. */
-            if (startTimestamp != 0 && !success)
+            /* The height of the last block we know about */
+            uint64_t lastKnownBlockHashHeight = static_cast<uint64_t>(findBlockchainSupplement(knownBlockHashes));
+
+            /* The chain does not reach the date asked for, so there is nothing
+               to send from a date. If the wallet also sent no block hashes it
+               has nothing else to go on and the top block is the whole answer.
+
+               This used to be decided before the block hashes were read at
+               all, which is what made it stick: a wallet whose scan start
+               could not be placed was served an empty "you are synced" on
+               every request, however far it had already got. It adopted the
+               top block, showed itself fully synced against the network, and
+               never saw a transaction - and only a reset, which starts from a
+               height instead of a date, got it out. */
+            if (startTimestamp != 0 && !success && lastKnownBlockHashHeight == 0)
             {
                 topBlockInfo = WalletTypes::TopBlock({currentHash, currentIndex});
                 return true;
@@ -762,9 +773,6 @@ namespace CryptoNote
             /* If a height was given, start from there, else convert the timestamp
            to a block */
             uint64_t firstBlockHeight = startHeight == 0 ? timestampBlockHeight : startHeight;
-
-            /* The height of the last block we know about */
-            uint64_t lastKnownBlockHashHeight = static_cast<uint64_t>(findBlockchainSupplement(knownBlockHashes));
 
             /* Start returning either from the start height, or the height of the
            last block we know about, whichever is higher */
@@ -943,10 +951,21 @@ namespace CryptoNote
                 timestampBlockHeight = 0;
             }
 
-            /* If we couldn't get the first block timestamp, then the node is
-           synced less than the current height, so return no blocks till we're
-           synced. */
-            if (startTimestamp != 0 && !success)
+            /* The height of the last block we know about */
+            uint64_t lastKnownBlockHashHeight = static_cast<uint64_t>(findBlockchainSupplement(knownBlockHashes));
+
+            /* The chain does not reach the date asked for, so there is nothing
+               to send from a date. If the wallet also sent no block hashes it
+               has nothing else to go on and the top block is the whole answer.
+
+               This used to be decided before the block hashes were read at
+               all, which is what made it stick: a wallet whose scan start
+               could not be placed was served an empty "you are synced" on
+               every request, however far it had already got. It adopted the
+               top block, showed itself fully synced against the network, and
+               never saw a transaction - and only a reset, which starts from a
+               height instead of a date, got it out. */
+            if (startTimestamp != 0 && !success && lastKnownBlockHashHeight == 0)
             {
                 topBlockInfo = WalletTypes::TopBlock({currentHash, currentIndex});
                 return true;
@@ -955,9 +974,6 @@ namespace CryptoNote
             /* If a height was given, start from there, else convert the timestamp
            to a block */
             uint64_t firstBlockHeight = startHeight == 0 ? timestampBlockHeight : startHeight;
-
-            /* The height of the last block we know about */
-            uint64_t lastKnownBlockHashHeight = static_cast<uint64_t>(findBlockchainSupplement(knownBlockHashes));
 
             /* Start returning either from the start height, or the height of the
            last block we know about, whichever is higher */
