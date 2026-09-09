@@ -772,6 +772,46 @@ int main(int argc, char *argv[])
 
         const auto p2psrv = std::make_shared<CryptoNote::NodeServer>(dispatcher, *cprotocol, logManager);
 
+        /* Explorer mode answers block and transaction lookups out of the raw
+           blocks, and out of the transaction and payment ID indexes that point
+           into them. None of that is written because the mode is on - a node
+           synced without --daemon-mode explorer already holds all of it - so
+           turning the mode on is a restart, not a resync, and there is no
+           separate index to build.
+
+           What the mode cannot conjure is a block this node never stored.
+           --prune deletes raw blocks below its floor and --sync-from-height
+           never downloads them, and every explorer answer ends up reading one:
+           even f_transaction_json resolves a transaction to its block index and
+           then reads that block. Report the position here, once, at startup,
+           rather than leaving an operator to discover it one failed query at a
+           time. */
+        if (explorerMode)
+        {
+            const uint32_t explorerFloor = std::max(ccore->getPruneFloor(), ccore->getSyncFloorHeight());
+
+            if (explorerFloor == 0)
+            {
+                logger(INFO, BRIGHT_GREEN)
+                    << "Explorer mode: this node holds full block data from the genesis block, so every height can "
+                       "be served.";
+            }
+            else
+            {
+                const bool pruned = ccore->getPruneFloor() > 0;
+
+                logger(WARNING, BRIGHT_YELLOW)
+                    << "Explorer mode: this node only holds full block data from height " << explorerFloor
+                    << " upward. Block and transaction lookups below that height will fail, because "
+                    << (pruned ? "--prune deleted those blocks" : "--sync-from-height never downloaded them")
+                    << ". What is missing is the block data itself, not an index, so no reindex can recover it - "
+                       "only downloading those blocks again. To serve the whole chain, resync this data directory "
+                       "from scratch with --resync --daemon-mode explorer, and leave --prune and --sync-from-height "
+                       "off. Serving only from height "
+                    << explorerFloor << " upward is a legitimate setup, so the node is starting either way.";
+            }
+        }
+
         RpcMode rpcMode = explorerMode ? RpcMode::BlockExplorerEnabled : RpcMode::Default;
 
         RpcServer rpcServer(config.rpcPort,

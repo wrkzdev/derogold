@@ -1215,6 +1215,23 @@ bool DaemonCommandsHandler::sync_info(const std::vector<std::string> &args)
                   << InformationMsg(" upward; below that only indexes were stored") << std::endl;
     }
 
+    /* The lowest height an explorer lookup can be answered from. Explorer mode
+       needs no index of its own - it reads the raw blocks every node stores -
+       so this is purely a question of which blocks are still here. */
+    const uint32_t explorerFloor = std::max(m_core.getPruneFloor(), m_core.getSyncFloorHeight());
+
+    std::cout << InformationMsg("Explorer data:    ");
+
+    if (explorerFloor == 0)
+    {
+        std::cout << SuccessMsg("complete from the genesis block") << std::endl;
+    }
+    else
+    {
+        std::cout << SuccessMsg("from height ") << SuccessMsg(explorerFloor)
+                  << InformationMsg(" upward only; lookups below that will fail") << std::endl;
+    }
+
     return true;
 }
 
