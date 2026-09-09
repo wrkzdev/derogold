@@ -977,7 +977,12 @@ std::tuple<Error, uint16_t>
                       {"peerCount", status.peerCount},
                       {"hashrate", status.lastKnownHashrate},
                       {"isViewWallet", m_walletBackend->isViewWallet()},
-                      {"subWalletCount", m_walletBackend->getWalletCount()}};
+                      {"subWalletCount", m_walletBackend->getWalletCount()},
+                      /* The wallet was synced without coinbase scanning and is
+                         now scanning it, so the coinbase transactions it
+                         already received are behind its sync status and need a
+                         reset to be found. */
+                      {"coinbaseScanNeedsReset", m_walletBackend->coinbaseScanMissedBlocks()}};
 
     res.set_content(j.dump(4) + "\n", "application/json");
 

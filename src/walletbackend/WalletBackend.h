@@ -252,6 +252,12 @@ class WalletBackend
     /* Whether we have recieved info from the daemon at some point */
     bool daemonOnline() const;
 
+    /* True when this wallet was synced without coinbase scanning and is now
+       being asked to scan them. The blocks holding nothing but a coinbase were
+       never sent to it, so the ones already received can only be recovered by
+       a reset. */
+    bool coinbaseScanMissedBlocks() const;
+
     std::tuple<Error, std::string> getAddress(const Crypto::PublicKey spendKey) const;
 
     std::tuple<Error, Crypto::SecretKey> getTxPrivateKey(const Crypto::Hash txHash) const;
@@ -334,6 +340,11 @@ class WalletBackend
     std::shared_ptr<WalletSynchronizerRAIIWrapper> m_syncRAIIWrapper;
 
     unsigned int m_syncThreadCount;
+
+    /* Set while loading, when the wallet on disk had not been scanning
+       coinbase transactions but this run is. */
+    bool m_coinbaseScanMissedBlocks = false;
+
     /* Ensure we only send one transaction in parallel, otherwise txs will likely fail. */
     std::mutex m_transactionMutex;
 };

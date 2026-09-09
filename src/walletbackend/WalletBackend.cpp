@@ -14,6 +14,7 @@
 
 #include <common/Base58.h>
 #include <common/FileSystemShim.h>
+#include <config/Config.h>
 #include <config/CryptoNoteConfig.h>
 #include <crypto/crypto.h>
 #include <crypto/random.h>
@@ -1229,6 +1230,14 @@ std::string WalletBackend::unsafeToJSON() const
     writer.Key("walletFileFormatVersion");
     writer.Uint(Constants::WALLET_FILE_FORMAT_VERSION);
 
+    /* Travels with the wallet, because it decides which blocks the daemon
+       sends: with it off, blocks holding nothing but a coinbase are skipped
+       and the sync status moves past them. A wallet that has done that cannot
+       be caught up by turning the flag on later, so the wallet has to be able
+       to say which way it was synced. */
+    writer.Key("scanCoinbaseTransactions");
+    writer.Bool(!Config::config.wallet.skipCoinbaseTransactions);
+
     writer.Key("subWallets");
     m_subWallets->toJSON(writer);
 
@@ -1255,7 +1264,45 @@ Error WalletBackend::fromJSON(const rapidjson::Document &j)
     m_walletSynchronizer = std::make_shared<WalletSynchronizer>();
     m_walletSynchronizer->fromJSON(getObjectFromJSON(j, "walletSynchronizer"));
 
+    /* Wallets written before this was recorded are taken at the default, which
+       is what they were synced with. */
+    const bool walletScannedCoinbase =
+        hasMember(j, "scanCoinbaseTransactions") ? getBoolFromJSON(j, "scanCoinbaseTransactions") : false;
+
+    const bool askedToScanCoinbase = !Config::config.wallet.skipCoinbaseTransactions;
+
+    if (walletScannedCoinbase && !askedToScanCoinbase)
+    {
+        /* The wallet remembers. Dropping it silently on an open without the
+           flag would leave the wallet skipping blocks it has been counting on,
+           and every coinbase from here on would need another reset to find. */
+        Config::config.wallet.skipCoinbaseTransactions = false;
+
+        Logger::logger.log(
+            "Wallet was synced with coinbase scanning, keeping it on",
+            Logger::INFO,
+            {Logger::SYNC});
+    }
+    else if (askedToScanCoinbase && !walletScannedCoinbase)
+    {
+        /* Only the blocks from here on will carry coinbase transactions. The
+           ones already skipped are behind the sync status and will not be
+           requested again without a reset. */
+        m_coinbaseScanMissedBlocks = true;
+
+        Logger::logger.log(
+            "Wallet was synced without coinbase scanning - coinbase transactions "
+            "received before now need a reset to be found",
+            Logger::WARNING,
+            {Logger::SYNC});
+    }
+
     return SUCCESS;
+}
+
+bool WalletBackend::coinbaseScanMissedBlocks() const
+{
+    return m_coinbaseScanMissedBlocks;
 }
 
 Error WalletBackend::fromJSON(
