@@ -35,24 +35,35 @@
 
 ARG UBUNTU_VERSION=20.04
 
+# GCC 11 is the floor, not 10. The bundled RocksDB 11.8.1 writes
+# `using enum SizeApproximationFlags;` in db.h, and that particular C++20
+# feature (P1099R5) arrived in GCC 11 and Clang 13 - GCC 10 compiles the rest of
+# the header and then stops there with "expected nested-name-specifier before
+# 'enum'". Raise this to 12 or 13 if a future RocksDB needs more; the PPA below
+# carries them, and the compiler version has no bearing on the glibc floor.
+ARG GCC_VERSION=11
+
 # The compatibility floor this build targets, used to name the artifacts. It
 # describes what the binaries need, not what built them, which is the thing
-# someone downloading them actually has to check.
+# someone receiving them actually has to check.
 ARG PACKAGE_SUFFIX=linux-x64-glibc2.31
 
 FROM ubuntu:${UBUNTU_VERSION} AS build
 ARG DEBIAN_FRONTEND=noninteractive
+ARG GCC_VERSION
 ARG PACKAGE_SUFFIX
 
-# g++-10, not 20.04's default g++-9: the bundled RocksDB builds as C++20 and
-# uses defaulted comparison operators, which GCC 9 does not implement. It comes
-# from 20.04's own universe repository, so no PPA is involved and the glibc this
-# links against stays exactly where it is.
+# Two repositories are added, and neither moves the glibc this links against -
+# both build against the distribution's own 2.31, which is the whole point.
 #
-# CMake comes from Kitware for the same reason the main Dockerfile takes it from
-# there: 20.04 ships 3.16, and the vendored RocksDB expects newer.
+#   ubuntu-toolchain-r/test  Ubuntu 20.04 tops out at gcc-10 in its own
+#                            repositories, and RocksDB 11 needs 11.
+#   apt.kitware.com          20.04 ships CMake 3.16 and the vendored RocksDB
+#                            expects newer. Same source the main Dockerfile uses.
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends ca-certificates curl gpg && \
+    apt-get install -y --no-install-recommends \
+        ca-certificates curl gpg software-properties-common && \
+    add-apt-repository -y ppa:ubuntu-toolchain-r/test && \
     curl -fsSL https://apt.kitware.com/keys/kitware-archive-latest.asc \
         | gpg --dearmor - > /usr/share/keyrings/kitware-archive-keyring.gpg && \
     . /etc/os-release && \
@@ -63,13 +74,15 @@ RUN apt-get update && \
         binutils \
         cmake \
         file \
-        g++-10 \
-        gcc-10 \
+        g++-${GCC_VERSION} \
+        gcc-${GCC_VERSION} \
         git \
         libssl-dev \
         ninja-build \
         pkg-config && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/* && \
+    g++-${GCC_VERSION} --version | head -1 && \
+    cmake --version | head -1
 
 WORKDIR /src
 COPY . .
@@ -82,7 +95,7 @@ COPY . .
 # Deliberately no BuildKit-only syntax anywhere in this file - no --mount, no
 # heredocs. Plenty of installations still run the legacy builder, and a
 # portable build being unbuildable there would be a poor joke.
-RUN CC=gcc-10 CXX=g++-10 cmake -G Ninja \
+RUN CC=gcc-${GCC_VERSION} CXX=g++-${GCC_VERSION} cmake -G Ninja \
         -D CMAKE_BUILD_TYPE=Release \
         -D ARCH=default \
         -D SET_COMMIT_ID_IN_VERSION=OFF \

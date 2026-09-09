@@ -1,9 +1,10 @@
 # syntax=docker/dockerfile:1
 
 # 22.04 rather than 20.04, because this image is the published container and
-# its runtime base should be current. 20.04 does build - its default g++-9
-# cannot compile the C++20 RocksDB, but g++-10 is in its universe repository -
-# and that is what Dockerfile.portable uses to reach an older glibc.
+# its runtime base should be current. 20.04 does build, but only with gcc-11
+# from ppa:ubuntu-toolchain-r/test, since the bundled RocksDB needs C++20's
+# `using enum` and 20.04's own newest is gcc-10. That is what
+# Dockerfile.portable does, to reach an older glibc.
 ARG UBUNTU_VERSION=22.04
 ARG CCACHE_VERSION=4.10.2
 

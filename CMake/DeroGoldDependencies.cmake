@@ -239,24 +239,32 @@ function(derogold_require_rocksdb)
     # stops on `auto operator==(...) const = default` with nothing to suggest
     # the compiler is the problem.
     #
-    # GCC 10 and Clang 10 are the real floor, which matters because that is one
-    # apt install away on Ubuntu 20.04 (g++-10) - and building there is how you
-    # get a binary that runs on an older glibc. Older toolchains than that
-    # should pass -D DEROGOLD_SYSTEM_ROCKSDB=ON instead.
-    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 10)
+    # GCC 11 and Clang 14, matching what BUILDING.md has always said. The
+    # binding constraint is `using enum SizeApproximationFlags;` in RocksDB's
+    # db.h - that C++20 feature (P1099R5) arrived in GCC 11 and Clang 13, so
+    # GCC 10 gets most of the way through the header and then stops on
+    # "expected nested-name-specifier before 'enum'", which says nothing about
+    # the compiler being the problem.
+    #
+    # Ubuntu 20.04 tops out at gcc-10 in its own repositories, so reaching this
+    # floor there needs ppa:ubuntu-toolchain-r/test. That is worth doing,
+    # because 20.04 is also how you get a binary that runs on an older glibc.
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 11)
         message(FATAL_ERROR
-            "GCC ${CMAKE_CXX_COMPILER_VERSION} is too old to build the bundled RocksDB, "
-            "which compiles as C++20 and needs GCC 10 or newer.\n"
-            "On Ubuntu 20.04: sudo apt install g++-10 gcc-10, then configure with "
-            "CC=gcc-10 CXX=g++-10.\n"
+            "GCC ${CMAKE_CXX_COMPILER_VERSION} cannot build the bundled RocksDB, which "
+            "compiles as C++20 and uses `using enum` - that needs GCC 11 or newer.\n"
+            "On Ubuntu 20.04, whose newest own gcc is 10:\n"
+            "  sudo add-apt-repository ppa:ubuntu-toolchain-r/test\n"
+            "  sudo apt install g++-11 gcc-11\n"
+            "then configure with CC=gcc-11 CXX=g++-11.\n"
             "Alternatively pass -D DEROGOLD_SYSTEM_ROCKSDB=ON to link a system "
             "RocksDB 8.1 or newer instead. See BUILDING.md.")
     endif()
 
-    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 10)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 14)
         message(FATAL_ERROR
-            "Clang ${CMAKE_CXX_COMPILER_VERSION} is too old to build the bundled RocksDB, "
-            "which compiles as C++20 and needs Clang 10 or newer.\n"
+            "Clang ${CMAKE_CXX_COMPILER_VERSION} is below the supported floor for the "
+            "bundled RocksDB, which compiles as C++20 and needs Clang 14 or newer.\n"
             "Alternatively pass -D DEROGOLD_SYSTEM_ROCKSDB=ON to link a system "
             "RocksDB 8.1 or newer instead. See BUILDING.md.")
     endif()

@@ -164,21 +164,24 @@ build it yourself against an older glibc.
 #### Building for an older glibc
 
 Build on the oldest system you intend to support. Ubuntu 20.04 works, with one
-extra step: its default `g++-9` cannot compile the bundled RocksDB, which is
-C++20 and uses defaulted comparison operators. `g++-10` is in 20.04's own
-universe repository, so no PPA is needed and the glibc you link against does
-not move:
+extra step: the bundled RocksDB writes `using enum` and needs GCC 11, while
+20.04's newest own compiler is gcc-10. `ppa:ubuntu-toolchain-r/test` supplies
+newer ones, built against 20.04's glibc, so the floor you are trying to reach
+does not move:
 
 ```sh
-sudo apt install g++-10 gcc-10 cmake ninja-build git libssl-dev pkg-config
+sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+sudo apt update
+sudo apt install g++-11 gcc-11 cmake ninja-build git libssl-dev pkg-config
 
-CC=gcc-10 CXX=g++-10 cmake -G Ninja \
+CC=gcc-11 CXX=g++-11 cmake -G Ninja \
     -D CMAKE_BUILD_TYPE=Release -D ARCH=default -S . -B build
 cmake --build build
 ```
 
-Configure with an older compiler than that and the build stops immediately
-saying so, rather than failing hundreds of lines into a RocksDB header.
+Configure with an older compiler and the build stops immediately naming the
+version it needs, rather than failing hundreds of lines into a RocksDB header
+on `expected nested-name-specifier before 'enum'`.
 
 #### Building it in Docker instead
 
@@ -236,6 +239,7 @@ Build arguments:
 | | |
 | --- | --- |
 | `--build-arg UBUNTU_VERSION=22.04` | A different, newer floor |
+| `--build-arg GCC_VERSION=12` | A newer compiler, if a future RocksDB needs one |
 | `--build-arg PACKAGE_SUFFIX=...` | Renames the artifacts |
 
 There is no ccache in this image. It would need a BuildKit cache mount to
