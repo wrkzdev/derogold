@@ -19,6 +19,10 @@ Binaries land in `build/src`.
 
 No `--recursive` clone is needed any more; there are no submodules.
 
+> This builds for **the machine you are compiling on** and will likely crash
+> with an illegal instruction on any other CPU. For a binary you can copy
+> elsewhere, see [Portable builds](#portable-builds).
+
 ## What the build needs
 
 | Dependency | Where it comes from |
@@ -33,6 +37,10 @@ recorded in [external/README.md](external/README.md).
 
 If OpenSSL is missing, CMake stops with the install command for your platform
 rather than a wall of linker errors.
+
+Nothing under `extras/` is built by CMake. The block explorer there is static
+HTML and JavaScript, served by any web server; see
+[extras/explorer/README.md](extras/explorer/README.md).
 
 ### CMake
 
@@ -82,21 +90,147 @@ Databases are not backward compatible across major RocksDB versions. A chain
 database written by this build cannot be opened by an older binary, so keep a
 copy before switching if you may want to go back.
 
+## Portable builds
+
+"Portable" is two separate questions, and they have different answers.
+
+### 1. Which CPUs the binary runs on
+
+Controlled by `ARCH`, which defaults to `native`:
+
+| `ARCH` | Effect |
+| --- | --- |
+| `native` (default) | `-march=native`. Fastest on this machine, **illegal instruction crash on anything older** |
+| `default` | No `-march` at all, so the compiler's baseline. This is what the released binaries use |
+| anything else | Passed straight through as `-march=<value>`, e.g. `x86-64-v2`, `haswell`, `armv8-a` |
+
+The middle option is a genuine middle ground: `-D ARCH=x86-64-v2` targets
+roughly any x86-64 chip from 2009 onward and keeps SSE4.2 and POPCNT, while
+`ARCH=default` goes all the way back to plain SSE2.
+
+Hardware AES needs no flag either way. The build adds `-maes` when the compiler
+accepts it, but the hashing code checks CPUID at runtime and falls back to
+software AES, so an `ARCH=default` binary still uses AES-NI on chips that have
+it and runs correctly on chips that do not. Setting `NO_AES=ON` is for
+toolchains that reject `-maes`, not for portability. To force the software path
+at runtime — for a bug report, say — set `TURTLECOIN_USE_SOFTWARE_AES=1` in the
+environment.
+
+### 2. Which machines the binary loads on
+
+The C++ runtime is already handled: every non-Apple build links with
+`-static-libgcc -static-libstdc++`, so the target does not need a matching
+libstdc++. MinGW goes further and links `-static`, which is why the Windows
+binaries need no MSYS2 DLLs beside them.
+
+That leaves two dynamic dependencies on Linux:
+
+- **OpenSSL.** Link it statically with `-D OPENSSL_USE_STATIC_LIBS=ON`,
+  provided your distribution ships `libssl.a` / `libcrypto.a` (Debian and
+  Ubuntu do, in `libssl-dev`).
+- **glibc**, which cannot be statically linked in any way worth shipping. A
+  binary built against glibc 2.39 will not start on a system with 2.35. There
+  is no flag for this: **build on the oldest distribution you intend to
+  support.** CI builds on Ubuntu 22.04 and 24.04 for exactly this reason.
+
+### The easy path
+
+The `*-package` presets already set `ARCH=default` and are what CI uses to
+produce the published releases. Building one gives you the same artifact:
+
+```sh
+# Linux x64
+cmake --preset linux-x64-gcc-package
+cmake --build --preset linux-x64-gcc-package
+
+# Windows, from the MSYS2 MINGW64 shell
+cmake --preset windows-x64-mingw-gcc-package
+cmake --build --preset windows-x64-mingw-gcc-package
+```
+
+These build the `package` target, so the result is an archive under
+`build/Packaging` rather than loose binaries, named after the preset —
+`DeroGold-linux-x64-gcc.tar.gz` and so on. The format follows the machine you
+build **on**, not the one you build for: `.tar.gz` and `.deb` from Linux,
+`.zip` from Windows, `.tar.gz` from macOS. These presets also set
+`SET_COMMIT_ID_IN_VERSION=OFF`, so the version string is the release number
+alone rather than a number plus a commit hash.
+
+To get a portable build without the packaging step, configure by hand:
+
+```sh
+cmake -G Ninja -D CMAKE_BUILD_TYPE=Release -D ARCH=default \
+      -D OPENSSL_USE_STATIC_LIBS=ON -S . -B build
+cmake --build build
+```
+
+### Checking what you produced
+
+```sh
+# Which shared libraries are still required. With OPENSSL_USE_STATIC_LIBS=ON
+# this should be down to libc, libm, libdl, libpthread and the loader.
+ldd build/src/DeroGoldd
+
+# The oldest glibc the binary demands, which is the version floor on the target
+objdump -T build/src/DeroGoldd | grep -oE 'GLIBC_[0-9.]+' | sort -uV | tail -1
+```
+
+On Windows, `ldd DeroGoldd.exe` from the MSYS2 shell should list only DLLs from
+`C:\Windows`; anything under `/mingw64/bin` means the binary is not standalone.
+
+Neither check proves the instruction set is right — nothing in the ELF header
+records the `-march` used. The only reliable test is running the binary on the
+oldest CPU you intend to support, where a wrong `ARCH` shows up immediately as
+`Illegal instruction`.
+
 ## Presets
 
 `CMakePresets.json` carries the configurations used by CI. They are convenient
 but entirely optional; the plain commands above work everywhere.
 
+Names follow `<platform>-<arch>-<compiler>[-<variant>]`. The variant decides
+what you get:
+
+| Variant | Purpose |
+| --- | --- |
+| *(none)* | Multi-config developer build; binaries land in `build/src/<Config>/` |
+| `-all` | Single-config Release build of everything |
+| `-install` | Adds the install step |
+| `-package` | Release, `ARCH=default`, builds an archive under `build/Packaging` |
+
+Configure presets and build presets do not always share a name. There is no
+`-release` **configure** preset — the release build presets attach to the
+plain configure preset:
+
 ```sh
-cmake --preset linux-x64-gcc-release
-cmake --build --preset linux-x64-gcc-release
+cmake --preset linux-x64-gcc                 # configure
+cmake --build --preset linux-x64-gcc-release # build
 ```
 
-## Native versus portable binaries
+For the `-package` variants the two names do match, which is why the commands
+in the section above repeat the name.
 
-By default the build targets the machine it is compiled on. Pass
-`-D ARCH=default` for a binary that runs on other machines, at some cost in
-performance.
+## Cross-compiling for ARM64
+
+CI cross-compiles the ARM64 release from an x86-64 host rather than building on
+ARM hardware:
+
+```sh
+sudo apt install crossbuild-essential-arm64
+cmake --preset linux-arm64-gcc-cross-package
+cmake --build --preset linux-arm64-gcc-cross-package
+```
+
+The toolchain files are `CMake/linux-arm64-gcc.cmake` and
+`CMake/linux-arm64-clang.cmake`. They only switch compilers when the host is
+not already aarch64, so the same preset also works natively on an ARM64
+machine.
+
+Cross builds need an OpenSSL built for the target, not the host copy. If the
+link fails on `-lssl` or `-lcrypto`, that is what is missing.
+
+The `linux-arm64-gcc` and `linux-arm64-clang` presets, without `-cross`, are
+for building natively on ARM64 hardware.
 
 ## Vendored libraries
 
@@ -116,6 +250,19 @@ library and CMake files only.
 MSVC is not currently supported. OpenSSL has no standard source on Windows
 outside MSYS2, which is what the MinGW instructions use. Building with MSVC
 means providing it yourself and pointing CMake at it.
+
+`CMakePresets.json` does still carry `windows-x64-msvc*` presets, but no CI job
+uses them and they will not configure without an OpenSSL you supply.
+
+## Other build options
+
+| Option | Default | Effect |
+| --- | --- | --- |
+| `USE_CCACHE` | `ON` | Uses ccache when it is on `PATH`. Harmless when it is not |
+| `SET_COMMIT_ID_IN_VERSION` | `ON` | Appends the short commit hash to the version string |
+| `FORCE_USE_HEAP` | `ON` | Allocates the hashing scratchpad on the heap rather than the stack |
+| `NO_AES` | `OFF` | Drops `-maes`, for toolchains that reject it. Not needed for portability |
+| `NO_OPTIMIZED_MULTIPLY_ON_ARM` | `OFF` | Disables the ARM multiply path, for toolchains that miscompile it |
 
 ## Upgrading from the vcpkg build
 
