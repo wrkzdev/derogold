@@ -1,32 +1,38 @@
 # syntax=docker/dockerfile:1
 
-# A portable Linux build.
+# A portable Linux build, packaged.
 #
 # The point of this image is its base, not its contents. A binary cannot run
 # against a glibc older than the one it was linked with, and glibc 2.34 folded
 # libpthread, libdl and librt into libc itself - so every threaded program built
 # on Ubuntu 22.04 or newer demands GLIBC_2.34 and refuses to start on Ubuntu
-# 20.04, Debian 11 or RHEL 8. This is not something a compiler flag can undo,
-# which is why the answer is a different base rather than a different build.
+# 20.04, Debian 11 or RHEL 8. No compiler flag undoes that, which is why the
+# answer is a different base rather than a different build.
 #
 # Building here pins the floor at 20.04's glibc 2.31, which covers Ubuntu 20.04
-# and later and Debian 11 and later. For an older floor still, change
-# UBUNTU_VERSION or move to a distribution older than any Ubuntu that can host
-# a C++20 compiler.
+# and later and Debian 11 and later. Use this when the target machine is too
+# slow or too bare to build on itself.
 #
 #   docker build -f Dockerfile.portable --target export --output type=local,dest=dist .
 #
-# leaves the binaries in dist/. libstdc++ and libgcc are already linked
-# statically by the main build; libssl and libc stay dynamic.
+# leaves the .tar.gz and .deb in dist/. libstdc++ and libgcc are already linked
+# statically by the main build; libssl and libc stay dynamic, so the target
+# needs libssl installed - it is present by default on any normal server.
 #
 # This is separate from Dockerfile because that one builds the published
-# container image, where the runtime base and the build base are the same
+# container image, where the build base and the runtime base are the same
 # modern Ubuntu and none of the above applies.
 
 ARG UBUNTU_VERSION=20.04
 
+# The compatibility floor this build targets, used to name the artifacts. It
+# describes what the binaries need, not what built them, which is the thing
+# someone downloading them actually has to check.
+ARG PACKAGE_SUFFIX=linux-x64-glibc2.31
+
 FROM ubuntu:${UBUNTU_VERSION} AS build
 ARG DEBIAN_FRONTEND=noninteractive
+ARG PACKAGE_SUFFIX
 
 # g++-10, not 20.04's default g++-9: the bundled RocksDB builds as C++20 and
 # uses defaulted comparison operators, which GCC 9 does not implement. It comes
@@ -45,7 +51,9 @@ RUN apt-get update && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
         binutils \
+        ccache \
         cmake \
+        file \
         g++-10 \
         gcc-10 \
         git \
@@ -59,20 +67,32 @@ COPY . .
 
 # ARCH=default is the other half of portability: without it the build targets
 # whatever CPU happens to be compiling, and the binary dies with an illegal
-# instruction on anything older.
-RUN CC=gcc-10 CXX=g++-10 cmake -G Ninja \
+# instruction on anything older. SET_COMMIT_ID_IN_VERSION=OFF matches the
+# release configuration, keeping the version string to the release number.
+#
+# The ccache mount is what makes a second run bearable: COPY . . invalidates
+# this layer on any source change, and without it every rebuild compiles the
+# whole of RocksDB again. The project picks ccache up from PATH by itself.
+RUN --mount=type=cache,id=derogold-portable-ccache,target=/root/.ccache \
+    CC=gcc-10 CXX=g++-10 cmake -G Ninja \
         -D CMAKE_BUILD_TYPE=Release \
         -D ARCH=default \
         -D SET_COMMIT_ID_IN_VERSION=OFF \
-        -D CMAKE_INSTALL_PREFIX=/out \
+        -D SET_PACKAGE_OUTPUT_SUFFIX="${PACKAGE_SUFFIX}" \
         -S . -B build && \
-    cmake --build build --target install
+    cmake --build build && \
+    cmake --build build --target package && \
+    ccache --show-stats | head -5
 
 # Report the floor that was actually achieved. If the base image is changed to
-# something newer, this line says so in the build log rather than leaving it to
-# be discovered on a server.
-RUN echo "glibc floor: $(objdump -T /out/bin/DeroGoldd \
-        | grep -oE 'GLIBC_[0-9.]+' | sort -uV | tail -1)"
+# something newer this says so in the build log, rather than leaving it to be
+# discovered on a server that will not run the result.
+RUN echo "=== portable build summary ===" && \
+    echo "glibc floor : $(objdump -T build/src/DeroGoldd \
+        | grep -oE 'GLIBC_[0-9.]+' | sort -uV | tail -1)" && \
+    echo "still linked: $(objdump -p build/src/DeroGoldd \
+        | awk '/NEEDED/ {printf "%s ", $2}')" && \
+    ls -lh build/Packaging
 
 FROM scratch AS export
-COPY --from=build /out/bin/ /
+COPY --from=build /src/build/Packaging/ /

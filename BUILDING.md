@@ -180,15 +180,61 @@ cmake --build build
 Configure with an older compiler than that and the build stops immediately
 saying so, rather than failing hundreds of lines into a RocksDB header.
 
-If you cannot build on the target — no toolchain there, or you want it
-reproducible — `Dockerfile.portable` does the same thing in a container:
+#### Building it in Docker instead
+
+If the target is too slow or too bare to build on — which is the usual reason —
+`Dockerfile.portable` does the same build in a container on whatever fast
+machine you have, and packages the result:
 
 ```sh
 docker build -f Dockerfile.portable --target export --output type=local,dest=dist .
 ```
 
-The binaries land in `dist/`, and the build log prints the glibc floor it
-achieved. Change `UBUNTU_VERSION` in that file for a different floor.
+That leaves a `.tar.gz` and a `.deb` in `dist/`, ready to copy to the server:
+
+```
+dist/DeroGold-linux-x64-glibc2.31.tar.gz
+dist/DeroGold-linux-x64-glibc2.31.deb
+```
+
+```sh
+# on the target
+tar xzf DeroGold-linux-x64-glibc2.31.tar.gz     # or: sudo dpkg -i ...deb
+./DeroGoldd --version
+```
+
+The artifacts are named after the compatibility floor rather than the machine
+that built them, because that is what someone receiving them has to check.
+
+The build log ends with a summary worth reading before you copy anything:
+
+```
+=== portable build summary ===
+glibc floor : GLIBC_2.29
+still linked: libssl.so.1.1 libcrypto.so.1.1 libm.so.6 libc.so.6
+ls -lh build/Packaging ...
+```
+
+If `glibc floor` comes back higher than the target's glibc, the base image
+moved and the result will not run — check `UBUNTU_VERSION` in the file.
+
+Options worth knowing:
+
+| | |
+| --- | --- |
+| `--build-arg UBUNTU_VERSION=22.04` | A different, newer floor |
+| `--build-arg PACKAGE_SUFFIX=...` | Renames the artifacts |
+| `--target build` | Stops at the build stage, for poking around with `docker run -it` |
+
+`--output` needs BuildKit, which is the default from Docker 23. On something
+older, or if `--output` is rejected:
+
+```sh
+docker build -f Dockerfile.portable --target build -t derogold-portable .
+id=$(docker create derogold-portable)
+docker cp "$id:/src/build/Packaging" ./dist
+docker rm "$id"
+```
 
 ### Building one
 
