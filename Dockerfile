@@ -1,7 +1,9 @@
 # syntax=docker/dockerfile:1
 
-# 22.04 rather than 20.04: the bundled RocksDB builds as C++20 and needs a
-# compiler newer than the one 20.04 ships.
+# 22.04 rather than 20.04, because this image is the published container and
+# its runtime base should be current. 20.04 does build - its default g++-9
+# cannot compile the C++20 RocksDB, but g++-10 is in its universe repository -
+# and that is what Dockerfile.portable uses to reach an older glibc.
 ARG UBUNTU_VERSION=22.04
 ARG CCACHE_VERSION=4.10.2
 

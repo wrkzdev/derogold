@@ -233,8 +233,34 @@ function(derogold_require_rocksdb)
     # two standards share an ABI under the same compiler, and only RocksDB's
     # own API crosses the boundary.
     #
-    # This is what raises the compiler floor to roughly GCC 11 or Clang 14.
-    # Older toolchains should pass -D DEROGOLD_SYSTEM_ROCKSDB=ON instead.
+    # This is what raises the compiler floor. Say so here rather than letting
+    # an old compiler fail hundreds of lines into a RocksDB header, which is
+    # what used to happen: GCC 9 has no defaulted comparison operators, so it
+    # stops on `auto operator==(...) const = default` with nothing to suggest
+    # the compiler is the problem.
+    #
+    # GCC 10 and Clang 10 are the real floor, which matters because that is one
+    # apt install away on Ubuntu 20.04 (g++-10) - and building there is how you
+    # get a binary that runs on an older glibc. Older toolchains than that
+    # should pass -D DEROGOLD_SYSTEM_ROCKSDB=ON instead.
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 10)
+        message(FATAL_ERROR
+            "GCC ${CMAKE_CXX_COMPILER_VERSION} is too old to build the bundled RocksDB, "
+            "which compiles as C++20 and needs GCC 10 or newer.\n"
+            "On Ubuntu 20.04: sudo apt install g++-10 gcc-10, then configure with "
+            "CC=gcc-10 CXX=g++-10.\n"
+            "Alternatively pass -D DEROGOLD_SYSTEM_ROCKSDB=ON to link a system "
+            "RocksDB 8.1 or newer instead. See BUILDING.md.")
+    endif()
+
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 10)
+        message(FATAL_ERROR
+            "Clang ${CMAKE_CXX_COMPILER_VERSION} is too old to build the bundled RocksDB, "
+            "which compiles as C++20 and needs Clang 10 or newer.\n"
+            "Alternatively pass -D DEROGOLD_SYSTEM_ROCKSDB=ON to link a system "
+            "RocksDB 8.1 or newer instead. See BUILDING.md.")
+    endif()
+
     set(CMAKE_CXX_STANDARD 20)
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
 

@@ -128,24 +128,85 @@ That leaves two dynamic dependencies on Linux:
 - **OpenSSL.** Link it statically with `-D OPENSSL_USE_STATIC_LIBS=ON`,
   provided your distribution ships `libssl.a` / `libcrypto.a` (Debian and
   Ubuntu do, in `libssl-dev`).
-- **glibc**, which cannot be statically linked in any way worth shipping. A
-  binary built against glibc 2.39 will not start on a system with 2.35. There
-  is no flag for this: **build on the oldest distribution you intend to
-  support.** CI builds on Ubuntu 22.04 and 24.04 for exactly this reason.
+- **glibc**, which has no build flag at all. See below.
+
+### 3. The glibc floor
+
+This is the one that actually bites, and no `-D` fixes it. A binary cannot run
+against a glibc older than the one it was linked with, and the version you
+linked with becomes a hard minimum.
+
+The cliff is **glibc 2.34** (August 2021), which folded `libpthread`, `libdl`
+and `librt` into `libc` itself. Every threaded program built against 2.34 or
+newer therefore references pthread symbols tagged `@GLIBC_2.34`, and this
+daemon is heavily threaded. Copy such a binary onto an older system and it
+stops before `main`:
+
+```
+./DeroGoldd: /lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.34' not found
+```
+
+| Built on | Needs at least | Runs on |
+| --- | --- | --- |
+| Ubuntu 24.04 (glibc 2.39) | 2.39 | Ubuntu 24.04+, Debian 13+ |
+| Ubuntu 22.04 (glibc 2.35) | 2.34 | Ubuntu 22.04+, Debian 12+, RHEL 9+ |
+| Ubuntu 20.04 (glibc 2.31) | 2.31 | Ubuntu 20.04+, Debian 11+ |
+
+"Needs at least" is the worst case; a binary only demands the highest symbol
+version it actually references, which is often a little lower. The `objdump`
+command under [Checking what you produced](#checking-what-you-produced) reports
+the real figure.
+
+**The published releases are built on Ubuntu 22.04**, so they need glibc 2.34
+and will not start on Ubuntu 20.04, Debian 11 or RHEL 8. If you need those,
+build it yourself against an older glibc.
+
+#### Building for an older glibc
+
+Build on the oldest system you intend to support. Ubuntu 20.04 works, with one
+extra step: its default `g++-9` cannot compile the bundled RocksDB, which is
+C++20 and uses defaulted comparison operators. `g++-10` is in 20.04's own
+universe repository, so no PPA is needed and the glibc you link against does
+not move:
+
+```sh
+sudo apt install g++-10 gcc-10 cmake ninja-build git libssl-dev pkg-config
+
+CC=gcc-10 CXX=g++-10 cmake -G Ninja \
+    -D CMAKE_BUILD_TYPE=Release -D ARCH=default -S . -B build
+cmake --build build
+```
+
+Configure with an older compiler than that and the build stops immediately
+saying so, rather than failing hundreds of lines into a RocksDB header.
+
+If you cannot build on the target — no toolchain there, or you want it
+reproducible — `Dockerfile.portable` does the same thing in a container:
+
+```sh
+docker build -f Dockerfile.portable --target export --output type=local,dest=dist .
+```
+
+The binaries land in `dist/`, and the build log prints the glibc floor it
+achieved. Change `UBUNTU_VERSION` in that file for a different floor.
 
 ### Building one
 
-Nothing about this needs presets. `ARCH=default` is the whole of it:
+Nothing about this needs presets. `ARCH=default` covers the CPU question; if
+the binary also has to run on an older distribution, build it somewhere with an
+older glibc as well.
 
 ```sh
 cmake -G Ninja -D CMAKE_BUILD_TYPE=Release -D ARCH=default -S . -B build
 cmake --build build
 ```
 
-Binaries land in `build/src`, and will run on any x86-64 machine with a new
-enough glibc. Add `-D OPENSSL_USE_STATIC_LIBS=ON` if you also want to drop the
-OpenSSL runtime dependency; note that the official builds do **not** do this,
-so they expect libssl on the target.
+Binaries land in `build/src`, and will run on any x86-64 machine **whose glibc
+is at least as new as the one you built against** - see [the glibc
+floor](#3-the-glibc-floor), which is a separate problem from `ARCH` and the one
+most likely to bite. Add `-D OPENSSL_USE_STATIC_LIBS=ON` if you also want to
+drop the OpenSSL runtime dependency; note that the official builds do **not**
+do this, so they expect libssl on the target.
 
 To produce the same archive the releases ship, build the `package` target and
 set the two variables the release configuration uses:
