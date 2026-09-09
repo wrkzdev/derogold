@@ -20,8 +20,8 @@ Binaries land in `build/src`.
 No `--recursive` clone is needed any more; there are no submodules.
 
 > This builds for **the machine you are compiling on** and will likely crash
-> with an illegal instruction on any other CPU. For a binary you can copy
-> elsewhere, see [Portable builds](#portable-builds).
+> with an illegal instruction on any other CPU. Add `-D ARCH=default` for a
+> binary you can copy elsewhere; see [Portable builds](#portable-builds).
 
 ## What the build needs
 
@@ -133,36 +133,45 @@ That leaves two dynamic dependencies on Linux:
   is no flag for this: **build on the oldest distribution you intend to
   support.** CI builds on Ubuntu 22.04 and 24.04 for exactly this reason.
 
-### The easy path
+### Building one
 
-The `*-package` presets already set `ARCH=default` and are what CI uses to
-produce the published releases. Building one gives you the same artifact:
-
-```sh
-# Linux x64
-cmake --preset linux-x64-gcc-package
-cmake --build --preset linux-x64-gcc-package
-
-# Windows, from the MSYS2 MINGW64 shell
-cmake --preset windows-x64-mingw-gcc-package
-cmake --build --preset windows-x64-mingw-gcc-package
-```
-
-These build the `package` target, so the result is an archive under
-`build/Packaging` rather than loose binaries, named after the preset —
-`DeroGold-linux-x64-gcc.tar.gz` and so on. The format follows the machine you
-build **on**, not the one you build for: `.tar.gz` and `.deb` from Linux,
-`.zip` from Windows, `.tar.gz` from macOS. These presets also set
-`SET_COMMIT_ID_IN_VERSION=OFF`, so the version string is the release number
-alone rather than a number plus a commit hash.
-
-To get a portable build without the packaging step, configure by hand:
+Nothing about this needs presets. `ARCH=default` is the whole of it:
 
 ```sh
-cmake -G Ninja -D CMAKE_BUILD_TYPE=Release -D ARCH=default \
-      -D OPENSSL_USE_STATIC_LIBS=ON -S . -B build
+cmake -G Ninja -D CMAKE_BUILD_TYPE=Release -D ARCH=default -S . -B build
 cmake --build build
 ```
+
+Binaries land in `build/src`, and will run on any x86-64 machine with a new
+enough glibc. Add `-D OPENSSL_USE_STATIC_LIBS=ON` if you also want to drop the
+OpenSSL runtime dependency; note that the official builds do **not** do this,
+so they expect libssl on the target.
+
+To produce the same archive the releases ship, build the `package` target and
+set the two variables the release configuration uses:
+
+```sh
+CC=gcc CXX=g++ cmake -G Ninja \
+    -D CMAKE_BUILD_TYPE=Release \
+    -D ARCH=default \
+    -D SET_COMMIT_ID_IN_VERSION=OFF \
+    -D SET_PACKAGE_OUTPUT_SUFFIX=linux-x64-gcc \
+    -S . -B build
+cmake --build build --target package
+```
+
+`SET_COMMIT_ID_IN_VERSION=OFF` keeps the version string to the release number
+rather than a number plus a commit hash, and `SET_PACKAGE_OUTPUT_SUFFIX` only
+names the file. On Windows run the same thing from the MSYS2 MINGW64 shell with
+`-D SET_PACKAGE_OUTPUT_SUFFIX=windows-x64-mingw-gcc`.
+
+The result is an archive under `build/Packaging` rather than loose binaries —
+`DeroGold-linux-x64-gcc.tar.gz` and so on. The format follows the machine you
+build **on**, not the one you build for: `.tar.gz` and `.deb` from Linux,
+`.zip` from Windows, `.tar.gz` from macOS.
+
+If you would rather not type that, `cmake --preset linux-x64-gcc-package` is
+the same set of variables under a name; see [Presets](#presets).
 
 ### Checking what you produced
 
@@ -185,8 +194,19 @@ oldest CPU you intend to support, where a wrong `ARCH` shows up immediately as
 
 ## Presets
 
-`CMakePresets.json` carries the configurations used by CI. They are convenient
-but entirely optional; the plain commands above work everywhere.
+`CMakePresets.json` carries the configurations used by CI. They are a shorthand
+for the `-D` flags shown above and nothing more — every preset in the file is
+some combination of `CMAKE_BUILD_TYPE`, `ARCH`, `SET_COMMIT_ID_IN_VERSION`,
+`SET_PACKAGE_OUTPUT_SUFFIX`, `CMAKE_TOOLCHAIN_FILE`, `CC`/`CXX` and a
+generator. Nothing is only reachable through them, and you can ignore this
+section entirely.
+
+For reference, the release configuration spelled both ways:
+
+| Preset | Equivalent |
+| --- | --- |
+| `linux-x64-gcc-package` | `CC=gcc CXX=g++`, `-G Ninja`, `CMAKE_BUILD_TYPE=Release`, `ARCH=default`, `SET_COMMIT_ID_IN_VERSION=OFF`, `SET_PACKAGE_OUTPUT_SUFFIX=linux-x64-gcc`, target `package` |
+| `linux-arm64-gcc-cross-package` | the same, plus `CMAKE_TOOLCHAIN_FILE=CMake/linux-arm64-gcc.cmake` and suffix `linux-arm64-gcc-cross` |
 
 Names follow `<platform>-<arch>-<compiler>[-<variant>]`. The variant decides
 what you get:
@@ -207,30 +227,35 @@ cmake --preset linux-x64-gcc                 # configure
 cmake --build --preset linux-x64-gcc-release # build
 ```
 
-For the `-package` variants the two names do match, which is why the commands
-in the section above repeat the name.
+For the `-package` variants the two names do match, so `cmake --preset X`
+followed by `cmake --build --preset X` works for those.
 
 ## Cross-compiling for ARM64
 
 CI cross-compiles the ARM64 release from an x86-64 host rather than building on
-ARM hardware:
+ARM hardware. There is a toolchain file for it, so this is again ordinary
+CMake:
 
 ```sh
 sudo apt install crossbuild-essential-arm64
-cmake --preset linux-arm64-gcc-cross-package
-cmake --build --preset linux-arm64-gcc-cross-package
+
+cmake -G Ninja \
+    -D CMAKE_TOOLCHAIN_FILE=CMake/linux-arm64-gcc.cmake \
+    -D CMAKE_BUILD_TYPE=Release \
+    -D ARCH=default \
+    -D SET_COMMIT_ID_IN_VERSION=OFF \
+    -D SET_PACKAGE_OUTPUT_SUFFIX=linux-arm64-gcc-cross \
+    -S . -B build
+cmake --build build --target package
 ```
 
-The toolchain files are `CMake/linux-arm64-gcc.cmake` and
-`CMake/linux-arm64-clang.cmake`. They only switch compilers when the host is
-not already aarch64, so the same preset also works natively on an ARM64
-machine.
+`CMake/linux-arm64-clang.cmake` is the Clang equivalent. Both only switch
+compilers when the host is not already aarch64, so the same command also works
+natively on an ARM64 machine — where you would normally want `ARCH=native`
+instead.
 
 Cross builds need an OpenSSL built for the target, not the host copy. If the
 link fails on `-lssl` or `-lcrypto`, that is what is missing.
-
-The `linux-arm64-gcc` and `linux-arm64-clang` presets, without `-cross`, are
-for building natively on ARM64 hardware.
 
 ## Vendored libraries
 
