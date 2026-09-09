@@ -314,10 +314,31 @@ bool Nigel::getDaemonInfo()
             m_networkBlockCount--;
         }
 
-        m_peerCount =
-            j.at("incoming_connections_count").get<uint64_t>() + j.at("outgoing_connections_count").get<uint64_t>();
+        /* A daemon that does not report its connections is still worth having
+           heights from, so a missing count is zero rather than a thrown-away
+           update. */
+        m_peerCount = j.value("incoming_connections_count", static_cast<uint64_t>(0))
+                      + j.value("outgoing_connections_count", static_cast<uint64_t>(0));
 
-        m_lastKnownHashrate = j.at("difficulty").get<uint64_t>() / CryptoNote::parameters::DIFFICULTY_TARGET;
+        /* The daemon divides the difficulty by the block time in force at its
+           own height and ships the result in this same response, so take it
+           from there.
+
+           This used to divide by DIFFICULTY_TARGET here - the launch-era ten
+           seconds - on a chain that has targeted three hundred since
+           DIFFICULTY_TARGET_V3_HEIGHT, so every wallet reported thirty times
+           the real network hashrate. Daemons predating the field fall back to
+           the same division, against the right target this time. */
+        if (j.find("hashrate") != j.end())
+        {
+            m_lastKnownHashrate = j.at("hashrate").get<uint64_t>();
+        }
+        else if (j.find("difficulty") != j.end())
+        {
+            const uint64_t blockTime = CryptoNote::parameters::getCurrentDifficultyTarget(m_networkBlockCount);
+
+            m_lastKnownHashrate = j.at("difficulty").get<uint64_t>() / blockTime;
+        }
 
         /* Look to see if the isCacheApi property exists in the response
            and if so, set the internal value to whatever it found */

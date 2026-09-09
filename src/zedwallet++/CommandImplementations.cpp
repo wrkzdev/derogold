@@ -397,7 +397,13 @@ void printIncomingTransfer(const WalletTypes::Transaction tx)
     /* Here we treat Unlock as a block, and treat it that way in the future */
     if (tx.unlockTime != 0 && difference > 0 && tx.unlockTime < CryptoNote::parameters::CRYPTONOTE_MAX_BLOCK_NUMBER)
     {
-        int64_t unlockInUnixTime = tx.timestamp + (difference * CryptoNote::parameters::DIFFICULTY_TARGET);
+        /* At the block time in force where the transaction landed, not the
+           launch-era ten seconds - which put a ten block lock a hundred
+           seconds away rather than the fifty minutes it really is. */
+        const int64_t blockTime =
+            static_cast<int64_t>(CryptoNote::parameters::getCurrentDifficultyTarget(tx.blockHeight));
+
+        int64_t unlockInUnixTime = tx.timestamp + (difference * blockTime);
 
         std::cout << SuccessMsg(stream.str()) << InformationMsg("Unlock height: ") << InformationMsg(tx.unlockTime)
                   << std::endl
