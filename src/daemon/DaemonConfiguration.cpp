@@ -135,6 +135,11 @@ namespace DaemonConfig
             ("p2p-bind-port", "TCP port for the P2P service", cxxopts::value<int>(config.p2pPort), "#")
             ("p2p-external-port", "External TCP port for the P2P service (NAT port forward)", cxxopts::value<int>(config.p2pExternalPort), "#")
             ("p2p-reset-peerstate", "Generate a new peer ID and remove known peers saved previously", cxxopts::value<bool>(config.p2pResetPeerstate))
+            ("out-peers", "Maximum number of outgoing P2P connections to maintain", cxxopts::value<uint32_t>(config.outPeers), "#")
+            ("in-peers", "Maximum number of incoming P2P connections to accept. 0 makes this node outbound only", cxxopts::value<uint32_t>(config.inPeers), "#")
+            ("sync-batch-min", "Smallest number of blocks to request from a peer at once", cxxopts::value<uint32_t>(config.syncBatchMin), "#")
+            ("sync-batch-max", "Largest number of blocks to request from a peer at once", cxxopts::value<uint32_t>(config.syncBatchMax), "#")
+            ("block-sync-bytes", "Approximate ceiling on the bytes one block request may pull back", cxxopts::value<uint64_t>(config.blockSyncBytes), "<bytes>")
             ("rpc-bind-ip", "Interface IP address for the RPC service", cxxopts::value<std::string>(config.rpcInterface), "<ip>")
             ("rpc-bind-port", "TCP port for the RPC service", cxxopts::value<int>(config.rpcPort), "#");
 
@@ -354,6 +359,31 @@ namespace DaemonConfig
             config.stratumMaxConnections = j["stratum-max-connections"].GetUint64();
         }
 
+        if (j.HasMember("sync-batch-min"))
+        {
+            config.syncBatchMin = j["sync-batch-min"].GetUint();
+        }
+
+        if (j.HasMember("sync-batch-max"))
+        {
+            config.syncBatchMax = j["sync-batch-max"].GetUint();
+        }
+
+        if (j.HasMember("block-sync-bytes"))
+        {
+            config.blockSyncBytes = j["block-sync-bytes"].GetUint64();
+        }
+
+        if (j.HasMember("out-peers"))
+        {
+            config.outPeers = j["out-peers"].GetUint();
+        }
+
+        if (j.HasMember("in-peers"))
+        {
+            config.inPeers = j["in-peers"].GetUint();
+        }
+
         // Notification Options
 
         if (j.HasMember("block-notify"))
@@ -536,6 +566,13 @@ namespace DaemonConfig
         j.AddMember("enable-cors", config.enableCors, alloc);
         j.AddMember("fee-address", config.feeAddress, alloc);
         j.AddMember("fee-amount", config.feeAmount, alloc);
+
+        j.AddMember("sync-batch-min", config.syncBatchMin, alloc);
+        j.AddMember("sync-batch-max", config.syncBatchMax, alloc);
+        j.AddMember("block-sync-bytes", config.blockSyncBytes, alloc);
+
+        j.AddMember("out-peers", config.outPeers, alloc);
+        j.AddMember("in-peers", config.inPeers, alloc);
 
         j.AddMember("stratum-bind-ip", config.stratumBindIp, alloc);
         j.AddMember("stratum-bind-port", config.stratumBindPort, alloc);

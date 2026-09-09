@@ -90,6 +90,16 @@ namespace CryptoNote
 
         void requestMissingPoolTransactions(const CryptoNoteConnectionContext &context);
 
+        /* Operator-settable sync limits, from the --sync-* and --block-sync-*
+           flags. Applied once at startup. */
+        void setSyncTuning(uint32_t syncBatchMin, uint32_t syncBatchMax, uint64_t blockSyncBytes);
+
+        /* Peers currently being synced from, and the mean batch size across
+           them; for the sync_info console command. */
+        uint32_t getSyncActivePeers() const override;
+
+        uint32_t getSyncAvgBatchSize() const override;
+
       private:
         //----------------- commands handlers ----------------------------------------------
         int handle_notify_new_block(int command, NOTIFY_NEW_BLOCK::request &arg, CryptoNoteConnectionContext &context);
@@ -152,7 +162,18 @@ namespace CryptoNote
             std::vector<RawBlock> &&rawBlocks,
             const std::vector<CachedBlock> &cachedBlocks);
 
-        static void adjust_block_rate(CryptoNoteConnectionContext &context);
+        /* How many blocks to ask this peer for next, clamped to the configured
+           bounds. */
+        uint32_t getAdaptiveBatchSize(const CryptoNoteConnectionContext &context) const;
+
+        /* Fold a chunk that arrived and applied into the peer's throughput
+           estimate, and size the next batch from it. */
+        void onSyncChunkSuccess(CryptoNoteConnectionContext &context, size_t blocks, size_t bytes);
+
+        /* Back the batch off and count the failure. The caller decides what to
+           do with the peer; every failure path in this handler already closes
+           the connection. */
+        void onSyncChunkFailure(CryptoNoteConnectionContext &context);
 
         Logging::LoggerRef logger;
 
@@ -188,6 +209,11 @@ namespace CryptoNote
         std::atomic<size_t> m_peersCount;
 
         Tools::ObserverManager<ICryptoNoteProtocolObserver> m_observerManager;
+
+        /* Sync tuning, from the --sync-batch-* and --block-sync-bytes flags. */
+        uint32_t m_syncBatchMin = 20;
+        uint32_t m_syncBatchMax = BLOCKS_IDS_SYNCHRONIZING_DEFAULT_COUNT;
+        uint64_t m_syncBlockSyncBytes = 16 * 1024 * 1024;
 
         bool m_syncProgressStarted = false;
         uint64_t m_syncStartHeight = 0;

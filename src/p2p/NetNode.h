@@ -188,6 +188,8 @@ namespace CryptoNote
 
         size_t get_outgoing_connections_count();
 
+        size_t get_incoming_connections_count();
+
         PeerlistManager &getPeerlistManager()
         {
             return m_peerlist;
@@ -375,6 +377,13 @@ namespace CryptoNote
         bool m_allow_local_ip;
 
         bool m_hide_my_port;
+
+        /* --out-peers: how many outgoing connections the connection maker aims
+           for. --in-peers: how many incoming ones the listener accepts before
+           turning peers away. */
+        uint32_t m_targetOutgoingConnections;
+
+        uint32_t m_maxIncomingConnections;
 
         std::string m_p2p_state_filename;
 

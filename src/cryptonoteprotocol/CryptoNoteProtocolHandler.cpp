@@ -32,6 +32,17 @@ namespace CryptoNote
 {
     namespace
     {
+        /* Hard bounds on --block-sync-bytes. Below the minimum a single large
+           block could not be fetched at all; above the maximum the reply would
+           not fit in one P2P packet, so the transport would cut it short. */
+        constexpr uint64_t SYNC_BLOCK_BUDGET_MIN_BYTES = 2 * 1024 * 1024;
+        constexpr uint64_t SYNC_BLOCK_BUDGET_MAX_BYTES = 48 * 1024 * 1024;
+
+        /* How much work each batch aims to be, in seconds of the throughput
+           measured on that connection. Long enough that the round trip is not
+           the dominant cost, short enough that a peer going quiet is noticed. */
+        constexpr float SYNC_BATCH_TARGET_SECONDS = 30.0f;
+
         template<class t_parameter>
         bool post_notify(IP2pEndpoint &p2p, typename t_parameter::request &arg, const CryptoNoteConnectionContext &context)
         {
@@ -337,8 +348,8 @@ namespace CryptoNote
                 << " | " << std::setw(14) << std::left << formatUptime(cntxt.m_started)
                 << " | " << std::setw(8) << std::right << cntxt.m_remote_blockchain_height
                 << " | " << std::setw(6) << std::left << "no"
-                << " | " << std::setw(5) << std::right << cntxt.m_next_request_block_rate
-                << " | " << std::setw(4) << std::right << 0
+                << " | " << std::setw(5) << std::right << cntxt.m_sync_batch_size
+                << " | " << std::setw(4) << std::right << cntxt.m_sync_failures
                 << " |";
             rows.push_back(row.str());
         });
@@ -740,8 +751,8 @@ namespace CryptoNote
                 context.m_state = CryptoNoteConnectionContext::state_idle;
                 context.m_needed_objects.clear();
                 context.m_requested_objects.clear();
-                context.m_request_block_rate = 0;
-                context.m_next_request_block_rate = 1;
+                context.m_sync_batch_size = 0;
+                context.m_sync_failures = 0;
                 logger(Logging::DEBUGGING) << context << "Connection set to idle state.";
                 return 1;
             }
@@ -798,9 +809,27 @@ namespace CryptoNote
                     << context.m_requested_objects.size() << "), dropping connection";
             }
 
+            onSyncChunkFailure(context);
             context.m_state = CryptoNoteConnectionContext::state_shutdown;
             return 1;
         }
+
+        size_t rawBytes = 0;
+
+        for (const auto &rawBlock : rawBlocks)
+        {
+            rawBytes += rawBlock.block.size();
+
+            for (const auto &tx : rawBlock.transactions)
+            {
+                rawBytes += tx.size();
+            }
+        }
+
+        /* Record the throughput sample before anything issues a new request:
+           request_missing_objects() restarts m_sync_chunk_start_time, and this
+           sample has to be measured against the request this reply answers. */
+        onSyncChunkSuccess(context, cachedBlocks.size(), rawBytes);
 
         {
             int result = processObjects(context, std::move(rawBlocks), cachedBlocks);
@@ -813,7 +842,6 @@ namespace CryptoNote
         logger(DEBUGGING, BRIGHT_GREEN) << "Local blockchain updated, new index = " << m_core.getTopBlockIndex();
         if (!m_stop && context.m_state == CryptoNoteConnectionContext::state_synchronizing)
         {
-            adjust_block_rate(context);
             request_missing_objects(context, true);
         }
 
@@ -867,25 +895,127 @@ namespace CryptoNote
         return 0;
     }
 
-    void CryptoNoteProtocolHandler::adjust_block_rate(CryptoNoteConnectionContext &context)
+    void CryptoNoteProtocolHandler::setSyncTuning(
+        const uint32_t syncBatchMin,
+        const uint32_t syncBatchMax,
+        const uint64_t blockSyncBytes)
     {
-        const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - context.m_request_block_start);
-        const auto time_taken_ms = duration.count();
+        m_syncBatchMin = std::max<uint32_t>(1, syncBatchMin);
+        m_syncBatchMax = std::max<uint32_t>(m_syncBatchMin, syncBatchMax);
 
-        if (time_taken_ms == 0) {
-            context.m_request_block_rate = BLOCKS_IDS_SYNCHRONIZING_DEFAULT_COUNT;
-            context.m_next_request_block_rate = BLOCKS_IDS_SYNCHRONIZING_DEFAULT_COUNT;
-        } else {
-            context.m_request_block_rate = static_cast<size_t>((double) context.m_next_request_block_rate / ((double) time_taken_ms / 1000.0));
-            context.m_next_request_block_rate = context.m_request_block_rate;
+        /* A budget below one block cannot be met, and one above the P2P packet
+           limit would be cut short by the transport anyway. */
+        m_syncBlockSyncBytes = std::max<uint64_t>(
+            SYNC_BLOCK_BUDGET_MIN_BYTES, std::min<uint64_t>(blockSyncBytes, SYNC_BLOCK_BUDGET_MAX_BYTES));
+    }
+
+    uint32_t CryptoNoteProtocolHandler::getAdaptiveBatchSize(const CryptoNoteConnectionContext &context) const
+    {
+        const uint32_t current = context.m_sync_batch_size == 0 ? m_syncBatchMin : context.m_sync_batch_size;
+
+        return std::max(m_syncBatchMin, std::min(current, m_syncBatchMax));
+    }
+
+    void CryptoNoteProtocolHandler::onSyncChunkSuccess(
+        CryptoNoteConnectionContext &context,
+        const size_t blocks,
+        const size_t bytes)
+    {
+        context.m_sync_blocks_received += blocks;
+        context.m_sync_bytes_received += bytes;
+        context.m_sync_failures = 0;
+
+        if (blocks > 0)
+        {
+            const uint64_t sampleAvgBlockBytes = std::max<uint64_t>(1, static_cast<uint64_t>(bytes / blocks));
+
+            /* Rolling average, 80% history to 20% sample, so one unusually
+               large or small chunk does not swing the byte budget. */
+            context.m_sync_avg_block_bytes = context.m_sync_avg_block_bytes == 0
+                                                 ? sampleAvgBlockBytes
+                                                 : ((context.m_sync_avg_block_bytes * 8) + (sampleAvgBlockBytes * 2)) / 10;
+
+            const auto elapsed =
+                std::chrono::duration<float>(std::chrono::steady_clock::now() - context.m_sync_chunk_start_time).count();
+
+            /* Ignore samples too short to measure and too long to be a round
+               trip; both would poison the average. */
+            if (elapsed > 0.05f && elapsed < 300.0f)
+            {
+                const float sample = static_cast<float>(blocks) / elapsed;
+
+                context.m_sync_blocks_per_second = context.m_sync_blocks_per_second == 0.0f
+                                                       ? sample
+                                                       : (context.m_sync_blocks_per_second * 0.8f) + (sample * 0.2f);
+            }
         }
 
-        if (context.m_next_request_block_rate < 1) {
-            context.m_next_request_block_rate = 1;
-        } else if (context.m_next_request_block_rate > BLOCKS_IDS_SYNCHRONIZING_DEFAULT_COUNT) {
-            context.m_next_request_block_rate = BLOCKS_IDS_SYNCHRONIZING_DEFAULT_COUNT;
+        if (context.m_sync_blocks_per_second > 0.0f)
+        {
+            /* Aim each request at about SYNC_BATCH_TARGET_SECONDS of work, so a
+               fast peer is asked for more and a slow one is not left holding a
+               request it cannot answer in time. */
+            const uint32_t target =
+                static_cast<uint32_t>(context.m_sync_blocks_per_second * SYNC_BATCH_TARGET_SECONDS);
+
+            context.m_sync_batch_size = std::max(m_syncBatchMin, std::min(target, m_syncBatchMax));
+        }
+        else if (context.m_sync_batch_size < m_syncBatchMax)
+        {
+            /* No throughput reading yet: grow a quarter at a time rather than
+               jumping straight to the ceiling. */
+            const uint32_t next =
+                context.m_sync_batch_size + std::max<uint32_t>(1, context.m_sync_batch_size / 4);
+
+            context.m_sync_batch_size = std::min(next, m_syncBatchMax);
         }
     }
+
+    void CryptoNoteProtocolHandler::onSyncChunkFailure(CryptoNoteConnectionContext &context)
+    {
+        ++context.m_sync_failures;
+
+        /* Halve the ask before giving up on the peer; a batch that was simply
+           too big for it may well succeed smaller. */
+        if (context.m_sync_batch_size > m_syncBatchMin)
+        {
+            context.m_sync_batch_size = std::max(m_syncBatchMin, context.m_sync_batch_size / 2);
+        }
+
+    }
+
+    uint32_t CryptoNoteProtocolHandler::getSyncActivePeers() const
+    {
+        uint32_t active = 0;
+
+        m_p2p->for_each_connection([&active](const CryptoNoteConnectionContext &ctx, uint64_t) {
+            if (ctx.m_state == CryptoNoteConnectionContext::state_synchronizing
+                || ctx.m_state == CryptoNoteConnectionContext::state_sync_required)
+            {
+                ++active;
+            }
+        });
+
+        return active;
+    }
+
+    uint32_t CryptoNoteProtocolHandler::getSyncAvgBatchSize() const
+    {
+        uint64_t sum = 0;
+        uint32_t peers = 0;
+
+        m_p2p->for_each_connection([&sum, &peers](const CryptoNoteConnectionContext &ctx, uint64_t) {
+            if (ctx.m_sync_batch_size > 0)
+            {
+                sum += ctx.m_sync_batch_size;
+                ++peers;
+            }
+        });
+
+        return peers == 0 ? 0 : static_cast<uint32_t>(sum / peers);
+    }
+
+
 
     int CryptoNoteProtocolHandler::doPushLiteBlock(
         NOTIFY_NEW_LITE_BLOCK::request arg,
@@ -1080,19 +1210,35 @@ namespace CryptoNote
         if (!context.m_needed_objects.empty())
         {
             // we know objects that we need, request this objects
-            context.m_request_block_start = std::chrono::high_resolution_clock::now();
+            context.m_sync_chunk_start_time = std::chrono::steady_clock::now();
 
             NOTIFY_REQUEST_GET_OBJECTS::request req;
             size_t count = 0;
             auto it = context.m_needed_objects.begin();
-            size_t max_to_download = context.m_next_request_block_rate;
+            const size_t max_to_download = getAdaptiveBatchSize(context);
+
+            /* Cap the batch by bytes as well as by count. Block sizes vary by
+               orders of magnitude across the chain, so a count that is
+               comfortable over one range asks for a response of a wholly
+               different size over another - and the reply still has to fit in
+               one P2P packet. Until this peer has served a chunk there is no
+               size estimate, so only the count applies. */
+            const uint64_t maxBytes = m_syncBlockSyncBytes;
+            const uint64_t avgBlockBytes = context.m_sync_avg_block_bytes;
+            uint64_t projectedBytes = 0;
 
             while (it != context.m_needed_objects.end() && count < max_to_download)
             {
+                if (avgBlockBytes > 0 && count > 0 && projectedBytes + avgBlockBytes > maxBytes)
+                {
+                    break;
+                }
+
                 if (!(check_having_blocks && m_core.hasBlock(*it)))
                 {
                     req.blocks.push_back(*it);
                     ++count;
+                    projectedBytes += avgBlockBytes;
                     context.m_requested_objects.insert(*it);
                 }
                 it = context.m_needed_objects.erase(it);

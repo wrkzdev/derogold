@@ -89,6 +89,22 @@ namespace DaemonConfig
 
         uint32_t transactionValidationThreads = std::thread::hardware_concurrency();
 
+        /* Bounds on the per-peer block request batch. The node adapts inside
+           this range from the throughput it actually measures on each peer. */
+        uint32_t syncBatchMin = 20;
+        uint32_t syncBatchMax = CryptoNote::BLOCKS_IDS_SYNCHRONIZING_DEFAULT_COUNT;
+
+        /* Approximate ceiling on the bytes one block request may pull back.
+           Block sizes vary by orders of magnitude across the chain, so a count
+           alone does not bound the response. */
+        uint64_t blockSyncBytes = 16 * 1024 * 1024;
+
+        /* How many P2P connections to keep. Outgoing is what the connection
+           maker aims for; incoming is what the listener accepts before turning
+           peers away. Zero incoming makes the node outbound only. */
+        uint32_t outPeers = CryptoNote::P2P_DEFAULT_CONNECTIONS_COUNT;
+        uint32_t inPeers = CryptoNote::P2P_DEFAULT_CONNECTIONS_COUNT;
+
         /* Built-in stratum server, so a stock miner can point straight at this
            node with no pool and no bridge. Port 0 leaves it off. */
         std::string stratumBindIp = "127.0.0.1";

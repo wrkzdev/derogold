@@ -133,5 +133,7 @@ private:
 
     bool sync_height_status(const std::vector<std::string> &args);
 
+    bool sync_info(const std::vector<std::string> &args);
+
     bool save(const std::vector<std::string> &args);
 };

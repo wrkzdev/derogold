@@ -237,6 +237,8 @@ namespace CryptoNote
         m_payload_handler(payload_handler),
         m_allow_local_ip(false),
         m_hide_my_port(false),
+        m_targetOutgoingConnections(CryptoNote::P2P_DEFAULT_CONNECTIONS_COUNT),
+        m_maxIncomingConnections(CryptoNote::P2P_DEFAULT_CONNECTIONS_COUNT),
         m_network_id(CryptoNote::CRYPTONOTE_NETWORK),
         logger(std::move(log), "node_server"),
         m_stopEvent(m_dispatcher),
@@ -372,7 +374,7 @@ namespace CryptoNote
 
             // at this moment we have hardcoded config
             m_config.m_net_config.handshake_interval = CryptoNote::P2P_DEFAULT_HANDSHAKE_INTERVAL;
-            m_config.m_net_config.connections_count = CryptoNote::P2P_DEFAULT_CONNECTIONS_COUNT;
+            m_config.m_net_config.connections_count = m_targetOutgoingConnections;
             m_config.m_net_config.packet_max_size = CryptoNote::P2P_DEFAULT_PACKET_MAX_SIZE; // 20 MB limit
             m_config.m_net_config.config_id = 0; // initial config
             m_config.m_net_config.connection_timeout = CryptoNote::P2P_DEFAULT_CONNECTION_TIMEOUT;
@@ -460,6 +462,13 @@ namespace CryptoNote
         std::copy(seedNodes.begin(), seedNodes.end(), std::back_inserter(m_seed_nodes));
 
         m_hide_my_port = config.getHideMyPort();
+
+        /* At least one outgoing connection, or the node can never find the
+           network. Zero incoming is a legitimate choice: it makes the node
+           outbound only. */
+        m_targetOutgoingConnections = std::max<uint32_t>(1, config.getOutPeers());
+        m_maxIncomingConnections = config.getInPeers();
+
         return true;
     }
 
@@ -1101,6 +1110,20 @@ namespace CryptoNote
     }
 
     //-----------------------------------------------------------------------------------
+    size_t NodeServer::get_incoming_connections_count()
+    {
+        size_t count = 0;
+        for (const auto &cntxt : m_connections)
+        {
+            if (cntxt.second.m_is_income)
+            {
+                ++count;
+            }
+        }
+        return count;
+    }
+
+    //-----------------------------------------------------------------------------------
     bool NodeServer::idle_worker()
     {
         try
@@ -1554,6 +1577,17 @@ namespace CryptoNote
             try
             {
                 P2pConnectionContext ctx(m_dispatcher, logger.getLogger(), m_listener.accept());
+
+                /* Past --in-peers, let the connection fall out of scope, which
+                   closes it. Checked after accept() because the limit is on
+                   connections we keep, not on the listen backlog. */
+                if (get_incoming_connections_count() >= m_maxIncomingConnections)
+                {
+                    logger(DEBUGGING) << "Refused an incoming connection: already at the in-peers limit ("
+                                      << m_maxIncomingConnections << ")";
+                    continue;
+                }
+
                 ctx.m_connection_id = Common::randomUuid();
                 ctx.m_is_income = true;
                 ctx.m_started = time(nullptr);

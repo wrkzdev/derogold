@@ -52,6 +52,7 @@ using namespace CryptoNote;
 using namespace Logging;
 using namespace DaemonConfig;
 
+
 void print_genesis_tx_hex(const bool blockExplorerMode, const std::shared_ptr<LoggerManager> &logManager)
 {
     CryptoNote::CurrencyBuilder currencyBuilder(logManager);
@@ -314,7 +315,9 @@ int main(int argc, char *argv[])
                            config.exclusiveNodes,
                            config.priorityNodes,
                            config.seedNodes,
-                           config.p2pResetPeerstate);
+                           config.p2pResetPeerstate,
+                           config.outPeers,
+                           config.inPeers);
 
         DataBaseConfig dbConfig(config.dataDirectory,
                                 config.dbThreads,
@@ -562,6 +565,8 @@ int main(int argc, char *argv[])
                             ccore,
                             p2psrv,
                             cprotocol);
+
+        cprotocol->setSyncTuning(config.syncBatchMin, config.syncBatchMax, config.blockSyncBytes);
 
         cprotocol->set_p2p_endpoint(&*p2psrv);
         logger(INFO) << "Initializing p2p server...";

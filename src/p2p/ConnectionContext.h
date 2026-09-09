@@ -28,9 +28,27 @@ namespace CryptoNote
         bool m_is_income = false;
         time_t m_started = 0;
 
-        std::chrono::high_resolution_clock::time_point m_request_block_start;
-        size_t m_request_block_rate = 0;
-        size_t m_next_request_block_rate = 1;
+        /* Steady, not high_resolution: this measures an interval, and
+           high_resolution_clock is not guaranteed to be monotonic. */
+        std::chrono::steady_clock::time_point m_sync_chunk_start_time {};
+
+        /* How many blocks to ask this peer for next. Adapted from the
+           throughput actually observed on this connection and clamped to
+           [--sync-batch-min, --sync-batch-max]. */
+        uint32_t m_sync_batch_size = 0;
+
+        /* Rolling average of what a block from this peer costs, so a batch can
+           be capped by bytes as well as by count. */
+        uint64_t m_sync_avg_block_bytes = 0;
+
+        float m_sync_blocks_per_second = 0.0f;
+
+        uint64_t m_sync_blocks_received = 0;
+        uint64_t m_sync_bytes_received = 0;
+
+        /* Consecutive failed chunks. Past --sync-peer-failure-threshold the
+           peer is dropped as a sync source. */
+        uint32_t m_sync_failures = 0;
 
         enum state
         {

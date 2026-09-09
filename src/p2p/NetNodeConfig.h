@@ -35,7 +35,9 @@ namespace CryptoNote
             const std::vector<std::string> addExclusiveNodes,
             const std::vector<std::string> addPriorityNodes,
             const std::vector<std::string> addSeedNodes,
-            const bool p2pResetPeerState);
+            const bool p2pResetPeerState,
+            const uint32_t outPeersCount,
+            const uint32_t inPeersCount);
 
         std::string getP2pStateFilename() const;
 
@@ -61,6 +63,10 @@ namespace CryptoNote
 
         std::string getConfigFolder() const;
 
+        uint32_t getOutPeers() const;
+
+        uint32_t getInPeers() const;
+
       private:
         std::string bindIp;
 
@@ -85,6 +91,12 @@ namespace CryptoNote
         std::string p2pStateFilename;
 
         bool p2pStateReset;
+
+        /* How many outgoing connections the connection maker aims for, and how
+           many incoming ones the listener accepts before turning peers away. */
+        uint32_t outPeers;
+
+        uint32_t inPeers;
     };
 
 } // namespace CryptoNote

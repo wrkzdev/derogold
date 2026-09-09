@@ -176,6 +176,12 @@ DaemonCommandsHandler::DaemonCommandsHandler(
         "Show whether this node was started with --sync-from-height and what the sync floor is"
     );
     m_consoleHandler.setHandler(
+        "sync_info",
+        [this](const std::vector<std::string> &args) { return sync_info(args); },
+        "Show how block download is progressing: peers being synced from, the "
+        "batch size adapted for them, and the configured bounds"
+    );
+    m_consoleHandler.setHandler(
         "save",
         [this](const std::vector<std::string> &args) { return save(args); },
         "Force-save blockchain state to disk"
@@ -1178,6 +1184,29 @@ bool DaemonCommandsHandler::sync_height_status(const std::vector<std::string> &a
                   << SuccessMsg("bootstrapped – blocks below ") << syncFloor
                   << SuccessMsg(" are trusted via checkpoint, not stored locally") << std::endl;
     }
+    return true;
+}
+
+bool DaemonCommandsHandler::sync_info(const std::vector<std::string> &args)
+{
+    const uint32_t activePeers = m_syncManager->getSyncActivePeers();
+    const uint32_t avgBatch = m_syncManager->getSyncAvgBatchSize();
+    const uint64_t topIndex = m_core.getTopBlockIndex();
+    const uint32_t observed = m_syncManager->getObservedHeight();
+
+    std::cout << InformationMsg("Synchronized: ")
+              << (m_syncManager->isSynchronized() ? SuccessMsg("yes") : SuccessMsg("no")) << std::endl
+              << InformationMsg("Local height:     ") << SuccessMsg(topIndex + 1) << std::endl
+              << InformationMsg("Observed height:  ") << SuccessMsg(observed) << std::endl
+              << InformationMsg("Peers syncing:    ") << SuccessMsg(activePeers) << std::endl
+              << InformationMsg("Mean batch size:  ") << SuccessMsg(avgBatch) << std::endl
+              << InformationMsg("Batch bounds:     ") << SuccessMsg(m_config.syncBatchMin) << " - "
+              << SuccessMsg(m_config.syncBatchMax) << InformationMsg(" blocks") << std::endl
+              << InformationMsg("Byte budget:      ") << SuccessMsg(m_config.blockSyncBytes)
+              << InformationMsg(" bytes per request") << std::endl
+              << InformationMsg("Peer limits:      ") << SuccessMsg(m_config.outPeers)
+              << InformationMsg(" out, ") << SuccessMsg(m_config.inPeers) << InformationMsg(" in") << std::endl;
+
     return true;
 }
 
