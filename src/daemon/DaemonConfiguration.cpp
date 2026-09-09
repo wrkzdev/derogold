@@ -118,13 +118,19 @@ namespace DaemonConfig
         options.add_options("RPC")
             ("enable-cors", "Adds header 'Access-Control-Allow-Origin' to the RPC responses using the <domain>. Uses the value specified as the domain. Use * for all.", cxxopts::value<std::string>(config.enableCors), "<domain>")
             ("fee-address", "Sets the convenience charge <address> for light wallets that use the daemon", cxxopts::value<std::string>(config.feeAddress), "<address>")
-            ("fee-amount", "Sets the convenience charge amount for light wallets that use the daemon", cxxopts::value<int>(config.feeAmount));
+            ("fee-amount", "Sets the convenience charge amount for light wallets that use the daemon", cxxopts::value<int>(config.feeAmount))
+            ("rpc-ipc-path", "Also serve the RPC on a local socket at <path>, whose file permissions decide who may connect. POSIX only", cxxopts::value<std::string>(config.rpcIpcPath), "<path>")
+            ("rpc-ipc-mode", "Permissions for the RPC socket file, in octal. The default allows only the user running the daemon", cxxopts::value<std::string>(config.rpcIpcMode), "<octal>")
+            ("rpc-ipc-group", "Group to own the RPC socket file, so members of that group may connect", cxxopts::value<std::string>(config.rpcIpcGroup), "<group>");
 
         options.add_options("Mining")
             ("stratum-bind-ip", "Interface the built-in stratum server listens on. Loopback by default: the port has no authentication, so anyone who can reach it can mine to their own address using this node", cxxopts::value<std::string>(config.stratumBindIp), "<ip>")
             ("stratum-bind-port", "Port for the built-in stratum server, so a miner can mine straight to this node. 0 disables it", cxxopts::value<uint16_t>(config.stratumBindPort), "#")
             ("stratum-share-difficulty", "Difficulty stratum miners are given. 0 uses the network difficulty, so a miner only reports when it has found a block; a lower value makes it report progress as well", cxxopts::value<uint64_t>(config.stratumShareDifficulty), "#")
             ("stratum-max-connections", "Miners allowed on the stratum port at once", cxxopts::value<size_t>(config.stratumMaxConnections), "#");
+
+        options.add_options("Console")
+            ("attach", "Attach an interactive console to a daemon already running, over its RPC socket at <path>, instead of starting a node", cxxopts::value<std::string>(config.attachSocket), "<path>");
 
         options.add_options("Notifications")
             ("block-notify", "Run a command or POST to an http(s):// URL for each new main-chain block. Command placeholders: %s block hash, %h height (no shell; quotes group arguments)", cxxopts::value<std::string>(config.blockNotify), "<cmd|url>")
@@ -398,6 +404,21 @@ namespace DaemonConfig
             config.inPeers = j["in-peers"].GetUint();
         }
 
+        if (j.HasMember("rpc-ipc-path"))
+        {
+            config.rpcIpcPath = j["rpc-ipc-path"].GetString();
+        }
+
+        if (j.HasMember("rpc-ipc-mode"))
+        {
+            config.rpcIpcMode = j["rpc-ipc-mode"].GetString();
+        }
+
+        if (j.HasMember("rpc-ipc-group"))
+        {
+            config.rpcIpcGroup = j["rpc-ipc-group"].GetString();
+        }
+
         // Notification Options
 
         if (j.HasMember("block-notify"))
@@ -595,6 +616,10 @@ namespace DaemonConfig
         j.AddMember("stratum-bind-port", config.stratumBindPort, alloc);
         j.AddMember("stratum-share-difficulty", config.stratumShareDifficulty, alloc);
         j.AddMember("stratum-max-connections", static_cast<uint64_t>(config.stratumMaxConnections), alloc);
+
+        j.AddMember("rpc-ipc-path", config.rpcIpcPath, alloc);
+        j.AddMember("rpc-ipc-mode", config.rpcIpcMode, alloc);
+        j.AddMember("rpc-ipc-group", config.rpcIpcGroup, alloc);
 
         j.AddMember("block-notify", config.blockNotify, alloc);
         j.AddMember("reorg-notify", config.reorgNotify, alloc);

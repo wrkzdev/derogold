@@ -12,10 +12,13 @@
 #include <cryptonotecore/Core.h>
 #include <cryptonoteprotocol/CryptoNoteProtocolHandlerCommon.h>
 #include <errors/Errors.h>
+#include <functional>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <p2p/NetNode.h>
 #include <string>
+#include <thread>
 
 enum class RpcMode
 {
@@ -39,7 +42,10 @@ class RpcServer
         RpcMode rpcMode,
         std::shared_ptr<CryptoNote::Core> core,
         std::shared_ptr<CryptoNote::NodeServer> p2p,
-        std::shared_ptr<CryptoNote::ICryptoNoteProtocolHandler> syncManager);
+        std::shared_ptr<CryptoNote::ICryptoNoteProtocolHandler> syncManager,
+        std::string ipcPath = "",
+        uint32_t ipcMode = 0600,
+        std::string ipcGroup = "");
 
     ~RpcServer();
 
@@ -56,13 +62,34 @@ class RpcServer
     /* Gets the IP/port combo the server is running on */
     std::tuple<std::string, uint16_t> getConnectionInfo();
 
+    /* The local socket being served, or empty when none was asked for or the
+       bind failed. Empty is what tells the daemon not to advertise an endpoint
+       that is not there. */
+    std::string getIpcPath() const;
+
+    /* Runs one console command inside the daemon and returns what it printed.
+       Installed by the daemon once its command handler exists, and cleared
+       before that handler goes away. */
+    using ConsoleExecutor = std::function<std::string(const std::string &commandLine)>;
+
+    void setConsoleExecutor(ConsoleExecutor executor);
+
   private:
     //////////////////////////////
     /* Private member functions */
     //////////////////////////////
 
+    /* Registers every route on one listener. Called once for the TCP server
+       and again for the local socket, because httplib keeps its handlers per
+       instance. isIpc decides whether the console route is among them. */
+    void setupRoutes(httplib::Server &srv, bool isIpc);
+
     /* Starts listening for requests on the server */
     void listen();
+
+    /* Serves the local socket. Separate from listen() because the two block
+       on different instances. */
+    void listenIpc();
 
     std::optional<rapidjson::Document>
         getJsonBody(const httplib::Request &req, httplib::Response &res, bool bodyRequired);
@@ -207,12 +234,36 @@ class RpcServer
         httplib::Response &res,
         const rapidjson::Document &body);
 
+    /* Runs a daemon console command. Registered on the local socket only -
+       these commands stop the node, ban peers, change log levels and start
+       compactions, and the mode on the socket file is what decides who may
+       ask. Never reachable over TCP, token or no token. */
+    std::tuple<Error, uint16_t>
+        console(const httplib::Request &req, httplib::Response &res, const rapidjson::Document &body);
+
     //////////////////////////////
     /* Private member variables */
     //////////////////////////////
 
     /* Our server instance */
     httplib::Server m_server;
+
+    /* The local socket listener, built only when a path was configured. A
+       separate httplib::Server because one instance binds one address. */
+    std::unique_ptr<httplib::Server> m_ipcServer;
+
+    /* Empty when no local socket is being served. */
+    std::string m_ipcPath;
+
+    const uint32_t m_ipcMode;
+
+    const std::string m_ipcGroup;
+
+    std::thread m_ipcThread;
+
+    mutable std::mutex m_consoleExecutorMutex;
+
+    ConsoleExecutor m_consoleExecutor;
 
     /* The server host */
     const std::string m_host;

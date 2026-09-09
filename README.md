@@ -246,6 +246,81 @@ choose the height.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
+## RPC over a Local Socket
+
+The daemon can serve its RPC on an AF_UNIX socket alongside the TCP port. What
+guards a TCP port is only "who can reach 127.0.0.1:6969", which on a shared
+machine is every local user; what guards a socket is the **mode on the socket
+file**.
+
+| Flag | Default | Description |
+|---|---|---|
+| `--rpc-ipc-path=<path>` | *(off)* | Also serve the RPC on this socket |
+| `--rpc-ipc-mode=<octal>` | `0600` | Permissions on the socket file |
+| `--rpc-ipc-group=<group>` | *(none)* | Group that owns the socket file |
+| `--attach=<path>` | | Attach a console to a running daemon, instead of starting one |
+
+POSIX only. On Windows the flags are refused with a reason: `AF_UNIX` exists
+there, but the socket file carries no enforceable permissions and there is no
+`SO_PEERCRED`, so the endpoint could not be restricted to its owner.
+
+### Serving
+
+```bash
+./DeroGoldd --rpc-ipc-path /run/derogold/daemon.sock
+
+# readable by a service group rather than only the daemon's own user
+./DeroGoldd --rpc-ipc-path /run/derogold/daemon.sock \
+            --rpc-ipc-mode 0660 --rpc-ipc-group derogold
+```
+
+The TCP listener is unaffected and still comes up. A socket that cannot be
+bound is a warning, not a fatal error — the node keeps running without it.
+
+The daemon refuses to remove anything at that path that is not a socket, and
+refuses to take over a socket another process is still listening on, so a
+mistyped `--rpc-ipc-path` cannot cost you a file.
+
+### Connecting a wallet
+
+Pass the socket path where a daemon address goes. An absolute path or an
+`@name` abstract socket is recognised as one; nothing resolvable looks like
+either, so a hostname is never mistaken for a path.
+
+```bash
+./zedwallet++ --remote-daemon /run/derogold/daemon.sock
+./WalletService --daemon-address /run/derogold/daemon.sock
+```
+
+### Attaching a console
+
+A daemon under systemd has no terminal, so its console is out of reach. `--attach`
+opens one over the socket: every line runs inside that daemon through the same
+command handler as the local console, and its output comes back.
+
+```bash
+./DeroGoldd --attach /run/derogold/daemon.sock
+```
+
+```
+Attached to socket /run/derogold/daemon.sock
+exit or quit leaves this console. stop shuts the daemon down.
+> status
+> exit
+```
+
+`exit` and `quit` leave the console without touching the daemon; `stop` shuts
+the daemon down.
+
+**Console commands are served on the socket only, never over TCP.** They change
+log levels, ban peers, start compactions and stop the node, so the people who
+may run them are exactly the people the file mode admits — the same ones who
+could type at the daemon's own console. A world-writable `--rpc-ipc-mode` is
+accepted but warned about loudly at startup, because the mode is the only thing
+guarding it.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ## Fast Sync (--sync-from-height)
 
 The DeroGold blockchain is 350 GB+ from genesis. The `--sync-from-height` flag lets a fresh node skip the historical chain and start syncing from a recent checkpoint instead, reducing initial sync time from days to hours.

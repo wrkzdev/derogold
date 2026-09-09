@@ -8,6 +8,7 @@
 ////////////////////////
 
 #include <common/CryptoNoteTools.h>
+#include <common/IpcSocket.h>
 #include <config/CryptoNoteConfig.h>
 #include <cryptonotecore/CachedBlock.h>
 #include <cryptonotecore/Core.h>
@@ -29,6 +30,22 @@ inline std::shared_ptr<httplib::Client> getClient(
     const std::chrono::seconds timeout)
 {
     std::shared_ptr<httplib::Client> client;
+
+    /* A daemon address that is an absolute path, or an "@name" abstract
+       socket, names a local socket rather than a host. Nothing resolvable can
+       look like either, so the two cannot be confused. The port is meaningless
+       for a socket; httplib wants one anyway and ignores it. */
+    if (Common::Ipc::looksLikePath(daemonHost))
+    {
+        client = std::make_shared<httplib::Client>(daemonHost.c_str(), 80);
+        Common::Ipc::configureClient(*client);
+
+        client->set_connection_timeout(timeout);
+        client->set_read_timeout(timeout);
+        client->set_write_timeout(timeout);
+
+        return client;
+    }
 
 #ifdef CPPHTTPLIB_OPENSSL_SUPPORT
     if (daemonSSL)

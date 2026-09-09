@@ -296,7 +296,7 @@ namespace Common
         return true;
     }
 
-    void ConsoleHandler::handleCommand(const std::string &cmd)
+    std::vector<std::string> ConsoleHandler::splitCommandLine(const std::string &cmd)
     {
         /* Split on spaces, collapsing runs of them, which is what
            boost::split with token_compress_on did here. */
@@ -319,7 +319,12 @@ namespace Common
             start = end + 1;
         }
 
-        runCommand(args);
+        return args;
+    }
+
+    void ConsoleHandler::handleCommand(const std::string &cmd)
+    {
+        runCommand(splitCommandLine(cmd));
     }
 
     void ConsoleHandler::handlerThread()

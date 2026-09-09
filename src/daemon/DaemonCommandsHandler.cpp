@@ -26,6 +26,7 @@
 #include <utilities/Utilities.h>
 #include <algorithm>
 #include <iomanip>
+#include <ostream>
 #include <sstream>
 #include <stdexcept>
 #include <utility>
@@ -59,9 +60,9 @@ namespace
         return out.str();
     }
 
-    template<typename T> bool print_as_json(const T &obj)
+    template<typename T> bool print_as_json(std::ostream &output, const T &obj)
     {
-        std::cout << CryptoNote::storeToJson(obj) << ENDL;
+        output << CryptoNote::storeToJson(obj) << ENDL;
         return true;
     }
 
@@ -240,9 +241,58 @@ std::string DaemonCommandsHandler::get_commands_str() const
 }
 
 //--------------------------------------------------------------------------------
+std::string DaemonCommandsHandler::run_remote_command(const std::string &commandLine)
+{
+    const auto tokens = Common::ConsoleHandler::splitCommandLine(commandLine);
+
+    if (tokens.empty())
+    {
+        return "";
+    }
+
+    std::lock_guard<std::mutex> lock(m_commandMutex);
+
+    std::ostringstream captured;
+
+    /* Restored on every way out, so a command that throws cannot leave the
+       next one writing into a buffer that has gone. */
+    struct OutputScope
+    {
+        std::ostream *&slot;
+
+        std::ostream *previous;
+
+        OutputScope(std::ostream *&s, std::ostream &now): slot(s), previous(s)
+        {
+            slot = &now;
+        }
+
+        ~OutputScope()
+        {
+            slot = previous;
+        }
+    } scope(m_out, captured);
+
+    /* The local console swallows a throwing command silently. Someone at the
+       other end of a socket deserves to hear why they got nothing back. */
+    try
+    {
+        if (!m_consoleHandler.runCommand(tokens))
+        {
+            return "Unknown command: " + tokens.front() + "\n";
+        }
+    }
+    catch (const std::exception &e)
+    {
+        captured << "Command failed: " << e.what() << std::endl;
+    }
+
+    return captured.str();
+}
+
 bool DaemonCommandsHandler::exit(const std::vector<std::string> &args)
 {
-    std::cout << InformationMsg("================= EXITING ==================\n"
+    out() << InformationMsg("================= EXITING ==================\n"
                                 "== PLEASE WAIT, THIS MAY TAKE A LONG TIME ==\n"
                                 "============================================\n");
 
@@ -257,7 +307,7 @@ bool DaemonCommandsHandler::exit(const std::vector<std::string> &args)
 //--------------------------------------------------------------------------------
 bool DaemonCommandsHandler::help(const std::vector<std::string> &args)
 {
-    std::cout << get_commands_str() << ENDL;
+    out() << get_commands_str() << ENDL;
     return true;
 }
 
@@ -280,14 +330,14 @@ bool DaemonCommandsHandler::set_log(const std::vector<std::string> &args)
 {
     if (args.size() != 1)
     {
-        std::cout << "use: set_log <log_level_number_0-4>" << ENDL;
+        out() << "use: set_log <log_level_number_0-4>" << ENDL;
         return true;
     }
 
     uint16_t l = 0;
     if (!Common::fromString(args[0], l))
     {
-        std::cout << "wrong number format, use: set_log <log_level_number_0-4>" << ENDL;
+        out() << "wrong number format, use: set_log <log_level_number_0-4>" << ENDL;
         return true;
     }
 
@@ -295,7 +345,7 @@ bool DaemonCommandsHandler::set_log(const std::vector<std::string> &args)
 
     if (l > Logging::TRACE)
     {
-        std::cout << "wrong number range, use: set_log <log_level_number_0-4>" << ENDL;
+        out() << "wrong number range, use: set_log <log_level_number_0-4>" << ENDL;
         return true;
     }
 
@@ -308,14 +358,14 @@ bool DaemonCommandsHandler::print_block_by_height(uint32_t height)
 {
     if (height - 1 > m_core.getTopBlockIndex())
     {
-        std::cout << "block wasn't found. Current block chain height: " << m_core.getTopBlockIndex() + 1
+        out() << "block wasn't found. Current block chain height: " << m_core.getTopBlockIndex() + 1
                   << ", requested: " << height << std::endl;
         return false;
     }
 
     auto hash = m_core.getBlockHashByIndex(height - 1);
-    std::cout << "block_id: " << hash << ENDL;
-    print_as_json(m_core.getBlockByIndex(height - 1));
+    out() << "block_id: " << hash << ENDL;
+    print_as_json(out(), m_core.getBlockByIndex(height - 1));
 
     return true;
 }
@@ -331,11 +381,11 @@ bool DaemonCommandsHandler::print_block_by_hash(const std::string &arg)
 
     if (m_core.hasBlock(block_hash))
     {
-        print_as_json(m_core.getBlockByHash(block_hash));
+        print_as_json(out(), m_core.getBlockByHash(block_hash));
     }
     else
     {
-        std::cout << "block wasn't found: " << arg << std::endl;
+        out() << "block wasn't found: " << arg << std::endl;
         return false;
     }
 
@@ -347,7 +397,7 @@ bool DaemonCommandsHandler::print_block(const std::vector<std::string> &args)
 {
     if (args.empty())
     {
-        std::cout << "expected: print_block (<block_hash> | <block_height>)" << std::endl;
+        out() << "expected: print_block (<block_hash> | <block_height>)" << std::endl;
         return true;
     }
 
@@ -389,7 +439,7 @@ bool DaemonCommandsHandler::print_tx(const std::vector<std::string> &args)
 {
     if (args.empty())
     {
-        std::cout << "expected: print_tx <transaction hash>" << std::endl;
+        out() << "expected: print_tx <transaction hash>" << std::endl;
         return true;
     }
 
@@ -409,11 +459,11 @@ bool DaemonCommandsHandler::print_tx(const std::vector<std::string> &args)
     if (1 == txs.size())
     {
         CryptoNote::CachedTransaction tx(txs.front());
-        print_as_json(tx.getTransaction());
+        print_as_json(out(), tx.getTransaction());
     }
     else
     {
-        std::cout << "transaction wasn't found: <" << str_hash << '>' << std::endl;
+        out() << "transaction wasn't found: <" << str_hash << '>' << std::endl;
     }
 
     return true;
@@ -422,16 +472,16 @@ bool DaemonCommandsHandler::print_tx(const std::vector<std::string> &args)
 //--------------------------------------------------------------------------------
 bool DaemonCommandsHandler::print_pool(const std::vector<std::string> &args)
 {
-    std::cout << "Pool state: \n";
+    out() << "Pool state: \n";
     auto pool = m_core.getPoolTransactions();
 
     for (const auto &tx : pool)
     {
         CryptoNote::CachedTransaction ctx(tx);
-        std::cout << printTransactionFullInfo(ctx) << "\n";
+        out() << printTransactionFullInfo(ctx) << "\n";
     }
 
-    std::cout << std::endl;
+    out() << std::endl;
 
     return true;
 }
@@ -443,11 +493,11 @@ bool DaemonCommandsHandler::print_pool_sh(const std::vector<std::string> &args)
 
     if (pool.size() == 0)
     {
-        std::cout << InformationMsg("\nPool state: ") << SuccessMsg("Empty.") << std::endl;
+        out() << InformationMsg("\nPool state: ") << SuccessMsg("Empty.") << std::endl;
         return true;
     }
 
-    std::cout << InformationMsg("\nPool state:\n");
+    out() << InformationMsg("\nPool state:\n");
 
     uint64_t totalSize = 0;
 
@@ -457,15 +507,15 @@ bool DaemonCommandsHandler::print_pool_sh(const std::vector<std::string> &args)
     {
         CryptoNote::CachedTransaction ctx(tx);
 
-        std::cout << InformationMsg("Hash: ") << SuccessMsg(ctx.getTransactionHash()) << InformationMsg(", Fusion: ");
+        out() << InformationMsg("Hash: ") << SuccessMsg(ctx.getTransactionHash()) << InformationMsg(", Fusion: ");
 
         if (ctx.getTransactionFee() == 0)
         {
-            std::cout << SuccessMsg("Yes") << std::endl;
+            out() << SuccessMsg("Yes") << std::endl;
         }
         else
         {
-            std::cout << WarningMsg("No") << std::endl;
+            out() << WarningMsg("No") << std::endl;
         }
 
         totalSize += ctx.getTransactionBinaryArray().size();
@@ -473,7 +523,7 @@ bool DaemonCommandsHandler::print_pool_sh(const std::vector<std::string> &args)
 
     const float blocksRequiredToClear = std::ceil(totalSize / maxTxSize);
 
-    std::cout << InformationMsg("\nTotal transactions: ") << SuccessMsg(pool.size())
+    out() << InformationMsg("\nTotal transactions: ") << SuccessMsg(pool.size())
               << InformationMsg("\nTotal size of transactions: ") << SuccessMsg(Utilities::prettyPrintBytes(totalSize))
               << InformationMsg("\nEstimated full blocks to clear: ") << SuccessMsg(blocksRequiredToClear) << std::endl
               << std::endl;
@@ -560,21 +610,21 @@ bool DaemonCommandsHandler::status(const std::vector<std::string> &args)
     const size_t totalTableWidth = longestValue + longestDescription + 7;
 
     /* Table border */
-    std::cout << std::string(totalTableWidth, '-') << std::endl;
+    out() << std::string(totalTableWidth, '-') << std::endl;
 
     /* Output the table itself */
     for (const auto &[value, description] : statusTable)
     {
-        std::cout << "| " << InformationMsg(value, longestValue) << " ";
-        std::cout << "| " << SuccessMsg(description, longestDescription) << " |" << std::endl;
+        out() << "| " << InformationMsg(value, longestValue) << " ";
+        out() << "| " << SuccessMsg(description, longestDescription) << " |" << std::endl;
     }
 
     /* Table border */
-    std::cout << std::string(totalTableWidth, '-') << std::endl;
+    out() << std::string(totalTableWidth, '-') << std::endl;
 
     if (forkStatus == Utilities::OutOfDate)
     {
-        std::cout << WarningMsg(Utilities::get_upgrade_info(supportedHeight, upgradeHeights)) << std::endl;
+        out() << WarningMsg(Utilities::get_upgrade_info(supportedHeight, upgradeHeights)) << std::endl;
     }
 
     return true;
@@ -600,16 +650,16 @@ bool DaemonCommandsHandler::ban(const std::vector<std::string> &args)
     {
         if (m_bannedHosts.empty())
         {
-            std::cout << InformationMsg("Ban list is empty.") << std::endl;
+            out() << InformationMsg("Ban list is empty.") << std::endl;
             return true;
         }
 
-        std::cout << InformationMsg("Banned hosts:") << std::endl;
+        out() << InformationMsg("Banned hosts:") << std::endl;
         for (const auto &[ip, expiry] : m_bannedHosts)
         {
             const auto secs =
                 std::chrono::duration_cast<std::chrono::seconds>(expiry - now).count();
-            std::cout << "  " << ip << " (" << std::max<int64_t>(0, secs) << "s remaining)" << std::endl;
+            out() << "  " << ip << " (" << std::max<int64_t>(0, secs) << "s remaining)" << std::endl;
         }
         return true;
     }
@@ -618,21 +668,21 @@ bool DaemonCommandsHandler::ban(const std::vector<std::string> &args)
     {
         if (args.size() < 2 || args.size() > 3)
         {
-            std::cout << "usage: ban add <ip> [seconds]" << std::endl;
+            out() << "usage: ban add <ip> [seconds]" << std::endl;
             return true;
         }
 
         uint64_t banSeconds = 3600;
         if (args.size() == 3 && !Common::fromString(args[2], banSeconds))
         {
-            std::cout << "Invalid seconds value." << std::endl;
+            out() << "Invalid seconds value." << std::endl;
             return true;
         }
 
         m_bannedHosts[args[1]] = now + std::chrono::seconds(banSeconds);
-        std::cout << InformationMsg("Banned host: ") << SuccessMsg(args[1]) << InformationMsg(" for ")
+        out() << InformationMsg("Banned host: ") << SuccessMsg(args[1]) << InformationMsg(" for ")
                   << SuccessMsg(std::to_string(banSeconds) + "s") << std::endl;
-        std::cout << InformationMsg("Note: active connection drop for bans is not exposed in this build.") << std::endl;
+        out() << InformationMsg("Note: active connection drop for bans is not exposed in this build.") << std::endl;
 
         return true;
     }
@@ -641,22 +691,22 @@ bool DaemonCommandsHandler::ban(const std::vector<std::string> &args)
     {
         if (args.size() != 2)
         {
-            std::cout << "usage: ban delete <ip>" << std::endl;
+            out() << "usage: ban delete <ip>" << std::endl;
             return true;
         }
 
         if (m_bannedHosts.erase(args[1]) > 0)
         {
-            std::cout << InformationMsg("Unbanned host: ") << SuccessMsg(args[1]) << std::endl;
+            out() << InformationMsg("Unbanned host: ") << SuccessMsg(args[1]) << std::endl;
         }
         else
         {
-            std::cout << WarningMsg("Host is not in ban list: ") << args[1] << std::endl;
+            out() << WarningMsg("Host is not in ban list: ") << args[1] << std::endl;
         }
         return true;
     }
 
-    std::cout << "usage: ban list | ban add <ip> [seconds] | ban delete <ip>" << std::endl;
+    out() << "usage: ban list | ban add <ip> [seconds] | ban delete <ip>" << std::endl;
     return true;
 }
 
@@ -681,10 +731,10 @@ bool DaemonCommandsHandler::compact_db(const std::vector<std::string> &args)
             const auto elapsedSeconds = std::chrono::duration_cast<std::chrono::seconds>(
                                             std::chrono::steady_clock::now() - m_compactDbStart)
                                             .count();
-            std::cout << InformationMsg("DB compaction status: ") << WarningMsg("running")
+            out() << InformationMsg("DB compaction status: ") << WarningMsg("running")
                       << InformationMsg(" (elapsed ") << SuccessMsg(std::to_string(elapsedSeconds) + "s")
                       << InformationMsg(")") << std::endl;
-            std::cout << InformationMsg("Started at: ") << SuccessMsg(format_epoch(m_compactDbStartedAtEpoch))
+            out() << InformationMsg("Started at: ") << SuccessMsg(format_epoch(m_compactDbStartedAtEpoch))
                       << InformationMsg(", height ") << SuccessMsg(std::to_string(m_compactDbStartedAtHeight))
                       << std::endl;
             return true;
@@ -692,13 +742,13 @@ bool DaemonCommandsHandler::compact_db(const std::vector<std::string> &args)
 
         if (!m_compactDbHasRun)
         {
-            std::cout << InformationMsg("DB compaction status: ") << SuccessMsg("idle") << std::endl;
+            out() << InformationMsg("DB compaction status: ") << SuccessMsg("idle") << std::endl;
             return true;
         }
 
         if (m_compactDbLastSuccess)
         {
-            std::cout << InformationMsg("DB compaction status: ") << SuccessMsg("last run completed") << std::endl;
+            out() << InformationMsg("DB compaction status: ") << SuccessMsg("last run completed") << std::endl;
         }
         else
         {
@@ -708,21 +758,21 @@ bool DaemonCommandsHandler::compact_db(const std::vector<std::string> &args)
                 error = m_compactDbLastError;
             }
 
-            std::cout << InformationMsg("DB compaction status: ") << WarningMsg("last run failed");
+            out() << InformationMsg("DB compaction status: ") << WarningMsg("last run failed");
             if (!error.empty())
             {
-                std::cout << InformationMsg(" (") << WarningMsg(error) << InformationMsg(")");
+                out() << InformationMsg(" (") << WarningMsg(error) << InformationMsg(")");
             }
-            std::cout << std::endl;
+            out() << std::endl;
         }
 
-        std::cout << InformationMsg("Last start: ") << SuccessMsg(format_epoch(m_compactDbStartedAtEpoch))
+        out() << InformationMsg("Last start: ") << SuccessMsg(format_epoch(m_compactDbStartedAtEpoch))
                   << InformationMsg(", height ") << SuccessMsg(std::to_string(m_compactDbStartedAtHeight))
                   << std::endl;
-        std::cout << InformationMsg("Last finish: ") << SuccessMsg(format_epoch(m_compactDbFinishedAtEpoch))
+        out() << InformationMsg("Last finish: ") << SuccessMsg(format_epoch(m_compactDbFinishedAtEpoch))
                   << InformationMsg(", height ") << SuccessMsg(std::to_string(m_compactDbFinishedAtHeight))
                   << std::endl;
-        std::cout << InformationMsg("Auto scheduler: ")
+        out() << InformationMsg("Auto scheduler: ")
                   << SuccessMsg(
                          "enabled, interval "
                          + std::to_string(m_compactDbSchedulerCheckIntervalSeconds.load()) + "s")
@@ -737,11 +787,11 @@ bool DaemonCommandsHandler::compact_db(const std::vector<std::string> &args)
 
         if (!start_compaction_locked("manual console request"))
         {
-            std::cout << WarningMsg("DB compaction is already running.") << std::endl;
+            out() << WarningMsg("DB compaction is already running.") << std::endl;
             return true;
         }
 
-        std::cout << SuccessMsg("Started DB compaction in background.") << std::endl;
+        out() << SuccessMsg("Started DB compaction in background.") << std::endl;
         return true;
     }
 
@@ -749,13 +799,13 @@ bool DaemonCommandsHandler::compact_db(const std::vector<std::string> &args)
     {
         if (!m_compactDbTask.valid())
         {
-            std::cout << InformationMsg("No DB compaction job has been started.") << std::endl;
+            out() << InformationMsg("No DB compaction job has been started.") << std::endl;
             return true;
         }
 
         if (m_compactDbRunning)
         {
-            std::cout << InformationMsg("Waiting for DB compaction to complete...") << std::endl;
+            out() << InformationMsg("Waiting for DB compaction to complete...") << std::endl;
             m_compactDbTask.wait();
         }
 
@@ -766,7 +816,7 @@ bool DaemonCommandsHandler::compact_db(const std::vector<std::string> &args)
 
         if (!m_compactDbRunning && m_compactDbLastSuccess)
         {
-            std::cout << SuccessMsg("DB compaction completed.") << std::endl;
+            out() << SuccessMsg("DB compaction completed.") << std::endl;
             return true;
         }
 
@@ -775,12 +825,12 @@ bool DaemonCommandsHandler::compact_db(const std::vector<std::string> &args)
             std::lock_guard<std::mutex> lock(m_compactDbMutex);
             error = m_compactDbLastError;
         }
-        std::cout << WarningMsg("DB compaction failed.");
+        out() << WarningMsg("DB compaction failed.");
         if (!error.empty())
         {
-            std::cout << " " << error;
+            out() << " " << error;
         }
-        std::cout << std::endl;
+        out() << std::endl;
         return true;
     }
 
@@ -791,31 +841,31 @@ bool DaemonCommandsHandler::compact_db(const std::vector<std::string> &args)
 
         if (!m_compactDbRunning)
         {
-            std::cout << InformationMsg("No running DB compaction job.") << std::endl;
+            out() << InformationMsg("No running DB compaction job.") << std::endl;
             return true;
         }
 
         if (!m_database)
         {
-            std::cout << WarningMsg("Database handle is not available.") << std::endl;
+            out() << WarningMsg("Database handle is not available.") << std::endl;
             return true;
         }
 
         if (m_database->cancelOptimize())
         {
-            std::cout << InformationMsg("Stop requested for DB compaction.") << std::endl;
+            out() << InformationMsg("Stop requested for DB compaction.") << std::endl;
             m_compactDbNearSyncStreak = 0;
             m_compactDbFinishedAtHeight = static_cast<uint64_t>(m_core.getTopBlockIndex()) + 1;
         }
         else
         {
-            std::cout << WarningMsg("Unable to stop DB compaction (not running).") << std::endl;
+            out() << WarningMsg("Unable to stop DB compaction (not running).") << std::endl;
         }
 
         return true;
     }
 
-    std::cout << "usage: compact_db [start|status|wait|stop]" << std::endl;
+    out() << "usage: compact_db [start|status|wait|stop]" << std::endl;
     return true;
 }
 
@@ -955,7 +1005,7 @@ bool DaemonCommandsHandler::db_status(const std::vector<std::string> &args)
 
     if (!fs::exists(dbPath))
     {
-        std::cout << WarningMsg("DB path does not exist: ") << dbPath.string() << std::endl;
+        out() << WarningMsg("DB path does not exist: ") << dbPath.string() << std::endl;
         return true;
     }
 
@@ -975,11 +1025,11 @@ bool DaemonCommandsHandler::db_status(const std::vector<std::string> &args)
         }
     }
 
-    std::cout << InformationMsg("DB Engine: ") << SuccessMsg("RocksDB") << std::endl;
-    std::cout << InformationMsg("DB Path: ") << SuccessMsg(dbPath.string()) << std::endl;
-    std::cout << InformationMsg("DB Files: ") << SuccessMsg(fileCount) << std::endl;
-    std::cout << InformationMsg("DB Size: ") << SuccessMsg(Utilities::prettyPrintBytes(totalBytes)) << std::endl;
-    std::cout << InformationMsg("Compression: ") << SuccessMsg(m_config.enableDbCompression ? "Enabled" : "Disabled")
+    out() << InformationMsg("DB Engine: ") << SuccessMsg("RocksDB") << std::endl;
+    out() << InformationMsg("DB Path: ") << SuccessMsg(dbPath.string()) << std::endl;
+    out() << InformationMsg("DB Files: ") << SuccessMsg(fileCount) << std::endl;
+    out() << InformationMsg("DB Size: ") << SuccessMsg(Utilities::prettyPrintBytes(totalBytes)) << std::endl;
+    out() << InformationMsg("Compression: ") << SuccessMsg(m_config.enableDbCompression ? "Enabled" : "Disabled")
               << std::endl;
     return true;
 }
@@ -994,24 +1044,24 @@ bool DaemonCommandsHandler::prune_status(const std::vector<std::string> &args)
     {
         if (!m_config.prune)
         {
-            std::cout << WarningMsg("Prune mode is disabled. Enable with --prune.") << std::endl;
+            out() << WarningMsg("Prune mode is disabled. Enable with --prune.") << std::endl;
             return true;
         }
 
         if (!m_config.backgroundPrune || !m_pruneTrigger)
         {
-            std::cout << WarningMsg("Background prune task is not running.") << std::endl;
+            out() << WarningMsg("Background prune task is not running.") << std::endl;
             return true;
         }
 
         m_pruneTrigger->store(true);
-        std::cout << SuccessMsg("Prune pass triggered. It will start within the next poll cycle (up to 1s).") << std::endl;
+        out() << SuccessMsg("Prune pass triggered. It will start within the next poll cycle (up to 1s).") << std::endl;
         return true;
     }
 
     if (action != "status")
     {
-        std::cout << "usage: prune_status [start|status]" << std::endl;
+        out() << "usage: prune_status [start|status]" << std::endl;
         return true;
     }
 
@@ -1020,15 +1070,15 @@ bool DaemonCommandsHandler::prune_status(const std::vector<std::string> &args)
     const uint64_t targetFloor = height > pruneDepth ? height - pruneDepth : 0;
     const uint32_t actualFloor = m_core.getPruneFloor();
 
-    std::cout << InformationMsg("Pruned Node: ") << SuccessMsg(m_config.prune ? "Yes" : "No") << std::endl;
-    std::cout << InformationMsg("Background Prune Task: ")
+    out() << InformationMsg("Pruned Node: ") << SuccessMsg(m_config.prune ? "Yes" : "No") << std::endl;
+    out() << InformationMsg("Background Prune Task: ")
               << SuccessMsg(m_config.backgroundPrune ? "Enabled (async)" : "Disabled") << std::endl;
-    std::cout << InformationMsg("Prune Depth: ") << SuccessMsg(pruneDepth) << std::endl;
-    std::cout << InformationMsg("Target Prune Floor Height: ") << SuccessMsg(targetFloor) << std::endl;
-    std::cout << InformationMsg("Actual Prune Floor Height: ") << SuccessMsg(actualFloor) << std::endl;
+    out() << InformationMsg("Prune Depth: ") << SuccessMsg(pruneDepth) << std::endl;
+    out() << InformationMsg("Target Prune Floor Height: ") << SuccessMsg(targetFloor) << std::endl;
+    out() << InformationMsg("Actual Prune Floor Height: ") << SuccessMsg(actualFloor) << std::endl;
     if (actualFloor == 0)
     {
-        std::cout << WarningMsg("  (no pruning performed yet)") << std::endl;
+        out() << WarningMsg("  (no pruning performed yet)") << std::endl;
     }
     return true;
 }
@@ -1037,7 +1087,7 @@ bool DaemonCommandsHandler::export_bootstrap_state(const std::vector<std::string
 {
     if (args.empty())
     {
-        std::cout << InformationMsg("Usage: export_bootstrap_state <height>") << std::endl
+        out() << InformationMsg("Usage: export_bootstrap_state <height>") << std::endl
                   << "Prints a BootstrapCheckpoint record for the given height." << std::endl
                   << "Run this on a fully-synced node and add the output to" << std::endl
                   << "  src/config/SyncBootstrapCheckpoints.h" << std::endl;
@@ -1051,14 +1101,14 @@ bool DaemonCommandsHandler::export_bootstrap_state(const std::vector<std::string
     }
     catch (const std::exception &)
     {
-        std::cout << WarningMsg("Invalid height: ") << args[0] << std::endl;
+        out() << WarningMsg("Invalid height: ") << args[0] << std::endl;
         return false;
     }
 
     const uint64_t topIndex = m_core.getTopBlockIndex();
     if (targetHeight == 0 || targetHeight > topIndex)
     {
-        std::cout << WarningMsg("Height must be between 1 and ")
+        out() << WarningMsg("Height must be between 1 and ")
                   << topIndex << " (current chain top)." << std::endl;
         return false;
     }
@@ -1087,12 +1137,12 @@ bool DaemonCommandsHandler::export_bootstrap_state(const std::vector<std::string
     }
     catch (const std::out_of_range &)
     {
-        std::cout << InformationMsg("Note: raw block at height ") << targetHeight
+        out() << InformationMsg("Note: raw block at height ") << targetHeight
                   << InformationMsg(" is pruned; coins/txs/timestamp will be 0.") << std::endl;
     }
     catch (const std::exception &e)
     {
-        std::cout << WarningMsg("Could not fetch block details: ") << e.what() << std::endl;
+        out() << WarningMsg("Could not fetch block details: ") << e.what() << std::endl;
         return false;
     }
 
@@ -1126,17 +1176,17 @@ bool DaemonCommandsHandler::export_bootstrap_state(const std::vector<std::string
     }
     catch (const std::exception &e)
     {
-        std::cout << WarningMsg("Could not fetch difficulty/timestamp data: ") << e.what() << std::endl;
+        out() << WarningMsg("Could not fetch difficulty/timestamp data: ") << e.what() << std::endl;
         return false;
     }
 
-    std::cout << std::endl
+    out() << std::endl
               << InformationMsg("=== Bootstrap Checkpoint for height ") << targetHeight
               << InformationMsg(" ===") << std::endl
               << "Copy this struct into src/config/SyncBootstrapCheckpoints.h :"
               << std::endl << std::endl;
 
-    std::cout << "        {" << std::endl
+    out() << "        {" << std::endl
               << "            " << targetHeight << "," << std::endl
               << "            \"" << Common::podToHex(blockHash) << "\"," << std::endl
               << "            UINT64_C(" << alreadyGeneratedCoins << "), // alreadyGeneratedCoins" << std::endl
@@ -1147,19 +1197,19 @@ bool DaemonCommandsHandler::export_bootstrap_state(const std::vector<std::string
               << "            UINT64_C(" << anchorPrevBlockDiff << "), // anchorPrevBlockDiff" << std::endl;
 
     /* Print the lwmaTimestamps array */
-    std::cout << "            {";
+    out() << "            {";
     for (size_t i = 0; i < lwmaTimestamps.size(); ++i)
     {
         if (i % 6 == 0)
-            std::cout << std::endl << "                ";
-        std::cout << "UINT64_C(" << lwmaTimestamps[i] << ")";
+            out() << std::endl << "                ";
+        out() << "UINT64_C(" << lwmaTimestamps[i] << ")";
         if (i + 1 < lwmaTimestamps.size())
-            std::cout << ", ";
+            out() << ", ";
     }
-    std::cout << std::endl << "            }, // lwmaTimestamps[height-60..height]" << std::endl
+    out() << std::endl << "            }, // lwmaTimestamps[height-60..height]" << std::endl
               << "        }," << std::endl << std::endl;
 
-    std::cout << InformationMsg("Also verify height ") << targetHeight
+    out() << InformationMsg("Also verify height ") << targetHeight
               << InformationMsg(" is in CryptoNoteCheckpoints.h with hash ")
               << Common::podToHex(blockHash) << "." << std::endl;
 
@@ -1173,12 +1223,12 @@ bool DaemonCommandsHandler::sync_height_status(const std::vector<std::string> &a
 
     if (syncFloor == 0)
     {
-        std::cout << InformationMsg("Sync-from-height: ")
+        out() << InformationMsg("Sync-from-height: ")
                   << SuccessMsg("disabled (synced from genesis)") << std::endl;
     }
     else
     {
-        std::cout << InformationMsg("Sync floor height: ") << SuccessMsg(syncFloor) << std::endl
+        out() << InformationMsg("Sync floor height: ") << SuccessMsg(syncFloor) << std::endl
                   << InformationMsg("Current chain top:  ") << SuccessMsg(topIndex) << std::endl
                   << InformationMsg("Mode: ")
                   << SuccessMsg("bootstrapped – blocks below ") << syncFloor
@@ -1195,7 +1245,7 @@ bool DaemonCommandsHandler::sync_info(const std::vector<std::string> &args)
     const uint64_t topIndex = m_core.getTopBlockIndex();
     const uint32_t observed = m_syncManager->getObservedHeight();
 
-    std::cout << InformationMsg("Synchronized: ")
+    out() << InformationMsg("Synchronized: ")
               << (m_syncManager->isSynchronized() ? SuccessMsg("yes") : SuccessMsg("no")) << std::endl
               << InformationMsg("Local height:     ") << SuccessMsg(topIndex + 1) << std::endl
               << InformationMsg("Observed height:  ") << SuccessMsg(observed) << std::endl
@@ -1210,7 +1260,7 @@ bool DaemonCommandsHandler::sync_info(const std::vector<std::string> &args)
 
     if (liteHeight != 0)
     {
-        std::cout << InformationMsg("Lite node:        ")
+        out() << InformationMsg("Lite node:        ")
                   << SuccessMsg("full block data from height ") << SuccessMsg(liteHeight)
                   << InformationMsg(" upward; below that only indexes were stored") << std::endl;
     }
@@ -1220,15 +1270,15 @@ bool DaemonCommandsHandler::sync_info(const std::vector<std::string> &args)
        so this is purely a question of which blocks are still here. */
     const uint32_t explorerFloor = std::max(m_core.getPruneFloor(), m_core.getSyncFloorHeight());
 
-    std::cout << InformationMsg("Explorer data:    ");
+    out() << InformationMsg("Explorer data:    ");
 
     if (explorerFloor == 0)
     {
-        std::cout << SuccessMsg("complete from the genesis block") << std::endl;
+        out() << SuccessMsg("complete from the genesis block") << std::endl;
     }
     else
     {
-        std::cout << SuccessMsg("from height ") << SuccessMsg(explorerFloor)
+        out() << SuccessMsg("from height ") << SuccessMsg(explorerFloor)
                   << InformationMsg(" upward only; lookups below that will fail") << std::endl;
     }
 
@@ -1240,11 +1290,11 @@ bool DaemonCommandsHandler::save(const std::vector<std::string> &args)
     try
     {
         m_core.save();
-        std::cout << SuccessMsg("Blockchain state saved.") << std::endl;
+        out() << SuccessMsg("Blockchain state saved.") << std::endl;
     }
     catch (const std::exception &e)
     {
-        std::cout << WarningMsg("Save failed: ") << e.what() << std::endl;
+        out() << WarningMsg("Save failed: ") << e.what() << std::endl;
     }
     return true;
 }

@@ -15,6 +15,7 @@
 
 #include <config/Constants.h>
 #include <common/CryptoNoteTools.h>
+#include <common/IpcSocket.h>
 #include <errors/ValidateParameters.h>
 #include <logger/Logger.h>
 #include <serialization/SerializationTools.h>
@@ -55,7 +56,10 @@ RpcServer::RpcServer(
     const RpcMode rpcMode,
     const std::shared_ptr<CryptoNote::Core> core,
     const std::shared_ptr<CryptoNote::NodeServer> p2p,
-    const std::shared_ptr<CryptoNote::ICryptoNoteProtocolHandler> syncManager):
+    const std::shared_ptr<CryptoNote::ICryptoNoteProtocolHandler> syncManager,
+    std::string ipcPath,
+    const uint32_t ipcMode,
+    std::string ipcGroup):
     m_port(bindPort),
     m_host(rpcBindIp),
     m_corsHeader(corsHeader),
@@ -64,7 +68,10 @@ RpcServer::RpcServer(
     m_rpcMode(rpcMode),
     m_core(core),
     m_p2p(p2p),
-    m_syncManager(syncManager)
+    m_syncManager(syncManager),
+    m_ipcPath(std::move(ipcPath)),
+    m_ipcMode(ipcMode),
+    m_ipcGroup(std::move(ipcGroup))
 {
     if (!m_feeAddress.empty())
     {
@@ -77,6 +84,27 @@ RpcServer::RpcServer(
         }
     }
 
+    /* The TCP listener always exists. The local socket is built only when a
+       path was configured, and its routes differ by one. */
+    setupRoutes(m_server, false);
+
+    if (!m_ipcPath.empty())
+    {
+        if (!Common::Ipc::supported())
+        {
+            std::cout << WarningMsg("--rpc-ipc-path was given, but " + Common::Ipc::unsupportedReason()) << std::endl;
+            m_ipcPath.clear();
+        }
+        else
+        {
+            m_ipcServer = std::make_unique<httplib::Server>();
+            setupRoutes(*m_ipcServer, true);
+        }
+    }
+}
+
+void RpcServer::setupRoutes(httplib::Server &srv, const bool isIpc)
+{
     const bool bodyRequired = true;
     const bool bodyNotRequired = false;
 
@@ -200,8 +228,7 @@ RpcServer::RpcServer(
         }
     };
 
-    m_server
-        .Get("/json_rpc", jsonRpc)
+    srv.Get("/json_rpc", jsonRpc)
         .Get("/info", router(&RpcServer::info, RpcMode::Default, bodyNotRequired, syncNotRequired))
         .Get("/fee", router(&RpcServer::fee, RpcMode::Default, bodyNotRequired, syncNotRequired))
         .Get("/height", router(&RpcServer::height, RpcMode::Default, bodyNotRequired, syncNotRequired))
@@ -235,7 +262,17 @@ RpcServer::RpcServer(
        it any caller can stream an arbitrarily large body and the server buffers
        all of it before a handler ever runs. The largest legitimate request is a
        block submission, so a few megabytes is generous. */
-    m_server.set_payload_max_length(RPC_PAYLOAD_MAX_LENGTH);
+
+    /* Console commands change log levels, ban peers, start compactions and
+       stop the node. They are served on the local socket only, where the mode
+       on the socket file decides who may connect - the same people who could
+       type at the daemon's own console - and never on a TCP listener. */
+    if (isIpc)
+    {
+        srv.Post("/console", router(&RpcServer::console, RpcMode::Default, bodyRequired, syncNotRequired));
+    }
+
+    srv.set_payload_max_length(RPC_PAYLOAD_MAX_LENGTH);
 }
 
 RpcServer::~RpcServer()
@@ -245,7 +282,50 @@ RpcServer::~RpcServer()
 
 void RpcServer::start()
 {
+    /* Bind the local socket on this thread, before anything else starts. The
+       permission window in Ipc::bindServer is closed with the process umask,
+       which every thread shares, so it must not overlap another listener
+       coming up. */
+    if (m_ipcServer)
+    {
+        std::string error;
+
+        if (Common::Ipc::bindServer(*m_ipcServer, m_ipcPath, m_ipcMode, m_ipcGroup, error))
+        {
+            m_ipcThread = std::thread(&RpcServer::listenIpc, this);
+        }
+        else
+        {
+            /* Not fatal: the TCP listener is the one the node needs to work,
+               and refusing to start over an optional endpoint would be worse
+               than saying so and carrying on. */
+            std::cout << WarningMsg("Failed to bind the RPC socket " + m_ipcPath + ": " + error) << std::endl;
+            m_ipcServer.reset();
+            m_ipcPath.clear();
+        }
+    }
+
     m_serverThread = std::thread(&RpcServer::listen, this);
+}
+
+void RpcServer::listenIpc()
+{
+    /* Already bound, so this only starts accepting. */
+    if (!m_ipcServer->listen_after_bind())
+    {
+        std::cout << WarningMsg("The RPC socket listener stopped unexpectedly.") << std::endl;
+    }
+}
+
+std::string RpcServer::getIpcPath() const
+{
+    return m_ipcPath;
+}
+
+void RpcServer::setConsoleExecutor(ConsoleExecutor executor)
+{
+    std::lock_guard<std::mutex> lock(m_consoleExecutorMutex);
+    m_consoleExecutor = std::move(executor);
 }
 
 void RpcServer::listen()
@@ -266,6 +346,23 @@ void RpcServer::stop()
     if (m_serverThread.joinable())
     {
         m_serverThread.join();
+    }
+
+    if (m_ipcServer)
+    {
+        m_ipcServer->stop();
+    }
+
+    if (m_ipcThread.joinable())
+    {
+        m_ipcThread.join();
+    }
+
+    /* The socket file outlives the process otherwise, and the next run would
+       have to decide whether it is stale. */
+    if (!m_ipcPath.empty())
+    {
+        Common::Ipc::cleanup(m_ipcPath);
     }
 }
 
@@ -2751,6 +2848,47 @@ std::tuple<Error, uint16_t> RpcServer::getTransactionHashesByPaymentIdJsonRpc(
         writer.Bool(truncated);
     }
     writer.EndObject();
+
+    writer.EndObject();
+
+    res.body = sb.GetString();
+
+    return {SUCCESS, 200};
+}
+
+std::tuple<Error, uint16_t> RpcServer::console(
+    const httplib::Request &req,
+    httplib::Response &res,
+    const rapidjson::Document &body)
+{
+    const std::string commandLine = getStringFromJSON(body, "command");
+
+    ConsoleExecutor executor;
+
+    {
+        std::lock_guard<std::mutex> lock(m_consoleExecutorMutex);
+        executor = m_consoleExecutor;
+    }
+
+    /* The socket is listening before the daemon has built its command handler,
+       so a console that attaches in that window gets told to wait rather than
+       finding a null callback. */
+    if (!executor)
+    {
+        failRequest(503, "The daemon console is not available yet, please retry in a moment", res);
+        return {SUCCESS, 503};
+    }
+
+    rapidjson::StringBuffer sb;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+
+    writer.StartObject();
+
+    writer.Key("output");
+    writer.String(executor(commandLine));
+
+    writer.Key("status");
+    writer.String("OK");
 
     writer.EndObject();
 

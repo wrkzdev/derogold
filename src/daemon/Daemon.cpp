@@ -7,11 +7,13 @@
 //
 // Please see the included LICENSE file for more information.
 
+#include "AttachConsole.h"
 #include "ChainNotifier.h"
 #include "StratumServer.h"
 #include "DaemonCommandsHandler.h"
 #include "DaemonConfiguration.h"
 #include "common/CryptoNoteTools.h"
+#include "common/IpcSocket.h"
 #include "common/FileSystemShim.h"
 #include "common/PathTools.h"
 #include "common/ScopeExit.h"
@@ -356,6 +358,14 @@ int main(int argc, char *argv[])
                       << e.what() << std::endl;
             exit(1);
         }
+    }
+
+    /* --attach talks to a daemon that is already running. Handled before any
+       of the startup below, because none of it applies: no database is opened,
+       no ports are bound, and the data directory is not touched. */
+    if (!config.attachSocket.empty())
+    {
+        return Daemon::runAttachConsole(config.attachSocket);
     }
 
     /* If we were given the resync arg, we're deleting everything */
@@ -812,6 +822,31 @@ int main(int argc, char *argv[])
             }
         }
 
+        uint32_t ipcMode = Common::Ipc::DEFAULT_MODE;
+
+        if (!config.rpcIpcPath.empty())
+        {
+            if (!Common::Ipc::parseMode(config.rpcIpcMode, ipcMode))
+            {
+                logger(ERROR, BRIGHT_RED)
+                    << "--rpc-ipc-mode " << config.rpcIpcMode
+                    << " is not an octal permission triple. Use something like 0600 (owner only) or 0660 "
+                       "(owner and group).";
+                return 1;
+            }
+
+            /* The mode on the socket file is the whole of the access control -
+               there is no token in front of it - so a world-writable one is
+               worth saying out loud rather than quietly honouring. */
+            if ((ipcMode & 0007) != 0)
+            {
+                logger(WARNING, BRIGHT_YELLOW)
+                    << "--rpc-ipc-mode " << Common::Ipc::formatMode(ipcMode)
+                    << " lets any user on this machine drive the daemon, including its console. The file mode is "
+                       "the only thing guarding that socket.";
+            }
+        }
+
         RpcMode rpcMode = explorerMode ? RpcMode::BlockExplorerEnabled : RpcMode::Default;
 
         RpcServer rpcServer(config.rpcPort,
@@ -822,7 +857,10 @@ int main(int argc, char *argv[])
                             rpcMode,
                             ccore,
                             p2psrv,
-                            cprotocol);
+                            cprotocol,
+                            config.rpcIpcPath,
+                            ipcMode,
+                            config.rpcIpcGroup);
 
         cprotocol->setSyncTuning(config.syncBatchMin, config.syncBatchMax, config.blockSyncBytes);
         cprotocol->setLiteNodeConfig(liteHeight);
@@ -904,6 +942,20 @@ int main(int argc, char *argv[])
 
         auto pruneTrigger = std::make_shared<std::atomic<bool>>(false);
         DaemonCommandsHandler dch(*ccore, *p2psrv, cprotocol, logManager, ip, port, database, config, pruneTrigger);
+
+        /* A console attached over the socket runs its commands through the same
+           handler as the local one. Set after the handler exists and cleared
+           before it goes away, so the RPC thread can never reach a dangling
+           reference. */
+        rpcServer.setConsoleExecutor([&dch](const std::string &commandLine)
+                                     { return dch.run_remote_command(commandLine); });
+
+        if (!rpcServer.getIpcPath().empty())
+        {
+            logger(INFO, BRIGHT_GREEN)
+                << "RPC is also on " << Common::Ipc::describe(rpcServer.getIpcPath()) << " (mode "
+                << Common::Ipc::formatMode(ipcMode) << "). Console: DeroGoldd --attach " << rpcServer.getIpcPath();
+        }
 
         if (!config.noConsole)
         {
@@ -1039,6 +1091,10 @@ int main(int argc, char *argv[])
         logger(INFO) << "p2p net loop stopped";
 
         dch.stop_handling();
+
+        /* Before dch goes out of scope: the RPC threads are still running and
+           would otherwise hold a reference to it. */
+        rpcServer.setConsoleExecutor(nullptr);
 
         // stop components
         if (stratumServer)

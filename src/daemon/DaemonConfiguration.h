@@ -57,6 +57,18 @@ namespace DaemonConfig
         std::string feeAddress;
         int feeAmount = 0;
 
+        /* Serve the RPC on a local AF_UNIX socket as well as the TCP port.
+           Empty leaves it off. The mode on the socket file is the entire
+           access control, so it is owner-only unless widened deliberately.
+           POSIX only. */
+        std::string rpcIpcPath;
+        std::string rpcIpcMode = "0600";
+        std::string rpcIpcGroup;
+
+        /* Attach an interactive console to a daemon that is already running,
+           over its RPC socket, instead of starting a node. */
+        std::string attachSocket;
+
         bool localIp = false;
         bool hideMyPort = false;
         std::string p2pInterface = "0.0.0.0";
