@@ -305,6 +305,8 @@ namespace CryptoNote
 
         bool connections_maker();
 
+        bool connect_to_seeds();
+
         bool make_new_connection_from_peerlist(bool use_white_list);
 
         bool try_to_connect_and_handshake_with_new_peer(
@@ -411,6 +413,10 @@ namespace CryptoNote
 
         // OnceInInterval m_peer_handshake_idle_maker_interval;
         OnceInInterval m_connections_maker_interval;
+
+        /* The connection maker runs every second; this keeps the seed rounds it
+           can trigger down to one per P2P_SEED_RETRY_INTERVAL_SECONDS. */
+        OnceInInterval m_seed_retry_interval;
 
         OnceInInterval m_peerlist_store_interval;
 

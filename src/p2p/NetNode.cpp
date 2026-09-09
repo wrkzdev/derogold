@@ -249,6 +249,7 @@ namespace CryptoNote
         // intervals
         // m_peer_handshake_idle_maker_interval(CryptoNote::P2P_DEFAULT_HANDSHAKE_INTERVAL),
         m_connections_maker_interval(1),
+        m_seed_retry_interval(CryptoNote::P2P_SEED_RETRY_INTERVAL_SECONDS),
         m_peerlist_store_interval(60 * 30, false)
     {
     }
@@ -1002,6 +1003,47 @@ namespace CryptoNote
     }
     //-----------------------------------------------------------------------------------
 
+    /* Walk the seed nodes until one of them hands over a peer list. Returns
+       false only when the node is stopping, so the caller can bail out. */
+    bool NodeServer::connect_to_seeds()
+    {
+        if (m_seed_nodes.empty())
+        {
+            logger(DEBUGGING) << "No seed node address is known, nothing to bootstrap from";
+            return true;
+        }
+
+        size_t try_count = 0;
+        size_t current_index = Random::randomValue<size_t>() % m_seed_nodes.size();
+
+        while (!m_stop)
+        {
+            const NetworkAddress seed = m_seed_nodes[current_index];
+
+            /* Already talking to it: that is as good as a fresh handshake, and
+               dialling a second connection to the same seed just wastes one of
+               its slots. */
+            if (is_addr_connected(seed) || try_to_connect_and_handshake_with_new_peer(seed, true))
+            {
+                return true;
+            }
+
+            if (++try_count > m_seed_nodes.size())
+            {
+                logger(ERROR) << "Failed to connect to any of seed peers, continuing without seeds";
+                break;
+            }
+            if (++current_index >= m_seed_nodes.size())
+            {
+                current_index = 0;
+            }
+        }
+
+        return !m_stop;
+    }
+
+    //-----------------------------------------------------------------------------------
+
     bool NodeServer::connections_maker()
     {
         connect_to_peerlist(m_exclusive_peers);
@@ -1011,27 +1053,16 @@ namespace CryptoNote
             return true;
         }
 
-        if (!m_peerlist.get_white_peers_count() && !m_seed_nodes.empty())
+        const size_t start_conn_count = get_outgoing_connections_count();
+
+        /* Nothing known at all: a first start, or --p2p-reset-peerstate. Rate
+           limited like every other seed round, so seeds that are down get one
+           walk per interval instead of one per connection maker tick. */
+        if (!m_peerlist.get_white_peers_count())
         {
-            size_t try_count = 0;
-            size_t current_index = Random::randomValue<size_t>() % m_seed_nodes.size();
-
-            while (true)
+            if (!m_seed_retry_interval.call([this] { return connect_to_seeds(); }))
             {
-                if (try_to_connect_and_handshake_with_new_peer(m_seed_nodes[current_index], true))
-                {
-                    break;
-                }
-
-                if (++try_count > m_seed_nodes.size())
-                {
-                    logger(ERROR) << "Failed to connect to any of seed peers, continuing without seeds";
-                    break;
-                }
-                if (++current_index >= m_seed_nodes.size())
-                {
-                    current_index = 0;
-                }
+                return false;
             }
         }
 
@@ -1069,6 +1100,25 @@ namespace CryptoNote
                     return false;
                 }
             }
+        }
+
+        /* Nobody new could be dialled and we are nearly alone, so every peer we
+           know is stale. Without this the node never asks the seeds again once
+           its white list is non-empty, and a white list is never emptied, so a
+           node that outlives the peers it knows can never find the network
+           again. */
+        const size_t end_conn_count = get_outgoing_connections_count();
+        const size_t seed_retry_floor =
+            std::min<size_t>(m_config.m_net_config.connections_count, CryptoNote::P2P_SEED_RETRY_OUT_PEERS_FLOOR);
+
+        if (end_conn_count <= start_conn_count && end_conn_count < seed_retry_floor)
+        {
+            m_seed_retry_interval.call([this, end_conn_count] {
+                logger(INFO) << "Only " << end_conn_count << " outgoing connection(s) and no new peer reachable"
+                             << " (known peers: white " << m_peerlist.get_white_peers_count() << ", gray "
+                             << m_peerlist.get_gray_peers_count() << "); asking the seed nodes for a fresh peer list";
+                return connect_to_seeds();
+            });
         }
 
         return true;

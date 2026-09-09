@@ -365,6 +365,16 @@ namespace CryptoNote
     const uint32_t P2P_DEFAULT_PACKET_MAX_SIZE = 50000000; // 50000000 bytes maximum packet size
     const uint32_t P2P_DEFAULT_PEERS_IN_HANDSHAKE = 250;
 
+    /* Seed nodes are the only way back onto the network once every peer we
+       know has gone away, so they are re-asked while the node runs and not
+       just at the first start. A round is taken when no new peer could be
+       dialled and fewer than P2P_SEED_RETRY_OUT_PEERS_FLOOR outgoing
+       connections are left, and at most once per
+       P2P_SEED_RETRY_INTERVAL_SECONDS because the seeds serve everyone. */
+    const uint32_t P2P_SEED_RETRY_INTERVAL_SECONDS = 5 * 60;
+
+    const uint32_t P2P_SEED_RETRY_OUT_PEERS_FLOOR = 3;
+
     const uint32_t P2P_DEFAULT_CONNECTION_TIMEOUT = 5000; // 5 seconds
     const uint32_t P2P_DEFAULT_PING_CONNECTION_TIMEOUT = 2000; // 2 seconds
     const uint64_t P2P_DEFAULT_INVOKE_TIMEOUT = 60 * 2 * 1000; // 2 minutes
