@@ -13,11 +13,21 @@
 # and later and Debian 11 and later. Use this when the target machine is too
 # slow or too bare to build on itself.
 #
+# With BuildKit (Docker 23 and later, or DOCKER_BUILDKIT=1):
+#
 #   docker build -f Dockerfile.portable --target export --output type=local,dest=dist .
 #
-# leaves the .tar.gz and .deb in dist/. libstdc++ and libgcc are already linked
-# statically by the main build; libssl and libc stay dynamic, so the target
-# needs libssl installed - it is present by default on any normal server.
+# On the legacy builder, where --output does not exist:
+#
+#   docker build -f Dockerfile.portable --target build -t derogold-portable .
+#   id=$(docker create derogold-portable)
+#   docker cp "$id:/src/build/Packaging" ./dist
+#   docker rm "$id"
+#
+# Either way you get the .tar.gz and .deb. libstdc++ and libgcc are already
+# linked statically by the main build; libssl and libc stay dynamic, so the
+# target needs libssl installed - it is present by default on any normal
+# server.
 #
 # This is separate from Dockerfile because that one builds the published
 # container image, where the build base and the runtime base are the same
@@ -51,7 +61,6 @@ RUN apt-get update && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
         binutils \
-        ccache \
         cmake \
         file \
         g++-10 \
@@ -70,19 +79,17 @@ COPY . .
 # instruction on anything older. SET_COMMIT_ID_IN_VERSION=OFF matches the
 # release configuration, keeping the version string to the release number.
 #
-# The ccache mount is what makes a second run bearable: COPY . . invalidates
-# this layer on any source change, and without it every rebuild compiles the
-# whole of RocksDB again. The project picks ccache up from PATH by itself.
-RUN --mount=type=cache,id=derogold-portable-ccache,target=/root/.ccache \
-    CC=gcc-10 CXX=g++-10 cmake -G Ninja \
+# Deliberately no BuildKit-only syntax anywhere in this file - no --mount, no
+# heredocs. Plenty of installations still run the legacy builder, and a
+# portable build being unbuildable there would be a poor joke.
+RUN CC=gcc-10 CXX=g++-10 cmake -G Ninja \
         -D CMAKE_BUILD_TYPE=Release \
         -D ARCH=default \
         -D SET_COMMIT_ID_IN_VERSION=OFF \
         -D SET_PACKAGE_OUTPUT_SUFFIX="${PACKAGE_SUFFIX}" \
         -S . -B build && \
     cmake --build build && \
-    cmake --build build --target package && \
-    ccache --show-stats | head -5
+    cmake --build build --target package
 
 # Report the floor that was actually achieved. If the base image is changed to
 # something newer this says so in the build log, rather than leaving it to be

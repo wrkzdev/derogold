@@ -184,13 +184,27 @@ saying so, rather than failing hundreds of lines into a RocksDB header.
 
 If the target is too slow or too bare to build on — which is the usual reason —
 `Dockerfile.portable` does the same build in a container on whatever fast
-machine you have, and packages the result:
+machine you have, and packages the result. It uses no BuildKit-only syntax, so
+it builds on either Docker builder; only how you get the files out differs.
+
+**Legacy builder** (what `docker build` uses unless BuildKit is enabled):
 
 ```sh
-docker build -f Dockerfile.portable --target export --output type=local,dest=dist .
+docker build -f Dockerfile.portable --target build -t derogold-portable .
+id=$(docker create derogold-portable)
+docker cp "$id:/src/build/Packaging" ./dist
+docker rm "$id"
 ```
 
-That leaves a `.tar.gz` and a `.deb` in `dist/`, ready to copy to the server:
+**BuildKit** (default from Docker 23, or set `DOCKER_BUILDKIT=1`) can write the
+files straight out, no intermediate container:
+
+```sh
+DOCKER_BUILDKIT=1 docker build -f Dockerfile.portable \
+    --target export --output type=local,dest=dist .
+```
+
+Either way you end up with:
 
 ```
 dist/DeroGold-linux-x64-glibc2.31.tar.gz
@@ -212,29 +226,22 @@ The build log ends with a summary worth reading before you copy anything:
 === portable build summary ===
 glibc floor : GLIBC_2.29
 still linked: libssl.so.1.1 libcrypto.so.1.1 libm.so.6 libc.so.6
-ls -lh build/Packaging ...
 ```
 
 If `glibc floor` comes back higher than the target's glibc, the base image
 moved and the result will not run — check `UBUNTU_VERSION` in the file.
 
-Options worth knowing:
+Build arguments:
 
 | | |
 | --- | --- |
 | `--build-arg UBUNTU_VERSION=22.04` | A different, newer floor |
 | `--build-arg PACKAGE_SUFFIX=...` | Renames the artifacts |
-| `--target build` | Stops at the build stage, for poking around with `docker run -it` |
 
-`--output` needs BuildKit, which is the default from Docker 23. On something
-older, or if `--output` is rejected:
-
-```sh
-docker build -f Dockerfile.portable --target build -t derogold-portable .
-id=$(docker create derogold-portable)
-docker cp "$id:/src/build/Packaging" ./dist
-docker rm "$id"
-```
+There is no ccache in this image. It would need a BuildKit cache mount to
+survive between builds, and that would make the file unbuildable on the legacy
+builder for a saving that only appears on a rebuild. Expect a full compile each
+time, and note that `COPY . .` means any change to the tree causes one.
 
 ### Building one
 
