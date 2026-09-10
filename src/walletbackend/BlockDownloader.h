@@ -50,6 +50,9 @@ class BlockDownloader
        has established that those blocks are gone. */
     void forgetBlocksFrom(const uint64_t height);
 
+    /* What the wallet holds at this height, if it still holds anything. */
+    std::optional<Crypto::Hash> getHashAtHeight(const uint64_t height) const;
+
     /* Start block downloading process */
     void start();
 

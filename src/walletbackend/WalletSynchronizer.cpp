@@ -97,6 +97,10 @@ WalletSynchronizer &WalletSynchronizer::operator=(WalletSynchronizer &&old)
 
     m_threadCount = std::move(old.m_threadCount);
 
+    m_forkCount = old.m_forkCount.load();
+    m_lastForkHeight = old.m_lastForkHeight.load();
+    m_lastForkDepth = old.m_lastForkDepth.load();
+
     return *this;
 }
 
@@ -419,11 +423,70 @@ void WalletSynchronizer::completeBlockProcessing(
     /* Chain forked, invalidate previous transactions */
     if (walletHeight >= block.blockHeight && block.blockHeight != 0)
     {
-        Logger::logger.log(
-            "Blockchain forked, resolving... (Old height: " + std::to_string(walletHeight)
-                + ", new height: " + std::to_string(block.blockHeight) + ")",
-            Logger::INFO,
-            {Logger::SYNC});
+        const uint64_t depth = walletHeight - block.blockHeight + 1;
+
+        /* The daemon re-sending a block the wallet already holds, unchanged,
+           is not a reorg. It still goes through the removal below, which is
+           what makes reprocessing it idempotent, but it is not worth warning
+           about and must not be counted as a chain reorganisation - that count
+           exists to tell somebody their confirmed transactions were withdrawn,
+           and here nothing was. */
+        const auto existing = m_blockDownloader.getHashAtHeight(block.blockHeight);
+
+        const bool sameBlock = existing && *existing == block.blockHash;
+
+        if (sameBlock)
+        {
+            Logger::logger.log(
+                "Daemon re-sent block " + std::to_string(block.blockHeight) + ", reprocessing it",
+                Logger::DEBUG,
+                {Logger::SYNC});
+        }
+        else
+        {
+            /* A warning, not information. Every transaction from here up is
+               about to be removed, some of which the wallet has already
+               reported as confirmed, and the depth is the part worth seeing: a
+               block or two is routine, thousands means something is wrong with
+               where the wallet is being told to resume from. */
+            Logger::logger.log(
+                "Blockchain forked, resolving " + std::to_string(depth) + " block"
+                    + (depth == 1 ? "" : "s") + " (old height: " + std::to_string(walletHeight)
+                    + ", new height: " + std::to_string(block.blockHeight) + ")",
+                Logger::WARNING,
+                {Logger::SYNC});
+
+            m_forkCount++;
+            m_lastForkHeight = block.blockHeight;
+            m_lastForkDepth = depth;
+
+            /* A replacement block should attach to the block below it, which
+               is one the wallet keeps. If it says otherwise, the daemon is
+               rebuilding this wallet from a chain it has no part of - worth
+               saying out loud, because the wallet is about to discard
+               confirmed transactions on that say-so.
+
+               Reported rather than refused: the wallet cannot tell a hostile
+               daemon from a legitimately very deep reorg, and refusing to
+               follow would wedge sync in a case where following is correct.
+               Absent means the daemon did not send one, never a mismatch. */
+            if (block.blockPrevHash && block.blockHeight > 0)
+            {
+                const auto parent = m_blockDownloader.getHashAtHeight(block.blockHeight - 1);
+
+                if (parent && !(*parent == *block.blockPrevHash))
+                {
+                    std::stringstream stream;
+
+                    stream << "Block " << block.blockHeight << " does not attach to the chain this wallet holds: "
+                           << "it follows " << *block.blockPrevHash << ", but this wallet has " << *parent
+                           << " at height " << block.blockHeight - 1
+                           << ". The daemon is serving a different chain.";
+
+                    Logger::logger.log(stream.str(), Logger::WARNING, {Logger::SYNC, Logger::DAEMON});
+                }
+            }
+        }
 
         removeForkedTransactions(block.blockHeight);
 
@@ -856,6 +919,11 @@ void WalletSynchronizer::initializeAfterLoad(
 uint64_t WalletSynchronizer::getCurrentScanHeight() const
 {
     return m_blockDownloader.getHeight();
+}
+
+std::tuple<uint64_t, uint64_t, uint64_t> WalletSynchronizer::getForkInfo() const
+{
+    return {m_forkCount.load(), m_lastForkHeight.load(), m_lastForkDepth.load()};
 }
 
 uint64_t WalletSynchronizer::getPruneFloor() const

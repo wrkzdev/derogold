@@ -838,6 +838,7 @@ namespace CryptoNote
 
                 walletBlock.blockHeight = cachedBlock.getBlockIndex();
                 walletBlock.blockHash = cachedBlock.getBlockHash();
+                walletBlock.blockPrevHash = block.previousBlockHash;
                 walletBlock.blockTimestamp = block.timestamp;
 
                 if (!skipCoinbaseTransactions)

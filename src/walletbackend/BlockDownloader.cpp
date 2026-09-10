@@ -178,6 +178,11 @@ void BlockDownloader::forgetBlocksFrom(const uint64_t height)
     m_synchronizationStatus.forgetBlocksFrom(height);
 }
 
+std::optional<Crypto::Hash> BlockDownloader::getHashAtHeight(const uint64_t height) const
+{
+    return m_synchronizationStatus.getHashAtHeight(height);
+}
+
 void BlockDownloader::dropBlock(const uint64_t blockHeight, const Crypto::Hash blockHash)
 {
     m_storedBlocks.pop_front();

@@ -85,6 +85,13 @@ namespace WalletTypes
         /* The hash of the block */
         Crypto::Hash blockHash;
 
+        /* The hash of the block before it, so the wallet can tell whether what
+           it has been sent attaches to the chain it holds. Optional because
+           the records a pruned daemon rebuilds do not have it, and because a
+           daemon predating the field will not send one - absent means "cannot
+           be checked", never "does not match". */
+        std::optional<Crypto::Hash> blockPrevHash;
+
         /* The timestamp of the block */
         uint64_t blockTimestamp;
 
@@ -409,6 +416,15 @@ namespace WalletTypes
            this wallet blocks - a reason retrying will not change, so it has to
            reach whoever is watching rather than sit in a log. */
         std::string syncError;
+        /* How many chain reorganisations this run has resolved. Only ever
+           increases, so a caller polling it can tell one happened between two
+           polls - which matters because a reorg silently withdraws
+           transactions it had already reported as confirmed. Counts this run
+           only, and starts again when the wallet is reopened. */
+        uint64_t forkCount;
+        /* Where the most recent one was, and how many blocks it discarded. */
+        uint64_t lastForkHeight;
+        uint64_t lastForkDepth;
     };
 
     /* A structure just used to display locked balance, due to change from
@@ -474,6 +490,10 @@ namespace WalletTypes
         {
             j["coinbaseTX"] = *(w.coinbaseTransaction);
         }
+        if (w.blockPrevHash)
+        {
+            j["blockPrevHash"] = *(w.blockPrevHash);
+        }
     }
 
     inline void from_json(const nlohmann::json &j, WalletBlockInfo &w)
@@ -485,6 +505,10 @@ namespace WalletTypes
         w.transactions = j.at("transactions").get<std::vector<RawTransaction>>();
         w.blockHeight = j.at("blockHeight").get<uint64_t>();
         w.blockHash = j.at("blockHash").get<Crypto::Hash>();
+        if (j.find("blockPrevHash") != j.end())
+        {
+            w.blockPrevHash = j.at("blockPrevHash").get<Crypto::Hash>();
+        }
         w.blockTimestamp = j.at("blockTimestamp").get<uint64_t>();
     }
 

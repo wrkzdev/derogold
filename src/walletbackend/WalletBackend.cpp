@@ -1126,6 +1126,12 @@ WalletTypes::WalletStatus WalletBackend::getStatus() const
     status.lastKnownHashrate = m_daemon->hashrate();
     status.syncError = m_daemon->syncError();
 
+    const auto [forkCount, lastForkHeight, lastForkDepth] = m_walletSynchronizer->getForkInfo();
+
+    status.forkCount = forkCount;
+    status.lastForkHeight = lastForkHeight;
+    status.lastForkDepth = lastForkDepth;
+
     return status;
 }
 
@@ -1136,27 +1142,20 @@ std::vector<WalletTypes::Transaction>
 {
     std::vector<WalletTypes::Transaction> result;
 
-    try {
-        const auto transactions = getTransactions();
+    /* This used to swallow every exception and return whatever it had, so a
+       failure came back as an empty range - indistinguishable from a range
+       that really holds no transactions, and silently wrong for anyone
+       reading a wallet's history a window at a time. Letting it out means the
+       caller is told. */
+    const auto transactions = getTransactions();
 
-        if (!transactions.empty())
-        {
-            std::copy_if(
-                transactions.begin(),
-                transactions.end(),
-                std::back_inserter(result),
-                [&startHeight, &endHeight](const auto tx) {
-                    return tx.blockHeight >= startHeight && tx.blockHeight < endHeight;
-                });
-
-            return result;
-        } else
-        {
-            return std::vector<WalletTypes::Transaction> {};
-        }
-    } catch (const std::exception &)
-    {
-    }
+    std::copy_if(
+        transactions.begin(),
+        transactions.end(),
+        std::back_inserter(result),
+        [&startHeight, &endHeight](const auto &tx) {
+            return tx.blockHeight >= startHeight && tx.blockHeight < endHeight;
+        });
 
     return result;
 }

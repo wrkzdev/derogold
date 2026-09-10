@@ -1354,6 +1354,12 @@ std::tuple<Error, uint16_t> RpcServer::getWalletSyncData(
             ? CryptoNote::BLOCKS_SYNCHRONIZING_DEFAULT_COUNT
             : requestedBlockCount;
 
+    /* NOTE: this default is the opposite of every wallet's, which skips
+       coinbase transactions unless asked not to. It is left alone deliberately:
+       the wallets in this repository always send the field, so only a third
+       party client that omits it is affected, and flipping the default would
+       silently stop sending it coinbase transactions - data quietly going
+       missing, which is worse than the heavier response it gets today. */
     const bool skipCoinbaseTransactions = hasMember(body, "skipCoinbaseTransactions")
         ? getBoolFromJSON(body, "skipCoinbaseTransactions")
         : false;
@@ -1509,6 +1515,14 @@ std::tuple<Error, uint16_t> RpcServer::getWalletSyncData(
 
             writer.Key("blockHash");
             writer.String(Common::podToHex(block.blockHash));
+
+            /* Absent for the records a pruned daemon rebuilds, which is why
+               the wallet treats a missing one as "cannot be checked". */
+            if (block.blockPrevHash)
+            {
+                writer.Key("blockPrevHash");
+                writer.String(Common::podToHex(*block.blockPrevHash));
+            }
 
             writer.Key("blockTimestamp");
             writer.Uint64(block.blockTimestamp);
@@ -3821,6 +3835,12 @@ std::tuple<Error, uint16_t> RpcServer::getRawBlocks(
             ? CryptoNote::BLOCKS_SYNCHRONIZING_DEFAULT_COUNT
             : requestedBlockCount;
 
+    /* NOTE: this default is the opposite of every wallet's, which skips
+       coinbase transactions unless asked not to. It is left alone deliberately:
+       the wallets in this repository always send the field, so only a third
+       party client that omits it is affected, and flipping the default would
+       silently stop sending it coinbase transactions - data quietly going
+       missing, which is worse than the heavier response it gets today. */
     const bool skipCoinbaseTransactions = hasMember(body, "skipCoinbaseTransactions")
         ? getBoolFromJSON(body, "skipCoinbaseTransactions")
         : false;

@@ -108,6 +108,17 @@ class WalletSynchronizer
 
     uint64_t getPruneFloor() const;
 
+    /* What the wallet has seen of chain reorganisations. A rollback removes
+       transactions that were already reported as confirmed, and nothing said
+       so - they simply stopped being listed, which anyone crediting on them
+       could not tell from a wallet reset. The count only ever increases, so a
+       caller polling it can tell that one happened between two polls without
+       having to catch it in the act.
+
+       In memory only: it counts what this run has seen, and starts again when
+       the wallet is reopened. */
+    std::tuple<uint64_t, uint64_t, uint64_t> getForkInfo() const;
+
     void swapNode(const std::shared_ptr<Nigel> daemon);
 
     void setSyncStart(const uint64_t startTimestamp, const uint64_t startHeight);
@@ -204,6 +215,15 @@ class WalletSynchronizer
 
     /* Amount of sync threads to run */
     unsigned int m_threadCount;
+
+    /* How many reorgs this run has resolved, the height of the most recent one
+       and how many blocks it threw away. Written by the block processing
+       thread, read by whoever asks for wallet status. */
+    std::atomic<uint64_t> m_forkCount = 0;
+
+    std::atomic<uint64_t> m_lastForkHeight = 0;
+
+    std::atomic<uint64_t> m_lastForkDepth = 0;
 
     /* Stores thread ids of the block output processing threads */
     std::vector<std::thread> m_syncThreads;

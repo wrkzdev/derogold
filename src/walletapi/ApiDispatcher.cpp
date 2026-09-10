@@ -879,6 +879,14 @@ std::tuple<Error, uint16_t> ApiDispatcher::resetWallet(const httplib::Request &r
         scanHeight = getJsonValue<uint64_t>(body, "scanHeight");
     }
 
+    /* The backend has always taken a date as well as a height, and this never
+       read one - the parameter was fixed at zero, so resetting from a date was
+       unreachable through the API however it was asked for. */
+    if (body.find("scanTimestamp") != body.end())
+    {
+        timestamp = getJsonValue<uint64_t>(body, "scanTimestamp");
+    }
+
     m_walletBackend->reset(scanHeight, timestamp);
 
     return {SUCCESS, 200};
@@ -1007,6 +1015,13 @@ std::tuple<Error, uint16_t>
                          still and this says why. */
                       {"syncError", status.syncError},
                       {"daemonOnline", m_walletBackend->daemonOnline()},
+                      /* A reorg withdraws transactions this wallet has already
+                         reported as confirmed. The count only rises, so a
+                         caller can tell one happened between two polls instead
+                         of having to notice a transaction going missing. */
+                      {"forkCount", status.forkCount},
+                      {"lastForkHeight", status.lastForkHeight},
+                      {"lastForkDepth", status.lastForkDepth},
                       {"isViewWallet", m_walletBackend->isViewWallet()},
                       {"subWalletCount", m_walletBackend->getWalletCount()},
                       /* The wallet was synced without coinbase scanning and is
@@ -1069,7 +1084,65 @@ std::tuple<Error, uint16_t>
 std::tuple<Error, uint16_t>
     ApiDispatcher::getTransactions(const httplib::Request &req, httplib::Response &res, const nlohmann::json &body) const
 {
-    nlohmann::json j {{"transactions", m_walletBackend->getTransactions()}};
+    auto transactions = m_walletBackend->getTransactions();
+
+    const uint64_t total = transactions.size();
+
+    /* Optional, and absent means what it has always meant: all of them. A
+       wallet holding a hundred thousand transactions serialises tens of
+       megabytes on every call otherwise, which for anything polling this is
+       most of what it does. Newest first, so limit=50 on its own is the useful
+       page rather than the oldest fifty.
+
+       Parsed without throwing: a query parameter that is not a number falls
+       back to the default rather than becoming a 500 from deep inside the
+       middleware. */
+    const auto readCount = [&req](const char *name, const uint64_t fallback) {
+        if (!req.has_param(name))
+        {
+            return fallback;
+        }
+
+        const std::string value = req.get_param_value(name);
+
+        char *end = nullptr;
+
+        const uint64_t parsed = std::strtoull(value.c_str(), &end, 10);
+
+        /* Whole of it, or none of it. */
+        if (end == nullptr || *end != '\0' || value.empty())
+        {
+            return fallback;
+        }
+
+        return parsed;
+    };
+
+    const uint64_t offset = readCount("offset", 0);
+
+    if (req.has_param("limit") || offset != 0)
+    {
+        std::reverse(transactions.begin(), transactions.end());
+
+        if (offset >= transactions.size())
+        {
+            transactions.clear();
+        }
+        else
+        {
+            transactions.erase(transactions.begin(), transactions.begin() + offset);
+        }
+
+        const uint64_t limit = readCount("limit", transactions.size());
+
+        if (limit < transactions.size())
+        {
+            transactions.resize(limit);
+        }
+    }
+
+    /* So a caller paging through knows when to stop without asking twice. */
+    nlohmann::json j {{"transactions", transactions}, {"total", total}};
 
     publicKeysToAddresses(j);
 
