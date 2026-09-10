@@ -158,7 +158,13 @@ class WalletSynchronizer
     std::vector<std::tuple<Crypto::PublicKey, WalletTypes::TransactionInput>>
         processTransactionOutputs(const WalletTypes::RawCoinbaseTransaction &rawTX, const uint64_t blockHeight) const;
 
-    std::unordered_map<Crypto::Hash, std::vector<uint64_t>> getGlobalIndexes(const uint64_t blockHeight) const;
+    /* Fills in the global index of every output of ours in these blocks that
+       lacks one, asking the daemon once per group of nearby blocks rather than
+       once per block. Returns false only when stopping. */
+    bool resolveGlobalIndexes(std::vector<SemiProcessedBlock> &blocks);
+
+    std::unordered_map<Crypto::Hash, std::vector<uint64_t>>
+        getGlobalIndexes(const uint64_t startHeight, const uint64_t endHeight) const;
 
     void removeForkedTransactions(const uint64_t forkHeight);
 

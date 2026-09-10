@@ -635,7 +635,18 @@ std::tuple<bool, std::unordered_map<Crypto::Hash, std::vector<uint64_t>>>
         { Logger::SYNC, Logger::DAEMON }
     );
 
-    auto res = m_nodeClient->Post("/get_global_indexes_for_range", m_requestHeaders, j.dump(), "application/json");
+    /* A client of its own rather than m_nodeClient. httplib holds a client's
+       request lock for the whole of a request, so on the shared client each of
+       these queued behind the block downloader, which keeps that client busy
+       for as long as it has room to buffer blocks. The sync threads need these
+       answers before they can hand back any block at all, so the wallet sat at
+       one height for minutes, then jumped. Keep-alive is off, so the shared
+       client opens a new connection per request anyway; this costs nothing it
+       did not already. Safe to read the daemon address here: swapNode pauses
+       the synchronizer before changing it. */
+    const auto client = getClient(m_daemonHost, m_daemonPort, m_daemonSSL, m_timeout);
+
+    auto res = client->Post("/get_global_indexes_for_range", m_requestHeaders, j.dump(), "application/json");
 
     std::unordered_map<Crypto::Hash, std::vector<uint64_t>> result;
 

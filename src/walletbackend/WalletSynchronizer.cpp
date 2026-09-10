@@ -14,10 +14,12 @@
 #include <future>
 #include <iostream>
 #include <logger/Logger.h>
+#include <set>
 #include <utilities/ThreadSafeDeque.h>
 #include <utilities/ThreadSafeQueue.h>
 #include <utilities/Utilities.h>
 #include <walletbackend/Constants.h>
+#include <walletbackend/GlobalIndexRanges.h>
 
 ///////////////////////////////////
 /* CONSTRUCTORS / DECONSTRUCTORS */
@@ -256,112 +258,27 @@ void WalletSynchronizer::blockProcessingThread()
         /* Process blocks while we've got more to process */
         while (!chunk.empty() && !m_shouldStop)
         {
+            /* Scan the whole chunk before asking the daemon anything, so the
+               global index lookups for it can be made together. */
+            std::vector<SemiProcessedBlock> scanned;
+
+            scanned.reserve(chunk.size());
+
             for (const auto &[block, arrivalIndex] : chunk)
             {
                 Logger::logger.log(
                     "Processing block " + std::to_string(block.blockHeight), Logger::DEBUG, {Logger::SYNC});
 
-                auto ourInputs = processBlockOutputs(block);
-
-                /* Skip global index lookups for blocks below the prune floor.
-                   The daemon has deleted the raw transaction data for these
-                   heights, so /get_o_indexes will fail.  The prunedItems from
-                   the daemon still let us detect incoming outputs (balance),
-                   but we cannot resolve global indexes for spending until the
-                   wallet re-syncs against a non-pruned node. */
-                const uint64_t pruneFloor = m_blockDownloader.getPruneFloor();
-                const bool isPrunedBlock = (pruneFloor > 0 && block.blockHeight < pruneFloor);
-
-                std::unordered_map<Crypto::Hash, std::vector<uint64_t>> globalIndexes;
-
-                for (auto &[publicKey, input] : ourInputs)
-                {
-                    if (!m_subWallets->isViewWallet() && !input.globalOutputIndex)
-                    {
-                        /* Pruned blocks: daemon can't provide global indexes.
-                           Leave as nullopt — getSpendableInputs will filter
-                           these out until re-synced on a non-pruned node. */
-                        if (isPrunedBlock)
-                        {
-                            continue;
-                        }
-
-                        if (globalIndexes.empty())
-                        {
-                            globalIndexes = getGlobalIndexes(block.blockHeight);
-                        }
-
-                        auto it = globalIndexes.find(input.parentTransactionHash);
-
-                        /* Daemon returns indexes for hashes in a range. If we don't
-                           find our hash, either the chain has forked, or the daemon
-                           is faulty.
-
-                           Also need to check there are enough indexes for the one we want */
-                        constexpr size_t MAX_GLOBAL_INDEX_ATTEMPTS = 6;
-
-                        size_t attempts = 0;
-
-                        while ((it == globalIndexes.end() || it->second.size() <= input.transactionIndex)
-                               && attempts < MAX_GLOBAL_INDEX_ATTEMPTS)
-                        {
-                            if (m_shouldStop)
-                            {
-                                return;
-                            }
-
-                            attempts++;
-
-                            Logger::logger.log(
-                                "Warning: Failed to get correct global indexes from daemon (attempt "
-                                    + std::to_string(attempts) + " of "
-                                    + std::to_string(MAX_GLOBAL_INDEX_ATTEMPTS) + ")."
-                                    "\nThe daemon may have gone offline or the chain may have just forked.",
-                                Logger::FATAL,
-                                {Logger::SYNC, Logger::DAEMON});
-
-                            Utilities::sleepUnlessStopping(std::chrono::seconds(5), m_shouldStop);
-
-                            if (m_shouldStop)
-                            {
-                                return;
-                            }
-
-                            globalIndexes = getGlobalIndexes(block.blockHeight);
-
-                            it = globalIndexes.find(input.parentTransactionHash);
-                        }
-
-                        /* Give up rather than retrying forever. This loop used to
-                           spin until shutdown, which is exactly what happens after
-                           a reorg: our transaction is no longer on the chain, so
-                           the daemon will never return an index for it, and the
-                           batch never completed — sync stopped dead until the
-                           wallet was reopened.
-
-                           Leaving the index unresolved lets the block commit. The
-                           input is then filtered out of spendable inputs, and if
-                           this really was a fork the daemon will resend this height
-                           and the fork path will roll the block back and rescan it. */
-                        if (it == globalIndexes.end() || it->second.size() <= input.transactionIndex)
-                        {
-                            Logger::logger.log(
-                                "Giving up on global indexes for transaction "
-                                    + Common::podToHex(input.parentTransactionHash) + " in block "
-                                    + std::to_string(block.blockHeight)
-                                    + ". This input cannot be spent until the wallet is rescanned.",
-                                Logger::FATAL,
-                                {Logger::SYNC, Logger::DAEMON});
-
-                            continue;
-                        }
-
-                        input.globalOutputIndex = it->second[input.transactionIndex];
-                    }
-                }
-
-                processedBlocks.push_back({block, ourInputs, arrivalIndex});
+                scanned.emplace_back(block, processBlockOutputs(block), arrivalIndex);
             }
+
+            if (!resolveGlobalIndexes(scanned))
+            {
+                return;
+            }
+
+            processedBlocks.insert(
+                processedBlocks.end(), std::make_move_iterator(scanned.begin()), std::make_move_iterator(scanned.end()));
 
             chunk = m_blockProcessingQueue.front_n_and_remove(chunkSize);
         }
@@ -748,19 +665,168 @@ std::vector<std::tuple<Crypto::PublicKey, WalletTypes::TransactionInput>> Wallet
     return inputs;
 }
 
+bool WalletSynchronizer::resolveGlobalIndexes(std::vector<SemiProcessedBlock> &blocks)
+{
+    /* A view wallet cannot spend, so it never needs to know where its outputs
+       sit in the chain. */
+    if (m_subWallets->isViewWallet())
+    {
+        return true;
+    }
+
+    /* Skip global index lookups for blocks below the prune floor. The daemon
+       has deleted the raw transaction data for these heights, so it cannot
+       answer. The prunedItems from the daemon still let us detect incoming
+       outputs (balance), but the index stays unset - and getSpendableInputs
+       leaves the input out - until the wallet re-syncs against a node that
+       is not pruned. */
+    const uint64_t pruneFloor = m_blockDownloader.getPruneFloor();
+
+    const auto needsIndex = [pruneFloor](const uint64_t blockHeight, const WalletTypes::TransactionInput &input) {
+        return !input.globalOutputIndex && !(pruneFloor > 0 && blockHeight < pruneFloor);
+    };
+
+    std::set<uint64_t> heights;
+
+    for (const auto &[block, inputs, arrivalIndex] : blocks)
+    {
+        for (const auto &[publicKey, input] : inputs)
+        {
+            if (needsIndex(block.blockHeight, input))
+            {
+                heights.insert(block.blockHeight);
+            }
+        }
+    }
+
+    const auto ranges =
+        GlobalIndexRanges::group(heights, Constants::GLOBAL_INDEXES_OBSCURITY, Constants::GLOBAL_INDEXES_MAX_RANGE);
+
+    for (const auto &range : ranges)
+    {
+        const uint64_t startHeight = range.first;
+        const uint64_t endHeight = range.second;
+
+        /* Whether this answer covers every output of ours in the range. The
+           daemon returns indexes for the hashes in a range; if one of ours is
+           missing, or has too few indexes for the output we want, either the
+           chain has forked or the daemon is faulty. */
+        const auto answersAll = [&](const std::unordered_map<Crypto::Hash, std::vector<uint64_t>> &indexes) {
+            for (const auto &[block, inputs, arrivalIndex] : blocks)
+            {
+                if (block.blockHeight < startHeight || block.blockHeight >= endHeight)
+                {
+                    continue;
+                }
+
+                for (const auto &[publicKey, input] : inputs)
+                {
+                    if (!needsIndex(block.blockHeight, input))
+                    {
+                        continue;
+                    }
+
+                    const auto it = indexes.find(input.parentTransactionHash);
+
+                    if (it == indexes.end() || it->second.size() <= input.transactionIndex)
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        };
+
+        constexpr size_t MAX_GLOBAL_INDEX_ATTEMPTS = 6;
+
+        size_t attempts = 0;
+
+        auto indexes = getGlobalIndexes(startHeight, endHeight);
+
+        while (!answersAll(indexes) && attempts < MAX_GLOBAL_INDEX_ATTEMPTS)
+        {
+            if (m_shouldStop)
+            {
+                return false;
+            }
+
+            attempts++;
+
+            Logger::logger.log(
+                "Warning: Failed to get correct global indexes from daemon for blocks "
+                    + std::to_string(startHeight) + " to " + std::to_string(endHeight - 1) + " (attempt "
+                    + std::to_string(attempts) + " of " + std::to_string(MAX_GLOBAL_INDEX_ATTEMPTS) + ")."
+                    "\nThe daemon may have gone offline or the chain may have just forked.",
+                Logger::FATAL,
+                {Logger::SYNC, Logger::DAEMON});
+
+            Utilities::sleepUnlessStopping(std::chrono::seconds(5), m_shouldStop);
+
+            if (m_shouldStop)
+            {
+                return false;
+            }
+
+            indexes = getGlobalIndexes(startHeight, endHeight);
+        }
+
+        for (auto &[block, inputs, arrivalIndex] : blocks)
+        {
+            if (block.blockHeight < startHeight || block.blockHeight >= endHeight)
+            {
+                continue;
+            }
+
+            for (auto &[publicKey, input] : inputs)
+            {
+                if (!needsIndex(block.blockHeight, input))
+                {
+                    continue;
+                }
+
+                const auto it = indexes.find(input.parentTransactionHash);
+
+                /* Give up rather than retrying forever. This used to spin
+                   until shutdown, which is exactly what happens after a reorg:
+                   our transaction is no longer on the chain, so the daemon will
+                   never return an index for it, and the batch never completed -
+                   sync stopped dead until the wallet was reopened.
+
+                   Leaving the index unresolved lets the block commit. The input
+                   is then filtered out of spendable inputs, and if this really
+                   was a fork the daemon will resend this height and the fork
+                   path will roll the block back and rescan it. */
+                if (it == indexes.end() || it->second.size() <= input.transactionIndex)
+                {
+                    Logger::logger.log(
+                        "Giving up on global indexes for transaction " + Common::podToHex(input.parentTransactionHash)
+                            + " in block " + std::to_string(block.blockHeight)
+                            + ". This input cannot be spent until the wallet is rescanned.",
+                        Logger::FATAL,
+                        {Logger::SYNC, Logger::DAEMON});
+
+                    continue;
+                }
+
+                input.globalOutputIndex = it->second[input.transactionIndex];
+            }
+        }
+    }
+
+    return true;
+}
+
 /* When we get the global indexes, we pass in a range of blocks, to obscure
    which transactions we are interested in - the ones that belong to us.
    To do this, we get the global indexes for all transactions in a range.
 
    For example, if we want the global indexes for a transaction in block
-   17, we get all the indexes from block 10 to block 20. */
+   17, we get all the indexes from block 10 to block 20. The range is worked
+   out by the caller; see GlobalIndexRanges::group. */
 std::unordered_map<Crypto::Hash, std::vector<uint64_t>>
-    WalletSynchronizer::getGlobalIndexes(const uint64_t blockHeight) const
+    WalletSynchronizer::getGlobalIndexes(const uint64_t startHeight, const uint64_t endHeight) const
 {
-    uint64_t startHeight = Utilities::getLowerBound(blockHeight, Constants::GLOBAL_INDEXES_OBSCURITY);
-
-    uint64_t endHeight = Utilities::getUpperBound(blockHeight, Constants::GLOBAL_INDEXES_OBSCURITY);
-
     const auto [success, indexes] = m_daemon->getGlobalIndexesForRange(startHeight, endHeight);
 
     if (!success)

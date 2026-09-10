@@ -72,6 +72,11 @@ namespace Constants
        This value determines how many blocks to take from. */
     const uint64_t GLOBAL_INDEXES_OBSCURITY = 10;
 
+    /* The windows above for blocks close together are merged into one
+       request, up to this many blocks wide. The daemon reads and hashes every
+       block in the span, so it is kept well under the thousand it accepts. */
+    const uint64_t GLOBAL_INDEXES_MAX_RANGE = 100;
+
     /* Amount of blocks to take in one chunk from the block downloader, and
        then split into threads and process. Too large will result in large
        jumps in the sync height, but should offer better performance from a
