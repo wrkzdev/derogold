@@ -428,6 +428,14 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    /* Each thread is a real one, started up front and kept for the life of
+       the node, so a mistyped extra digit is refused rather than obeyed. */
+    if (config.rpcThreads > 1024)
+    {
+        std::cout << "RPC threads must be between 0 and 1,024" << std::endl;
+        return 1;
+    }
+
     try
     {
         fs::path cwdPath = fs::current_path();
@@ -880,7 +888,8 @@ int main(int argc, char *argv[])
                             cprotocol,
                             config.rpcIpcPath,
                             ipcMode,
-                            config.rpcIpcGroup);
+                            config.rpcIpcGroup,
+                            config.rpcThreads);
 
         cprotocol->setSyncTuning(config.syncBatchMin, config.syncBatchMax, config.blockSyncBytes);
         cprotocol->setLiteNodeConfig(liteHeight);

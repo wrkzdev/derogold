@@ -121,7 +121,8 @@ namespace DaemonConfig
             ("fee-amount", "Sets the convenience charge amount for light wallets that use the daemon", cxxopts::value<int>(config.feeAmount))
             ("rpc-ipc-path", "Also serve the RPC on a local socket at <path>, whose file permissions decide who may connect. POSIX only", cxxopts::value<std::string>(config.rpcIpcPath), "<path>")
             ("rpc-ipc-mode", "Permissions for the RPC socket file, in octal. The default allows only the user running the daemon", cxxopts::value<std::string>(config.rpcIpcMode), "<octal>")
-            ("rpc-ipc-group", "Group to own the RPC socket file, so members of that group may connect", cxxopts::value<std::string>(config.rpcIpcGroup), "<group>");
+            ("rpc-ipc-group", "Group to own the RPC socket file, so members of that group may connect", cxxopts::value<std::string>(config.rpcIpcGroup), "<group>")
+            ("rpc-threads", "Threads serving RPC requests. Raise it on a node many wallets, pools or explorers use at once. 0 uses one per CPU core less one, and at least 8", cxxopts::value<uint32_t>(config.rpcThreads), "#");
 
         options.add_options("Mining")
             ("stratum-bind-ip", "Interface the built-in stratum server listens on. Loopback by default: the port has no authentication, so anyone who can reach it can mine to their own address using this node", cxxopts::value<std::string>(config.stratumBindIp), "<ip>")
@@ -419,6 +420,11 @@ namespace DaemonConfig
             config.rpcIpcGroup = j["rpc-ipc-group"].GetString();
         }
 
+        if (j.HasMember("rpc-threads"))
+        {
+            config.rpcThreads = j["rpc-threads"].GetUint();
+        }
+
         // Notification Options
 
         if (j.HasMember("block-notify"))
@@ -620,6 +626,7 @@ namespace DaemonConfig
         j.AddMember("rpc-ipc-path", config.rpcIpcPath, alloc);
         j.AddMember("rpc-ipc-mode", config.rpcIpcMode, alloc);
         j.AddMember("rpc-ipc-group", config.rpcIpcGroup, alloc);
+        j.AddMember("rpc-threads", config.rpcThreads, alloc);
 
         j.AddMember("block-notify", config.blockNotify, alloc);
         j.AddMember("reorg-notify", config.reorgNotify, alloc);

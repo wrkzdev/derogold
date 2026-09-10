@@ -9,6 +9,7 @@
 #include <json.hpp>
 //////////////////////////
 
+#include <chrono>
 #include <iostream>
 
 #include "version.h"
@@ -45,6 +46,11 @@ namespace
     constexpr uint64_t RPC_MAX_RANDOM_OUTPUTS = 1000;
 
     constexpr rapidjson::SizeType RPC_MAX_RANDOM_OUTPUT_AMOUNTS = 1000;
+
+    /* A request taking this long is logged as a warning rather than at debug
+       level. Half the ten seconds wallets wait before giving up, so it shows
+       up before it starts costing them. */
+    constexpr uint64_t RPC_SLOW_REQUEST_MS = 5000;
 } // namespace
 
 RpcServer::RpcServer(
@@ -59,7 +65,8 @@ RpcServer::RpcServer(
     const std::shared_ptr<CryptoNote::ICryptoNoteProtocolHandler> syncManager,
     std::string ipcPath,
     const uint32_t ipcMode,
-    std::string ipcGroup):
+    std::string ipcGroup,
+    const size_t rpcThreads):
     m_port(bindPort),
     m_host(rpcBindIp),
     m_corsHeader(corsHeader),
@@ -84,8 +91,22 @@ RpcServer::RpcServer(
         }
     }
 
+    /* httplib's default pool is one thread per core less one, and at least
+       eight. Each request holds a thread for as long as it runs, and a node
+       serving a pool, an explorer and a crowd of wallets can have them all
+       busy - then a new request, a wallet's global index lookup say, sits in
+       the queue unseen until its client gives up on it. Zero keeps the
+       default. */
+    const auto usePool = [rpcThreads](httplib::Server &srv) {
+        if (rpcThreads > 0)
+        {
+            srv.new_task_queue = [rpcThreads] { return new httplib::ThreadPool(rpcThreads); };
+        }
+    };
+
     /* The TCP listener always exists. The local socket is built only when a
        path was configured, and its routes differ by one. */
+    usePool(m_server);
     setupRoutes(m_server, false);
 
     if (!m_ipcPath.empty())
@@ -98,6 +119,7 @@ RpcServer::RpcServer(
         else
         {
             m_ipcServer = std::make_unique<httplib::Server>();
+            usePool(*m_ipcServer);
             setupRoutes(*m_ipcServer, true);
         }
     }
@@ -478,7 +500,23 @@ void RpcServer::middleware(
             return;
         }
 
+        /* Timed, so a node that is slow to answer can be told apart from one
+           that is merely busy. A client timing out on requests that finish
+           quickly here waited in the queue for a thread, not on the work -
+           see --rpc-threads. */
+        const auto started = std::chrono::steady_clock::now();
+
         const auto [error, statusCode] = handler(req, res, *jsonBody);
+
+        const uint64_t elapsedMs = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+                                                             std::chrono::steady_clock::now() - started)
+                                                             .count());
+
+        Logger::logger.log(
+            "[" + req.get_header_value("REMOTE_ADDR") + "] " + req.path + " took " + std::to_string(elapsedMs)
+                + " ms",
+            elapsedMs >= RPC_SLOW_REQUEST_MS ? Logger::WARNING : Logger::DEBUG,
+            {Logger::DAEMON_RPC});
 
         if (error)
         {

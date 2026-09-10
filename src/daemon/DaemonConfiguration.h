@@ -65,6 +65,10 @@ namespace DaemonConfig
         std::string rpcIpcMode = "0600";
         std::string rpcIpcGroup;
 
+        /* Threads serving RPC requests. Zero leaves it to httplib: one per
+           core less one, and at least eight. */
+        uint32_t rpcThreads = 0;
+
         /* Attach an interactive console to a daemon that is already running,
            over its RPC socket, instead of starting a node. */
         std::string attachSocket;

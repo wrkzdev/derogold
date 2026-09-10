@@ -45,7 +45,8 @@ class RpcServer
         std::shared_ptr<CryptoNote::ICryptoNoteProtocolHandler> syncManager,
         std::string ipcPath = "",
         uint32_t ipcMode = 0600,
-        std::string ipcGroup = "");
+        std::string ipcGroup = "",
+        size_t rpcThreads = 0);
 
     ~RpcServer();
 
