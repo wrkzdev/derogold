@@ -26,8 +26,20 @@ void SynchronizationStatus::storeBlockHash(const Crypto::Hash hash, const uint64
 
     m_lastKnownBlockHeight = height;
 
-    /* Already added this hash */
-    if (!m_lastKnownBlockHashes.empty() && m_lastKnownBlockHashes.back() == hash)
+    /* Already added this hash. Newest is at the front - push_front below puts
+       it there - so this compares against the front. It used to compare
+       against the back, the oldest of the fifty, which matches only when the
+       list holds a single entry.
+
+       That mattered because a synced wallet re-stores the top block hash about
+       once a second, so within a minute of reaching the tip all fifty entries
+       were fifty copies of the tip hash and the real recent history had been
+       evicted. Those fifty hashes are what lets the daemon find a common
+       ancestor one or two blocks back, so without them a one block reorg fell
+       through to the checkpoints five thousand blocks apart - and a rewind is
+       not just re-downloading, it deletes every transaction at or above that
+       height before rescanning. */
+    if (!m_lastKnownBlockHashes.empty() && m_lastKnownBlockHashes.front() == hash)
     {
         return;
     }
