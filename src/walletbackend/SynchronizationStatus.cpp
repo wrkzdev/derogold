@@ -207,6 +207,21 @@ void SynchronizationStatus::fromJSON(const JSONObject &j)
     readBlocks("blockHashCheckpoints", "blockHashCheckpointHeights", m_blockHashCheckpoints);
     readBlocks("lastKnownBlockHashes", "lastKnownBlockHashHeights", m_lastKnownBlockHashes);
 
+    /* Trimmed here as well as on the way in. An existing wallet arrives
+       carrying every checkpoint it ever made - hundreds of them - and storing
+       one only happens once per checkpoint interval, so without this it would
+       go on sending all of them for another five thousand blocks. Oldest go
+       first: they are the least likely to be the resume point. */
+    while (m_blockHashCheckpoints.size() > Constants::BLOCK_HASH_CHECKPOINTS_MAX)
+    {
+        m_blockHashCheckpoints.pop_back();
+    }
+
+    while (m_lastKnownBlockHashes.size() > Constants::RECENT_BLOCK_HASHES_SIZE)
+    {
+        m_lastKnownBlockHashes.pop_back();
+    }
+
     /* Optional: wallets written before this field existed do not carry it.
        Without it the marker restarted at zero on every open, so the next block
        processed always looked like a checkpoint height and appended another
