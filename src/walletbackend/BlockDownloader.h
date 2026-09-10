@@ -46,6 +46,10 @@ class BlockDownloader
     /* Drops the oldest block from the internal queue */
     void dropBlock(const uint64_t blockHeight, const Crypto::Hash blockHash);
 
+    /* Throws away what the wallet knew at and above this height, once a reorg
+       has established that those blocks are gone. */
+    void forgetBlocksFrom(const uint64_t height);
+
     /* Start block downloading process */
     void start();
 

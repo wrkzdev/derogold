@@ -173,6 +173,11 @@ bool BlockDownloader::shouldFetchMoreBlocks() const
     return false;
 }
 
+void BlockDownloader::forgetBlocksFrom(const uint64_t height)
+{
+    m_synchronizationStatus.forgetBlocksFrom(height);
+}
+
 void BlockDownloader::dropBlock(const uint64_t blockHeight, const Crypto::Hash blockHash)
 {
     m_storedBlocks.pop_front();
@@ -220,36 +225,23 @@ std::vector<Crypto::Hash> BlockDownloader::getStoredBlockCheckpoints() const
 
 std::vector<Crypto::Hash> BlockDownloader::getBlockCheckpoints() const
 {
-    /* Hashes of blocks we have downloaded but not processed */
-    const auto unprocessedBlockHashes = getStoredBlockCheckpoints();
+    /* Newest first, so the daemon resumes from the first entry it recognises
+       and that is the least work for both ends.
 
-    std::vector<Crypto::Hash> result(unprocessedBlockHashes.size());
+       Blocks already downloaded but not yet processed come first: they are the
+       furthest ahead the wallet has got. Then where the wallet has actually
+       processed to, dense near the tip and thinning with depth, and then the
+       infrequent checkpoints for a fork past all of that.
 
-    std::copy(unprocessedBlockHashes.begin(), unprocessedBlockHashes.end(), result.begin());
+       This used to pad the unprocessed hashes up to fifty with processed ones
+       and stop, so a wallet with a full download buffer offered nothing at all
+       about where it had really processed to. Both are worth saying, and
+       saying both costs a couple of dozen hashes. */
+    std::vector<Crypto::Hash> result = getStoredBlockCheckpoints();
 
-    /* Hashes of blocks we have processed in the wallet */
-    const auto recentProcessedBlockHashes = m_synchronizationStatus.getRecentBlockHashes();
+    const auto locator = m_synchronizationStatus.getLocator();
 
-    /* If we don't have the desired 50 blocks, add on the recently processed
-       block checkpoints. This fixes us not passing the right data when
-       we are fully synced or have no store built up yet */
-    if (result.size() < Constants::LAST_KNOWN_BLOCK_HASHES_SIZE)
-    {
-        /* Copy the amount of hashes available, or the amount needed to make
-           up the difference, whichever is less */
-        const size_t numToCopy =
-            std::min(recentProcessedBlockHashes.size(), Constants::LAST_KNOWN_BLOCK_HASHES_SIZE - result.size());
-
-        std::copy(
-            recentProcessedBlockHashes.begin(),
-            recentProcessedBlockHashes.begin() + numToCopy,
-            std::back_inserter(result));
-    }
-
-    /* Infrequent checkpoints to handle deep forks */
-    const auto blockHashCheckpoints = m_synchronizationStatus.getBlockCheckpoints();
-
-    std::copy(blockHashCheckpoints.begin(), blockHashCheckpoints.end(), std::back_inserter(result));
+    std::copy(locator.begin(), locator.end(), std::back_inserter(result));
 
     return result;
 }

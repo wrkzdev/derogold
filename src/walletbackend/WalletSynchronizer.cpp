@@ -426,6 +426,13 @@ void WalletSynchronizer::completeBlockProcessing(
             {Logger::SYNC});
 
         removeForkedTransactions(block.blockHeight);
+
+        /* The blocks the wallet knew from here up are on a branch that no
+           longer exists. Left in place they are offered to the daemon as
+           resume points it cannot find, and they sit in front of the ones it
+           can, so each following request starts further back than it needs
+           to. */
+        m_blockDownloader.forgetBlocksFrom(block.blockHeight);
     }
 
     /* Prune old inputs that are out of our 'confirmation' window */
