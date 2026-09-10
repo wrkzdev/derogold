@@ -108,6 +108,11 @@ class RpcServer
 
     void failRequest(int errorCode, const std::string& body, httplib::Response &res);
 
+    /* What both wallet sync routes say when a wallet shares no block with this
+       chain. The wallet matches on it to tell that apart from a daemon that is
+       merely unwell, so it is one string in one place. */
+    static const std::string NO_COMMON_ANCESTOR_MESSAGE;
+
     void failJsonRpcRequest(int64_t errorCode, const std::string &errorMessage, httplib::Response &res);
 
     uint64_t calculateTotalFeeAmount(const std::vector<Crypto::Hash> &transactionHashes);

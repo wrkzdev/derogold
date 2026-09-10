@@ -137,7 +137,13 @@ void BlockDownloader::downloader()
 
             if (!blocksDownloaded)
             {
-                Utilities::sleepUnlessStopping(std::chrono::seconds(1), m_shouldStop);
+                /* A second is the right pause for "nothing new yet". When the
+                   daemon has told us why it will not serve this wallet at all,
+                   asking again every second answers nothing and just loads a
+                   node that has already given its answer. */
+                const auto pause = m_daemon->syncError().empty() ? std::chrono::seconds(1) : std::chrono::seconds(15);
+
+                Utilities::sleepUnlessStopping(pause, m_shouldStop);
                 break;
             }
         }

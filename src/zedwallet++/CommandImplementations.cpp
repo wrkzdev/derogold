@@ -263,6 +263,13 @@ void status(const std::shared_ptr<WalletBackend> walletBackend)
 
     /* Print a summary of the sync status */
     printSyncSummary(status.localDaemonBlockCount, status.networkBlockCount, status.walletBlockCount);
+
+    /* Said last so it is the thing left on screen. Without it the heights
+       above simply stop moving and nothing explains why. */
+    if (!status.syncError.empty())
+    {
+        std::cout << WarningMsg("\n" + status.syncError + "\n") << std::endl;
+    }
 }
 
 void reset(const std::shared_ptr<WalletBackend> walletBackend)

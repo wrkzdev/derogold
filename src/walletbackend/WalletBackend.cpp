@@ -1124,6 +1124,7 @@ WalletTypes::WalletStatus WalletBackend::getStatus() const
 
     status.peerCount = m_daemon->peerCount();
     status.lastKnownHashrate = m_daemon->hashrate();
+    status.syncError = m_daemon->syncError();
 
     return status;
 }

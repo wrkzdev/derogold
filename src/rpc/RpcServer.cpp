@@ -547,6 +547,12 @@ void RpcServer::middleware(
     }
 }
 
+/* Said the same way by both wallet sync routes, and matched on by the wallet
+   to tell this apart from a daemon that is merely unwell. */
+const std::string RpcServer::NO_COMMON_ANCESTOR_MESSAGE =
+    "No block in common with this wallet. It is syncing a different chain, or has fallen further behind "
+    "than the block hashes it sent go back. Point it at a daemon on its own chain, or reset it from a height.";
+
 void RpcServer::failRequest(const int errorCode, const std::string& body, httplib::Response &res)
 {
     rapidjson::StringBuffer sb;
@@ -1356,16 +1362,30 @@ std::tuple<Error, uint16_t> RpcServer::getWalletSyncData(
     std::optional<WalletTypes::TopBlock> topBlockInfo;
     uint64_t resolvedStartIndex = 0;
 
-    const bool success = m_core->getWalletSyncData(
-        blockHashCheckpoints,
-        startHeight,
-        startTimestamp,
-        blockCount,
-        skipCoinbaseTransactions,
-        walletBlocks,
-        topBlockInfo,
-        resolvedStartIndex
-    );
+    bool success = false;
+
+    try
+    {
+        success = m_core->getWalletSyncData(
+            blockHashCheckpoints,
+            startHeight,
+            startTimestamp,
+            blockCount,
+            skipCoinbaseTransactions,
+            walletBlocks,
+            topBlockInfo,
+            resolvedStartIndex
+        );
+    }
+    /* Answered rather than retried. A 500 says "something broke here, try
+       again", and a wallet on the wrong chain took that at its word and asked
+       forever, showing nothing but a height that never moved. */
+    catch (const CryptoNote::NoCommonAncestorError &)
+    {
+        failRequest(400, NO_COMMON_ANCESTOR_MESSAGE, res);
+
+        return {SUCCESS, 400};
+    }
 
     if (!success)
     {
@@ -3809,16 +3829,27 @@ std::tuple<Error, uint16_t> RpcServer::getRawBlocks(
     std::optional<WalletTypes::TopBlock> topBlockInfo;
     uint64_t resolvedStartIndex = 0;
 
-    const bool success = m_core->getRawBlocks(
-        blockHashCheckpoints,
-        startHeight,
-        startTimestamp,
-        blockCount,
-        skipCoinbaseTransactions,
-        blocks,
-        topBlockInfo,
-        resolvedStartIndex
-    );
+    bool success = false;
+
+    try
+    {
+        success = m_core->getRawBlocks(
+            blockHashCheckpoints,
+            startHeight,
+            startTimestamp,
+            blockCount,
+            skipCoinbaseTransactions,
+            blocks,
+            topBlockInfo,
+            resolvedStartIndex
+        );
+    }
+    catch (const CryptoNote::NoCommonAncestorError &)
+    {
+        failRequest(400, NO_COMMON_ANCESTOR_MESSAGE, res);
+
+        return {SUCCESS, 400};
+    }
 
     if (!success)
     {

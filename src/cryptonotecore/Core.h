@@ -25,6 +25,7 @@
 
 #include <WalletTypes.h>
 #include <ctime>
+#include <stdexcept>
 #include <logging/LoggerMessage.h>
 #include <shared_mutex>
 #include <system/ContextGroup.h>
@@ -35,6 +36,20 @@
 
 namespace CryptoNote
 {
+    /* Thrown when none of the block hashes a wallet sent are on this chain.
+       That is not a database failure and not a transient one: the wallet is
+       syncing a different network, or has fallen further behind than the
+       hashes it keeps go back. Retrying answers neither, so it is told apart
+       from the failures that retrying does answer. */
+    class NoCommonAncestorError : public std::runtime_error
+    {
+      public:
+        NoCommonAncestorError():
+            std::runtime_error("No block in common with the requesting wallet")
+        {
+        }
+    };
+
     class Core : public ICore, public ICoreInformation
     {
       public:

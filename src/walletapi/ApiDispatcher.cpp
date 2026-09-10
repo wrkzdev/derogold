@@ -1002,6 +1002,11 @@ std::tuple<Error, uint16_t>
                       {"networkBlockCount", status.networkBlockCount},
                       {"peerCount", status.peerCount},
                       {"hashrate", status.lastKnownHashrate},
+                      /* Empty unless the daemon is refusing to serve this
+                         wallet, in which case the counters below will sit
+                         still and this says why. */
+                      {"syncError", status.syncError},
+                      {"daemonOnline", m_walletBackend->daemonOnline()},
                       {"isViewWallet", m_walletBackend->isViewWallet()},
                       {"subWalletCount", m_walletBackend->getWalletCount()},
                       /* The wallet was synced without coinbase scanning and is

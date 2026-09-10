@@ -405,6 +405,10 @@ namespace WalletTypes
         uint32_t peerCount;
         /* The hashrate (based on the last block the daemon has synced) */
         uint64_t lastKnownHashrate;
+        /* Empty when nothing is wrong. Otherwise why the daemon will not serve
+           this wallet blocks - a reason retrying will not change, so it has to
+           reach whoever is watching rather than sit in a log. */
+        std::string syncError;
     };
 
     /* A structure just used to display locked balance, due to change from

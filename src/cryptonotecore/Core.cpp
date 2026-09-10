@@ -902,6 +902,13 @@ namespace CryptoNote
 
             return true;
         }
+        /* Says something the caller can act on - the wallet is on another
+           chain - rather than "try again", which is all a false return can
+           mean. Rethrown for the RPC layer to turn into an answer. */
+        catch (const NoCommonAncestorError &)
+        {
+            throw;
+        }
         catch (std::exception &e)
         {
             logger(Logging::ERROR) << "Failed to get wallet sync data: " << e.what();
@@ -1035,6 +1042,13 @@ namespace CryptoNote
             }
 
             return true;
+        }
+        /* Says something the caller can act on - the wallet is on another
+           chain - rather than "try again", which is all a false return can
+           mean. Rethrown for the RPC layer to turn into an answer. */
+        catch (const NoCommonAncestorError &)
+        {
+            throw;
         }
         catch (std::exception &e)
         {
@@ -2516,7 +2530,8 @@ namespace CryptoNote
             }
         }
 
-        throw std::runtime_error("Genesis block hash was not found.");
+        /* Not one of them is on this chain. */
+        throw NoCommonAncestorError();
     }
 
     std::vector<Crypto::Hash> CryptoNote::Core::getBlockHashes(uint32_t startBlockIndex, uint32_t maxCount) const

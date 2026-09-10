@@ -56,6 +56,18 @@ class Nigel
 
     uint64_t hashrate() const;
 
+    /* Empty when nothing is wrong. Otherwise what the daemon last said about
+       why it will not serve this wallet blocks - a thing retrying does not
+       fix, so somebody has to be told. */
+    std::string syncError() const;
+
+    static std::string extractDaemonError(const std::string &body);
+
+  private:
+    void setSyncError(const std::string &error);
+
+  public:
+
     std::tuple<uint64_t, std::string> nodeFee() const;
 
     std::tuple<std::string, uint16_t, bool> nodeAddress() const;
@@ -236,6 +248,13 @@ class Nigel
 
     /* The hashrate (based on the last local block the daemon has synced) */
     std::atomic<uint64_t> m_lastKnownHashrate = 0;
+
+    /* Set when the daemon refuses this wallet's sync request for a reason of
+       its own, cleared the moment one succeeds. Read by whoever is asking for
+       wallet status, written by the download thread. */
+    mutable std::mutex m_syncErrorMutex;
+
+    std::string m_syncError;
 
     /* Whether the daemon is a blockchain cache API
        see: https://github.com/TurtlePay/blockchain-cache-api */

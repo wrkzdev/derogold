@@ -170,6 +170,18 @@ std::tuple<bool, std::vector<WalletTypes::WalletBlockInfo>, std::optional<Wallet
 
     const auto res = m_nodeClient->Post(endpoint, m_requestHeaders, j.dump(), "application/json");
 
+    /* A 400 here is the daemon answering this request rather than failing at
+       it - it has looked at our block hashes and will not serve us. Retrying
+       cannot change that answer, so carry the reason up to where somebody can
+       read it instead of asking again forever behind a height that never
+       moves. */
+    if (res && res->status == 400)
+    {
+        setSyncError(extractDaemonError(res->body));
+
+        return {false, {}, std::nullopt, 0};
+    }
+
     /* Daemon doesn't support /getrawblocks, fall back to /getwalletsyncdata */
     if (res && res->status == 404 && m_useRawBlocks)
     {
@@ -252,10 +264,39 @@ std::tuple<bool, std::vector<WalletTypes::WalletBlockInfo>, std::optional<Wallet
     {
         const auto [ items, topBlock, pruneFloor ] = *parsedResponse;
 
+        /* Served, so whatever the daemon last refused us for no longer holds. */
+        setSyncError("");
+
         return { true, items, topBlock, pruneFloor };
     }
 
     return { false, {}, std::nullopt, 0 };
+}
+
+/* Pulls the reason out of a daemon's failure body, which is
+   {"status": "Failed", "error": "..."}. A body that is not that shape still
+   has to say something, so it is reported as it arrived. */
+std::string Nigel::extractDaemonError(const std::string &body)
+{
+    try
+    {
+        const auto j = nlohmann::json::parse(body);
+
+        if (j.find("error") != j.end() && j.at("error").is_string())
+        {
+            return j.at("error").get<std::string>();
+        }
+    }
+    catch (const std::exception &)
+    {
+    }
+
+    if (body.empty())
+    {
+        return "The daemon refused to serve this wallet blocks, and gave no reason";
+    }
+
+    return body;
 }
 
 void Nigel::stop()
@@ -423,6 +464,32 @@ uint64_t Nigel::peerCount() const
 uint64_t Nigel::hashrate() const
 {
     return m_lastKnownHashrate;
+}
+
+std::string Nigel::syncError() const
+{
+    std::scoped_lock lock(m_syncErrorMutex);
+
+    return m_syncError;
+}
+
+void Nigel::setSyncError(const std::string &error)
+{
+    std::scoped_lock lock(m_syncErrorMutex);
+
+    if (m_syncError != error)
+    {
+        if (error.empty())
+        {
+            Logger::logger.log("Daemon is serving this wallet again", Logger::INFO, {Logger::SYNC, Logger::DAEMON});
+        }
+        else
+        {
+            Logger::logger.log(error, Logger::WARNING, {Logger::SYNC, Logger::DAEMON});
+        }
+    }
+
+    m_syncError = error;
 }
 
 std::tuple<uint64_t, std::string> Nigel::nodeFee() const
