@@ -58,7 +58,11 @@ ApiDispatcher::ApiDispatcher(
 
     /* Route the request through our middleware function, before forwarding
        to the specified function */
-    const auto router = [this](const auto function, const WalletState walletState, const bool viewWalletPermitted) {
+    const auto route = [this](
+                           const auto function,
+                           const WalletState walletState,
+                           const bool viewWalletPermitted,
+                           const WalletAccess access) {
         return [=](const httplib::Request &req, httplib::Response &res) {
             /* Pass the inputted function with the arguments passed through
                to middleware */
@@ -67,28 +71,41 @@ ApiDispatcher::ApiDispatcher(
                 res,
                 walletState,
                 viewWalletPermitted,
+                access,
                 std::bind(function, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
         };
     };
+
+    /* Reads the open wallet. */
+    const auto router = [&route](const auto function, const WalletState walletState, const bool viewWalletPermitted) {
+        return route(function, walletState, viewWalletPermitted, SharedAccess);
+    };
+
+    /* Replaces or rebuilds it, so it runs with nothing else in flight. These
+       are exactly the handlers that used to take the mutex themselves. */
+    const auto exclusiveRouter =
+        [&route](const auto function, const WalletState walletState, const bool viewWalletPermitted) {
+            return route(function, walletState, viewWalletPermitted, ExclusiveAccess);
+        };
 
     const bool viewWalletsAllowed = true;
     const bool viewWalletsBanned = false;
 
     /* POST */
     m_server
-        .Post("/wallet/open", router(&ApiDispatcher::openWallet, WalletMustBeClosed, viewWalletsAllowed))
+        .Post("/wallet/open", exclusiveRouter(&ApiDispatcher::openWallet, WalletMustBeClosed, viewWalletsAllowed))
 
         /* Import wallet with keys */
-        .Post("/wallet/import/key", router(&ApiDispatcher::keyImportWallet, WalletMustBeClosed, viewWalletsAllowed))
+        .Post("/wallet/import/key", exclusiveRouter(&ApiDispatcher::keyImportWallet, WalletMustBeClosed, viewWalletsAllowed))
 
         /* Import wallet with seed */
-        .Post("/wallet/import/seed", router(&ApiDispatcher::seedImportWallet, WalletMustBeClosed, viewWalletsAllowed))
+        .Post("/wallet/import/seed", exclusiveRouter(&ApiDispatcher::seedImportWallet, WalletMustBeClosed, viewWalletsAllowed))
 
         /* Import view wallet */
-        .Post("/wallet/import/view", router(&ApiDispatcher::importViewWallet, WalletMustBeClosed, viewWalletsAllowed))
+        .Post("/wallet/import/view", exclusiveRouter(&ApiDispatcher::importViewWallet, WalletMustBeClosed, viewWalletsAllowed))
 
         /* Create wallet */
-        .Post("/wallet/create", router(&ApiDispatcher::createWallet, WalletMustBeClosed, viewWalletsAllowed))
+        .Post("/wallet/create", exclusiveRouter(&ApiDispatcher::createWallet, WalletMustBeClosed, viewWalletsAllowed))
 
         /* Create a random address */
         .Post("/addresses/create", router(&ApiDispatcher::createAddress, WalletMustBeOpen, viewWalletsBanned))
@@ -125,7 +142,7 @@ ApiDispatcher::ApiDispatcher(
         /* DELETE */
 
         /* Close the current wallet */
-        .Delete("/wallet", router(&ApiDispatcher::closeWallet, WalletMustBeOpen, viewWalletsAllowed))
+        .Delete("/wallet", exclusiveRouter(&ApiDispatcher::closeWallet, WalletMustBeOpen, viewWalletsAllowed))
 
         /* Delete the given address */
         .Delete(
@@ -135,13 +152,13 @@ ApiDispatcher::ApiDispatcher(
         /* PUT */
 
         /* Save the wallet */
-        .Put("/save", router(&ApiDispatcher::saveWallet, WalletMustBeOpen, viewWalletsAllowed))
+        .Put("/save", exclusiveRouter(&ApiDispatcher::saveWallet, WalletMustBeOpen, viewWalletsAllowed))
 
         /* Reset the wallet from zero, or given scan height */
-        .Put("/reset", router(&ApiDispatcher::resetWallet, WalletMustBeOpen, viewWalletsAllowed))
+        .Put("/reset", exclusiveRouter(&ApiDispatcher::resetWallet, WalletMustBeOpen, viewWalletsAllowed))
 
         /* Swap node details */
-        .Put("/node", router(&ApiDispatcher::setNodeInfo, WalletMustBeOpen, viewWalletsAllowed))
+        .Put("/node", exclusiveRouter(&ApiDispatcher::setNodeInfo, WalletMustBeOpen, viewWalletsAllowed))
 
         /* GET */
 
@@ -258,6 +275,7 @@ void ApiDispatcher::middleware(
     httplib::Response &res,
     const WalletState walletState,
     const bool viewWalletPermitted,
+    const WalletAccess access,
     std::function<std::tuple<Error, uint16_t>(const httplib::Request &req, httplib::Response &res, const nlohmann::json &body)> handler)
 {
     std::cout << "Incoming " << req.method << " request: " << req.path << std::endl;
@@ -292,6 +310,26 @@ void ApiDispatcher::middleware(
     if (!checkAuthenticated(req, res))
     {
         return;
+    }
+
+    /* From here until the handler returns, the wallet cannot be opened or
+       closed underneath it. The handlers read m_walletBackend without a lock
+       of their own, and this is what makes that safe - as well as closing the
+       gap between the checks just below and the handler acting on them.
+
+       Reads share it so that polling /status is not held up by a send waiting
+       on the daemon. The handlers that replace the wallet take it alone; those
+       are exactly the ones that used to lock it themselves. */
+    std::shared_lock<std::shared_mutex> sharedLock(m_mutex, std::defer_lock);
+    std::unique_lock<std::shared_mutex> exclusiveLock(m_mutex, std::defer_lock);
+
+    if (access == ExclusiveAccess)
+    {
+        exclusiveLock.lock();
+    }
+    else
+    {
+        sharedLock.lock();
     }
 
     /* Wallet must be open for this operation, and it is not */
@@ -392,8 +430,6 @@ bool ApiDispatcher::checkAuthenticated(const httplib::Request &req, httplib::Res
 
 std::tuple<Error, uint16_t> ApiDispatcher::openWallet(const httplib::Request &req, httplib::Response &res, const nlohmann::json &body)
 {
-    std::scoped_lock lock(m_mutex);
-
     const auto [daemonHost, daemonPort, daemonSSL, filename, password] = getDefaultWalletParams(body);
 
     Error error;
@@ -407,8 +443,6 @@ std::tuple<Error, uint16_t> ApiDispatcher::openWallet(const httplib::Request &re
 std::tuple<Error, uint16_t>
     ApiDispatcher::keyImportWallet(const httplib::Request &req, httplib::Response &res, const nlohmann::json &body)
 {
-    std::scoped_lock lock(m_mutex);
-
     const auto [daemonHost, daemonPort, daemonSSL, filename, password] = getDefaultWalletParams(body);
 
     const auto privateViewKey = getJsonValue<Crypto::SecretKey>(body, "privateViewKey");
@@ -440,8 +474,6 @@ std::tuple<Error, uint16_t>
 std::tuple<Error, uint16_t>
     ApiDispatcher::seedImportWallet(const httplib::Request &req, httplib::Response &res, const nlohmann::json &body)
 {
-    std::scoped_lock lock(m_mutex);
-
     const auto [daemonHost, daemonPort, daemonSSL, filename, password] = getDefaultWalletParams(body);
 
     const std::string mnemonicSeed = getJsonValue<std::string>(body, "mnemonicSeed");
@@ -464,8 +496,6 @@ std::tuple<Error, uint16_t>
 std::tuple<Error, uint16_t>
     ApiDispatcher::importViewWallet(const httplib::Request &req, httplib::Response &res, const nlohmann::json &body)
 {
-    std::scoped_lock lock(m_mutex);
-
     const auto [daemonHost, daemonPort, daemonSSL, filename, password] = getDefaultWalletParams(body);
 
     const std::string address = getJsonValue<std::string>(body, "address");
@@ -496,8 +526,6 @@ std::tuple<Error, uint16_t>
 
 std::tuple<Error, uint16_t> ApiDispatcher::createWallet(const httplib::Request &req, httplib::Response &res, const nlohmann::json &body)
 {
-    std::scoped_lock lock(m_mutex);
-
     const auto [daemonHost, daemonPort, daemonSSL, filename, password] = getDefaultWalletParams(body);
 
     Error error;
@@ -804,8 +832,6 @@ std::tuple<Error, uint16_t>
 
 std::tuple<Error, uint16_t> ApiDispatcher::closeWallet(const httplib::Request &req, httplib::Response &res, const nlohmann::json &body)
 {
-    std::scoped_lock lock(m_mutex);
-
     m_walletBackend = nullptr;
 
     return {SUCCESS, 200};
@@ -838,8 +864,6 @@ std::tuple<Error, uint16_t> ApiDispatcher::deleteAddress(const httplib::Request 
 std::tuple<Error, uint16_t>
     ApiDispatcher::saveWallet(const httplib::Request &req, httplib::Response &res, const nlohmann::json &body) const
 {
-    std::scoped_lock lock(m_mutex);
-
     m_walletBackend->save();
 
     return {SUCCESS, 200};
@@ -847,8 +871,6 @@ std::tuple<Error, uint16_t>
 
 std::tuple<Error, uint16_t> ApiDispatcher::resetWallet(const httplib::Request &req, httplib::Response &res, const nlohmann::json &body)
 {
-    std::scoped_lock lock(m_mutex);
-
     uint64_t scanHeight = 0;
     uint64_t timestamp = 0;
 
@@ -864,8 +886,6 @@ std::tuple<Error, uint16_t> ApiDispatcher::resetWallet(const httplib::Request &r
 
 std::tuple<Error, uint16_t> ApiDispatcher::setNodeInfo(const httplib::Request &req, httplib::Response &res, const nlohmann::json &body)
 {
-    std::scoped_lock lock(m_mutex);
-
     uint16_t daemonPort = CryptoNote::RPC_DEFAULT_PORT;
     bool daemonSSL = false;
 
