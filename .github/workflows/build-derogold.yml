@@ -131,7 +131,9 @@ jobs:
           sudo apt-get install ${{ matrix.install }} -y
 
       - name: Install CMake
-        uses: lukka/get-cmake@v3.31.6
+        uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "^4.3.1"
 
       - name: Setup MSYS2
         uses: msys2/setup-msys2@v2
