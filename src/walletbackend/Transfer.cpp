@@ -18,6 +18,7 @@
 #include <utilities/FormatTools.h>
 #include <utilities/Mixins.h>
 #include <utilities/Utilities.h>
+#include <walletbackend/TransactionSize.h>
 #include <walletbackend/WalletBackend.h>
 #include <ctime> // time_t
 #include <tuple> // std::tie
@@ -336,6 +337,31 @@ namespace SendTransaction
 
         /* Split the transfers up into an amount, a public spend+view key */
         const auto destinations = setupDestinations(addressesAndAmounts, changeRequired, changeAddress);
+
+        /* Refuse a transaction that cannot fit in a block before asking the
+           daemon for ring members for it. The check after building it comes
+           too late for a large one: ring members are fetched for every input
+           first, and the daemon refuses a request for more than a thousand
+           amounts. That came back as the node being unreachable, so a sweep -
+           which splits a send only when told it is too large - gave up on a
+           big balance of small inputs instead of splitting it. This is a floor,
+           so it has no false answers: whatever it refuses could never have
+           fit. */
+        const uint64_t maxTxSize = Utilities::getMaxTxSize(daemon->networkBlockCount());
+
+        const uint64_t minTxSize = TransactionSize::minimumSize(mixin, ourInputs.size(), destinations.size());
+
+        if (minTxSize > maxTxSize)
+        {
+            std::stringstream errorMsg;
+
+            errorMsg << "Transaction is too large: it needs " << ourInputs.size() << " inputs, which is at least "
+                     << Utilities::prettyPrintBytes(minTxSize) << ". Max allowed size is "
+                     << Utilities::prettyPrintBytes(maxTxSize) << ". Decrease the amount you are sending, or "
+                     << "perform some fusion transactions.";
+
+            return {Error(TOO_MANY_INPUTS_TO_FIT_IN_BLOCK, errorMsg.str()), Crypto::Hash()};
+        }
 
         TransactionResult txResult =
             makeTransaction(mixin, daemon, ourInputs, paymentID, destinations, subWallets, unlockTime, extraData);

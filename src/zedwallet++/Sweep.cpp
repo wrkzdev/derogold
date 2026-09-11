@@ -274,8 +274,11 @@ bool sendInChunks(
            through its total quicker than the destination receives it */
         remaining -= feeFromAmount ? chunk.walletCost : chunk.amount;
 
-        /* Went well, revert to sending as much as possible at once */
-        divider = 1;
+        /* Went well. Step back towards sending it all at once, one halving at
+           a time. The inputs left are much like the ones just spent, so going
+           straight back to one piece meant rediscovering the same split, one
+           failed attempt per halving, before every transaction of the sweep. */
+        divider = std::max<uint64_t>(1, divider / 2);
 
         txNumber++;
 
