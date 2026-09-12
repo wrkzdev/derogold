@@ -4,6 +4,8 @@
 #   - the native GCC of the base image   -> Linux x86_64 (fully static)
 #   - MinGW-w64 (posix threads) + a static OpenSSL built for the Windows target
 #                                        -> Windows x86_64
+#   - the aarch64 cross toolchain + a static OpenSSL built for it
+#                                        -> Linux ARM64 (fully static)
 #
 # The repository is never copied into the image. build.sh bind-mounts it at run
 # time, so the image only changes when one of the pinned versions below does.
@@ -66,6 +68,7 @@ RUN apt-get update \
       g++-mingw-w64-x86-64-posix \
       binutils-mingw-w64-x86-64 \
       mingw-w64-x86-64-dev \
+      crossbuild-essential-arm64 \
  && (update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-posix || true) \
  && (update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix || true) \
  && rm -rf /var/lib/apt/lists/* \
@@ -100,6 +103,37 @@ RUN set -eux; \
     rm -rf /tmp/openssl; \
     test -f "${DEROGOLD_MINGW_PREFIX_DIR}/lib/libcrypto.a"; \
     test -f "${DEROGOLD_MINGW_PREFIX_DIR}/lib/libssl.a"
+
+# ---------------------------------------------------------------------------
+# OpenSSL for the Linux ARM64 target.
+#
+# The host's libssl-dev is x86_64 and cannot be linked into an aarch64 binary.
+# Building it here rather than pulling libssl-dev:arm64 through multiarch keeps
+# this to one mechanism, the same one the Windows target uses, and gives static
+# libraries -static can actually use.
+# ---------------------------------------------------------------------------
+ENV DEROGOLD_ARM64_PREFIX_DIR=/opt/toolchain/linux-arm64/prefix
+RUN set -eux; \
+    mkdir -p /tmp/openssl-arm64; \
+    cd /tmp/openssl-arm64; \
+    curl -fsSL -o openssl.tar.gz \
+      "https://github.com/openssl/openssl/releases/download/openssl-${OPENSSL_VERSION}/openssl-${OPENSSL_VERSION}.tar.gz"; \
+    tar xzf openssl.tar.gz; \
+    cd "openssl-${OPENSSL_VERSION}"; \
+    ./Configure linux-aarch64 \
+        no-shared \
+        no-tests \
+        no-module \
+        --cross-compile-prefix=aarch64-linux-gnu- \
+        --prefix="${DEROGOLD_ARM64_PREFIX_DIR}" \
+        --libdir=lib \
+        --openssldir="${DEROGOLD_ARM64_PREFIX_DIR}/ssl"; \
+    make -j"$(nproc)"; \
+    make install_sw; \
+    cd /; \
+    rm -rf /tmp/openssl-arm64; \
+    test -f "${DEROGOLD_ARM64_PREFIX_DIR}/lib/libcrypto.a"; \
+    test -f "${DEROGOLD_ARM64_PREFIX_DIR}/lib/libssl.a"
 
 # ---------------------------------------------------------------------------
 # Run-time layout. build.sh mounts the repo at /work, the build tree at /build

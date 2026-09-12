@@ -37,9 +37,10 @@ usage() {
 Usage: bash scripts/docker/build.sh [options] [target ...]
 
 Targets (default: all):
-  linux      Linux x86_64, fully static     -> .tar.gz
-  windows    Windows x86_64, MinGW-w64      -> .zip
-  all        linux windows
+  linux        Linux x86_64, fully static     -> .tar.gz
+  linux-arm64  Linux ARM64, fully static      -> .tar.gz
+  windows      Windows x86_64, MinGW-w64      -> .zip
+  all          linux linux-arm64 windows
 
 Options:
   --shell        open an interactive shell in the builder image instead
@@ -75,7 +76,7 @@ while [ $# -gt 0 ]; do
     -h|--help) usage; exit 0 ;;
     --shell) MODE=shell ;;
     --image-only) MODE=image ;;
-    linux|windows|all) TARGETS+=("$1") ;;
+    linux|linux-arm64|windows|all) TARGETS+=("$1") ;;
     android|macos)
       echo "The '$1' target is not supported in this tree yet; see 'Other platforms' in scripts/docker/README.md." >&2
       exit 2

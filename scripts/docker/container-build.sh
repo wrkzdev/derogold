@@ -3,12 +3,12 @@
 # Container side of scripts/docker/build.sh: configure, build, verify and
 # package the requested targets, one build tree per target.
 #
-#   bash scripts/docker/container-build.sh [linux] [windows] [all]
+#   bash scripts/docker/container-build.sh [linux] [linux-arm64] [windows] [all]
 #
-# It expects the toolchain the Dockerfile lays out (the MinGW OpenSSL prefix)
-# but locates it through an environment variable, so it also runs on an Ubuntu
-# host with the same packages installed. Everything is driven by environment
-# variables; see scripts/docker/README.md for the list.
+# It expects the toolchains the Dockerfile lays out (the MinGW and aarch64
+# OpenSSL prefixes) but locates them through environment variables, so it also
+# runs on an Ubuntu host with the same packages installed. Everything is driven
+# by environment variables; see scripts/docker/README.md for the list.
 
 set -euo pipefail
 
@@ -26,6 +26,9 @@ GENERATOR="${GENERATOR:-Ninja}"
 
 MINGW_TRIPLE="${MINGW_PREFIX:-x86_64-w64-mingw32}"
 MINGW_PREFIX_DIR="${DEROGOLD_MINGW_PREFIX_DIR:-$HOME/toolchain/windows-x86_64/prefix}"
+
+ARM64_TRIPLE="${ARM64_TRIPLE:-aarch64-linux-gnu}"
+ARM64_PREFIX_DIR="${DEROGOLD_ARM64_PREFIX_DIR:-$HOME/toolchain/linux-arm64/prefix}"
 
 # Executables a package can carry (plus LICENSE). Each one is packaged only if
 # the checked-out src/CMakeLists.txt declares it, so the same script serves a
@@ -278,6 +281,49 @@ build_windows() {
   make_zip "$name"
 }
 
+build_linux_arm64() {
+  local bd="$BUILD_ROOT/linux-arm64"
+  local name="$PKG_PREFIX-linux-arm64-$VERSION"
+  [ -f "$ARM64_PREFIX_DIR/lib/libcrypto.a" ] \
+    || die "no ARM64-target OpenSSL under $ARM64_PREFIX_DIR (DEROGOLD_ARM64_PREFIX_DIR)"
+  command -v "$ARM64_TRIPLE-g++" >/dev/null 2>&1 \
+    || die "aarch64 cross compiler $ARM64_TRIPLE-g++ not found (crossbuild-essential-arm64)"
+
+  # CMake/linux-arm64-gcc.cmake names the compilers and sets the find modes to
+  # ONLY, but leaves CMAKE_FIND_ROOT_PATH empty - so the roots to search have to
+  # come from here, or FindOpenSSL has nowhere to look. The host's OpenSSL is
+  # x86_64 and must not be found.
+  export OPENSSL_ROOT_DIR="$ARM64_PREFIX_DIR"
+  export CMAKE_PREFIX_PATH="$ARM64_PREFIX_DIR"
+
+  configure_and_build "$bd" \
+    -D CMAKE_TOOLCHAIN_FILE="$REPO_ROOT/CMake/linux-arm64-gcc.cmake" \
+    -D CMAKE_FIND_ROOT_PATH="$ARM64_PREFIX_DIR;/usr/$ARM64_TRIPLE" \
+    -D ARCH=default \
+    -D SET_COMMIT_ID_IN_VERSION=OFF \
+    -D OPENSSL_USE_STATIC_LIBS=ON \
+    -D CMAKE_EXE_LINKER_FLAGS="-static"
+
+  local stage b
+  stage="$(stage_dir "$name")"
+  stage_binaries "$bd/src" "$stage" ""
+
+  log "Stripping and verifying Linux ARM64 executables"
+  for b in "${BINARIES[@]}"; do
+    "$ARM64_TRIPLE-strip" "$stage/$b"
+  done
+  print_files "$stage" ""
+  for b in "${BINARIES[@]}"; do
+    file "$stage/$b" | grep -q 'aarch64' \
+      || die "$b is not an aarch64 executable"
+    file "$stage/$b" | grep -q 'statically linked' \
+      || die "$b is not statically linked"
+  done
+  # No --version smoke test here: nothing in this container executes aarch64.
+
+  make_tarball "$name"
+}
+
 # ---------------------------------------------------------------------------
 # Driver
 # ---------------------------------------------------------------------------
@@ -287,7 +333,9 @@ run_target() {
   local logfile="$BUILD_ROOT/logs/$target.log"
   mkdir -p "$BUILD_ROOT/logs"
   log "Target: $target  (log: $logfile)"
-  if "build_$target" 2>&1 | tee "$logfile"; then
+  # linux-arm64 -> build_linux_arm64: a hyphen is legal in a bash function
+  # name but not worth relying on.
+  if "build_${target//-/_}" 2>&1 | tee "$logfile"; then
     return 0
   fi
   # The build ran in a pipeline, so consult its status rather than $?.
@@ -299,8 +347,8 @@ main() {
 
   for t in "${requested[@]}"; do
     case "$t" in
-      all) targets+=(linux windows) ;;
-      linux|windows) targets+=("$t") ;;
+      all) targets+=(linux linux-arm64 windows) ;;
+      linux|linux-arm64|windows) targets+=("$t") ;;
       *) die "unknown target: $t" ;;
     esac
   done

@@ -3,12 +3,20 @@
 One command builds the portable DeroGold CLI set for each supported platform
 and packs it for release, with the root `LICENSE` inside:
 
-| Target    | Package                                        | How it is built                            |
-|-----------|------------------------------------------------|--------------------------------------------|
-| `linux`   | `derogold-cli-linux-x86_64-<version>.tar.gz`   | native GCC, fully static binaries          |
-| `windows` | `derogold-cli-windows-x86_64-<version>.zip`    | MinGW-w64 (posix threads) + static OpenSSL |
+| Target        | Package                                         | How it is built                            |
+|---------------|-------------------------------------------------|--------------------------------------------|
+| `linux`       | `derogold-cli-linux-x86_64-<version>.tar.gz`    | native GCC, fully static binaries          |
+| `linux-arm64` | `derogold-cli-linux-arm64-<version>.tar.gz`     | aarch64 cross toolchain + static OpenSSL   |
+| `windows`     | `derogold-cli-windows-x86_64-<version>.zip`     | MinGW-w64 (posix threads) + static OpenSSL |
 
-`all` builds both. `<version>` is `MAJOR.MINOR.REV.BUILD` from the
+`all` builds all three. To put them in `dist/` instead of `builds/`, which is
+what a release wants:
+
+```bash
+bash scripts/docker/dist.sh
+```
+
+`<version>` is `MAJOR.MINOR.REV.BUILD` from the
 `project(DeroGold VERSION ...)` line in the root `CMakeLists.txt`; override it
 with `VERSION=`.
 
@@ -46,16 +54,24 @@ and ccache between runs.
 From the repository root:
 
 ```bash
-# Both targets
+# Every target, into builds/
 bash scripts/docker/build.sh
+
+# Every target, into dist/ - what a release wants
+bash scripts/docker/dist.sh
 
 # One target
 bash scripts/docker/build.sh linux
+bash scripts/docker/build.sh linux-arm64
 bash scripts/docker/build.sh windows
 
 # Fewer compile jobs on a small machine
 JOBS=2 bash scripts/docker/build.sh
 ```
+
+`dist.sh` is `build.sh` with `OUT_DIR=dist/` and `KEEP_GOING=1`, so one
+toolchain failing still leaves you the packages that did build. Every
+environment variable below works with either.
 
 The first run builds the toolchain image (10-20 minutes, mostly the OpenSSL
 compile). After that the image is cached and each run goes straight to the
@@ -117,6 +133,14 @@ load on" — together they remove the glibc floor described in BUILDING.md, so
 the package runs on distributions far older than the image. The glibc NSS
 caveat applies: name lookups use the `files` and `dns` backends built into
 glibc, which is what every mainstream distribution ships.
+
+**Linux ARM64** uses `CMake/linux-arm64-gcc.cmake` with the aarch64 OpenSSL the
+image built, strips with `aarch64-linux-gnu-strip`, and checks every executable
+is a statically linked aarch64 ELF. That toolchain file sets the find modes to
+`ONLY` but leaves `CMAKE_FIND_ROOT_PATH` empty, so the container passes the
+roots explicitly — without them `FindOpenSSL` has nowhere to look, and the
+host's x86_64 OpenSSL must not be what it finds. Unlike the x86_64 target it
+runs no `--version` smoke test: nothing in the container executes ARM binaries.
 
 **Windows** uses `CMake/windows-x64-mingw-cross.cmake` with the OpenSSL the
 image built for the target (`no-shared`), strips the executables with the
