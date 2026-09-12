@@ -344,9 +344,16 @@ RUN set -eux; \
 # and the package directory at /out, and runs the container as the calling host
 # user so nothing comes back root-owned. HOME lives under /tmp so an arbitrary
 # uid always has a writable home.
+#
+# Gradle's and pub's caches go under /build for the same reason ccache does:
+# that is the bind mount that survives between runs, and the container is
+# started with --rm. Left at their defaults under HOME, every Android build
+# would download the Gradle distribution and the whole dependency tree again.
 # ---------------------------------------------------------------------------
 ENV HOME=/tmp/derogold-home \
-    CCACHE_DIR=/build/.ccache
+    CCACHE_DIR=/build/.ccache \
+    PUB_CACHE=/build/.pub-cache \
+    GRADLE_USER_HOME=/build/.gradle
 RUN mkdir -p /work /build /out /tmp/derogold-home \
  && chmod 1777 /work /build /out /tmp/derogold-home
 
