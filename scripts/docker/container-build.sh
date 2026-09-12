@@ -116,6 +116,87 @@ toolchain_fingerprint() {
 
 TOOLCHAIN_FINGERPRINT=""
 
+# How many parallel jobs this machine can actually afford.
+#
+# This used to be nproc, which is the wrong question on a big machine: the
+# bundled RocksDB and the C++20 sources want roughly 1.5 GB per compile job,
+# so on 64 cores that is ~96 GB of compilers running at once. Memory does not
+# grow with core count, and a build that outruns it does not fail - it swaps
+# the host into the ground until nothing, SSH included, answers. That happened.
+#
+# So: cores, or usable memory / 2 GB, whichever is smaller. 2 GB rather than
+# 1.5 leaves room for the linker, which is the step that spikes. "Usable" is the
+# container's cgroup limit when there is one, because /proc/meminfo inside a
+# container still reports the whole host.
+default_jobs() {
+  local cpus mem_kb limit per_job_kb by_mem f
+  per_job_kb=$((2 * 1024 * 1024))
+  cpus="$(nproc)"
+
+  mem_kb="$(awk '/^MemTotal:/ { print $2 }' /proc/meminfo 2>/dev/null || true)"
+  mem_kb="${mem_kb:-0}"
+
+  for f in /sys/fs/cgroup/memory.max /sys/fs/cgroup/memory/memory.limit_in_bytes; do
+    [ -r "$f" ] || continue
+    limit="$(cat "$f" 2>/dev/null || true)"
+    case "$limit" in
+      '' | max | *[!0-9]*) ;;  # unlimited, or unreadable
+      *)
+        # cgroup v1 reports "unlimited" as a huge number; the comparison
+        # below ignores anything larger than the machine anyway.
+        if [ "$mem_kb" -eq 0 ] || [ "$((limit / 1024))" -lt "$mem_kb" ]; then
+          mem_kb=$((limit / 1024))
+        fi
+        ;;
+    esac
+    break
+  done
+
+  if [ "$mem_kb" -le 0 ]; then
+    printf '%s' "$cpus"
+    return 0
+  fi
+
+  by_mem=$((mem_kb / per_job_kb))
+  [ "$by_mem" -ge 1 ] || by_mem=1
+
+  if [ "$by_mem" -lt "$cpus" ]; then
+    printf '%s' "$by_mem"
+  else
+    printf '%s' "$cpus"
+  fi
+}
+
+# Every other tool in the image that sizes itself by core count, held to the
+# same budget as the compilers.
+#
+#   Emscripten   EMCC_CORES and BINARYEN_CORES; wasm-opt at -O3 is the
+#                heaviest single step of the web target.
+#   Gradle       one worker per core by default, plus a separate Kotlin
+#                daemon. Set in GRADLE_USER_HOME's gradle.properties, which
+#                outranks the project's own.
+cap_tool_parallelism() {
+  export EMCC_CORES="$JOBS"
+  export BINARYEN_CORES="$JOBS"
+
+  # Only when the cache is ours under BUILD_ROOT - which it is in the image -
+  # so a run on a developer's own machine never rewrites their ~/.gradle.
+  local gradle_home="${GRADLE_USER_HOME:-}"
+  case "$gradle_home" in
+    "$BUILD_ROOT"/*)
+      mkdir -p "$gradle_home"
+      cat > "$gradle_home/gradle.properties" <<GRADLEPROPS
+# Written by scripts/docker/container-build.sh on every run; edits are lost.
+# Holds Gradle to the same parallelism budget as the compilers, so an Android
+# build on a many-core machine cannot run it out of memory.
+org.gradle.workers.max=$JOBS
+org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g -XX:+HeapDumpOnOutOfMemoryError
+kotlin.daemon.jvmargs=-Xmx2g
+GRADLEPROPS
+      ;;
+  esac
+}
+
 # ensure_fresh_tree <build-dir>: honour CLEAN, and discard a tree configured
 # by a toolchain that is no longer the one installed.
 ensure_fresh_tree() {
@@ -786,9 +867,10 @@ main() {
   done
   targets=(${unique[@]+"${unique[@]}"})
 
-  [ -n "$JOBS" ] || JOBS="$(nproc)"
+  [ -n "$JOBS" ] || JOBS="$(default_jobs)"
   [ -n "$VERSION" ] || VERSION="$(read_version)"
   TOOLCHAIN_FINGERPRINT="$(toolchain_fingerprint)"
+  cap_tool_parallelism
 
   mkdir -p "$OUT_DIR" "$BUILD_ROOT"
   rm -f "$PACKAGE_LIST"

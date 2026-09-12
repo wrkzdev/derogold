@@ -64,8 +64,12 @@ and ccache between runs.
   roughly 25-30 GB once Flutter, the Android SDK/NDK and Emscripten are in it,
   plus another 10-15 GB for the build trees and Gradle's caches. A remote
   build host is the comfortable place for this.
-- RAM: the RocksDB and C++20 sources need roughly 1.5 GB per compile job. A
-  4 GB machine should use `JOBS=2`.
+- RAM: the RocksDB and C++20 sources need roughly 1.5 GB per compile job.
+  `JOBS` defaults to whichever is smaller of the CPU count and memory / 2 GB,
+  and the container runs under a memory limit with no swap, so a build that
+  outgrows the machine fails inside the container rather than swapping the
+  host until it stops answering. Before that default existed, `JOBS` was the
+  CPU count, and on a 60-core server that was enough to hang it.
 - Network access the first time, to fetch the base image, CMake and OpenSSL.
   Later runs are offline.
 
@@ -116,7 +120,7 @@ All options are environment variables. Targets are positional arguments.
 
 | Variable           | Default                        | Meaning                                                        |
 |--------------------|--------------------------------|----------------------------------------------------------------|
-| `JOBS`             | all CPUs in the container      | parallel compile jobs                                          |
+| `JOBS`             | CPUs, or memory / 2 GB if less | parallel jobs, for the compilers, Gradle and Emscripten alike  |
 | `VERSION`          | `project()` in `CMakeLists.txt`| version string in the package names                            |
 | `OUT_DIR`          | `builds/`                      | where packages and checksums go                                |
 | `BUILD_ROOT`       | `build-docker/`                | build trees, staging directories, ccache and logs              |
@@ -127,6 +131,7 @@ All options are environment variables. Targets are positional arguments.
 | `IMAGE_BUILD_ARGS` | empty                          | extra `docker build` arguments, see [Toolchain versions](#toolchain-versions) |
 | `DOCKER`           | `docker`                       | container CLI                                                  |
 | `DOCKER_PLATFORM`  | `linux/amd64`                  | image platform                                                 |
+| `DOCKER_MEMORY`    | host memory less 10% or 2 GB   | container memory limit, with no swap; `0` turns it off          |
 
 Flags:
 

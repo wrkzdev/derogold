@@ -26,6 +26,7 @@ DOCKER_PLATFORM="${DOCKER_PLATFORM:-linux/amd64}"
 OUT_DIR="${OUT_DIR:-$REPO_ROOT/builds}"
 BUILD_ROOT="${BUILD_ROOT:-$REPO_ROOT/build-docker}"
 JOBS="${JOBS:-}"
+DOCKER_MEMORY="${DOCKER_MEMORY:-}"
 VERSION="${VERSION:-}"
 CLEAN="${CLEAN:-0}"
 KEEP_GOING="${KEEP_GOING:-0}"
@@ -53,7 +54,10 @@ Options:
   -h, --help     this text
 
 Environment:
-  JOBS=N                 parallel compile jobs (default: all container CPUs)
+  JOBS=N                 parallel jobs (default: CPUs or memory / 2 GB,
+                         whichever is smaller)
+  DOCKER_MEMORY=48g      container memory limit, with no swap (default: host
+                         memory minus 10% or 2 GB; 0 turns the limit off)
   VERSION=x.y.z.b        package version (default: project() in CMakeLists.txt)
   OUT_DIR=path           where packages go (default: builds/)
   BUILD_ROOT=path        build trees + ccache (default: build-docker/)
@@ -187,6 +191,31 @@ for var in ANDROID_ABIS MOBILE_MODES MOBILE_FORMATS ANDROID_API BUILD_TYPE GENER
     RUN_ARGS+=(-e "$var=${!var}")
   fi
 done
+
+# Cap the container's memory, and give it no swap.
+#
+# Without this, a build that outruns RAM is not refused - the host starts
+# swapping, and on a busy machine that can go on until nothing answers, SSH
+# included. With a limit and no container swap, the kernel OOM-kills a
+# process *inside* the container instead: the target fails, KEEP_GOING moves
+# on, and the machine stays usable.
+#
+# Default: all of the host's memory except 10% or 2 GB, whichever is more.
+# DOCKER_MEMORY=48g sets it explicitly; DOCKER_MEMORY=0 turns the limit off.
+# Skipped where /proc/meminfo does not describe the Docker host (macOS).
+if [ -z "$DOCKER_MEMORY" ] && [ -r /proc/meminfo ] && [ "$(uname -s)" = "Linux" ]; then
+  total_kb="$(awk '/^MemTotal:/ { print $2 }' /proc/meminfo)"
+  reserve_kb=$((total_kb / 10))
+  [ "$reserve_kb" -ge $((2 * 1024 * 1024)) ] || reserve_kb=$((2 * 1024 * 1024))
+  if [ "$total_kb" -gt "$reserve_kb" ]; then
+    DOCKER_MEMORY="$(( (total_kb - reserve_kb) / 1024 ))m"
+  fi
+fi
+
+if [ -n "$DOCKER_MEMORY" ] && [ "$DOCKER_MEMORY" != "0" ]; then
+  RUN_ARGS+=(--memory "$DOCKER_MEMORY" --memory-swap "$DOCKER_MEMORY")
+  echo "==> Container memory limit: $DOCKER_MEMORY, no swap"
+fi
 
 if [ "$MODE" = "shell" ]; then
   if [ "${#TTY_ARGS[@]}" -eq 0 ]; then
