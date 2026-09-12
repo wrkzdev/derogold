@@ -110,6 +110,43 @@ fetch_source() {
   rm -f "$tarball"
 }
 
+# libucontext is written for musl, whose <ucontext.h> says nothing about the
+# machine registers, so it supplies its own REG_* macros. bionic does declare
+# them - as enum constants in <sys/ucontext.h> - and the two cannot coexist:
+# the macro expands inside the enum declaration and clang stops at
+# "expected identifier". This is what x86_64 dies on; arm and arm64 have no
+# such enum and build untouched.
+#
+# The values are the same on both sides (REG_RSP 15, REG_RIP 16, REG_EFL 17,
+# REG_CSGSFS 18), so the fix is to let bionic win in C and keep the macros for
+# the assembler, where an enum is invisible and the .S files genuinely need
+# them. Anything else - dropping x86_64, or defining the macros away
+# everywhere - either loses the emulator ABI or breaks getcontext.S.
+patch_reg_macros() {
+  local work="$1" arch="$2"
+  local defs="$work/arch/$arch/defs.h"
+
+  [ -f "$defs" ] || return 0
+  grep -qE '^#[[:space:]]*define[[:space:]]+REG_' "$defs" || return 0
+
+  awk '
+    /^#[ \t]*define[ \t]+REG_[A-Za-z0-9_]+/ {
+      print "#if !defined(__BIONIC__) || defined(__ASSEMBLER__)"
+      print
+      print "#endif"
+      next
+    }
+    { print }
+  ' "$defs" > "$defs.patched"
+
+  mv "$defs.patched" "$defs"
+
+  grep -q '__BIONIC__' "$defs" \
+    || die "failed to guard the REG_* macros in $defs"
+
+  echo "  patched arch/$arch/defs.h: REG_* macros kept for the assembler only"
+}
+
 build_abi() {
   local abi="$1" arch="$2" triple="$3"
   local out="$PREFIX/$abi"
@@ -126,6 +163,8 @@ build_abi() {
   rm -rf "$work"
   mkdir -p "$(dirname "$work")"
   cp -a "$SRC_DIR" "$work"
+
+  patch_reg_macros "$work" "$arch"
 
   make -C "$work" -j"$JOBS" \
     ARCH="$arch" \
