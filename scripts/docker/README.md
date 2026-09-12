@@ -209,7 +209,7 @@ Everything the image downloads is pinned at the top of the
 
 | Build argument           | Default             | Used for                                              |
 |--------------------------|---------------------|-------------------------------------------------------|
-| `UBUNTU_VERSION`         | `22.04`             | base image: GCC 11, MinGW-w64 GCC, and the build tools |
+| `UBUNTU_VERSION`         | `24.04`             | base image: GCC 13 native, MinGW-w64 and aarch64 alike |
 | `OPENSSL_VERSION`        | `3.5.8`             | Windows- and ARM64-target OpenSSL (the Linux target uses `libssl-dev`) |
 | `FLUTTER_VERSION`        | `3.38.0`            | the `gui`, `web` and `android` targets                 |
 | `ANDROID_CMDLINE_TOOLS`  | `11076708`          | the Android SDK command line tools bundle              |
@@ -229,8 +229,22 @@ IMAGE_BUILD_ARGS="--build-arg UBUNTU_VERSION=24.04" \
   bash scripts/docker/build.sh --image-only
 ```
 
-22.04 is deliberate: it is what the published releases use, and its GCC clears
-the floor the bundled RocksDB needs (C++20 `using enum`, GCC 11+).
+24.04 is chosen for the cross compilers, not the native one. The bundled
+RocksDB compiles as C++20 and uses `using enum`, so it needs GCC 11 or newer
+from *every* toolchain in the image. 22.04's own GCC is 11 and builds it, but
+its MinGW-w64 is GCC 10 and does not, so the Windows target failed to
+configure with
+
+```
+GCC 10.0.0 cannot build the bundled RocksDB, which compiles as C++20
+and uses `using enum` - that needs GCC 11 or newer.
+```
+
+24.04 brings GCC 13 to the native, MinGW and aarch64 toolchains alike. It does
+not raise the floor on the Linux package, which is linked with `-static` and
+so carries no glibc dependency from the base image. Building with
+`--build-arg UBUNTU_VERSION=22.04` still works for every target except
+Windows.
 
 ## Other platforms
 

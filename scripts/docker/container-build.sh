@@ -650,11 +650,23 @@ run_target() {
   local logfile="$BUILD_ROOT/logs/$target.log"
   mkdir -p "$BUILD_ROOT/logs"
   log "Target: $target  (log: $logfile)"
+
+  # The subshell with its own `set -e` matters, and so does the way main()
+  # calls this.
+  #
+  # bash turns errexit off for any command whose status is being tested, and
+  # that suppression reaches everything the command runs - a subshell that
+  # sets `set -e` for itself included. This used to be called as
+  # `if ! run_target ...`, so a failing cmake configure did not stop the
+  # target: it went on to build a tree that was never configured, and the run
+  # ended complaining about a missing binary instead of the configure error
+  # that caused it. main() therefore calls this plainly, between `set +e` and
+  # `set -e`, and reads the status afterwards.
+  #
   # linux-arm64 -> build_linux_arm64: a hyphen is legal in a bash function
   # name but not worth relying on.
-  if "build_${target//-/_}" 2>&1 | tee "$logfile"; then
-    return 0
-  fi
+  ( set -e; "build_${target//-/_}" ) 2>&1 | tee "$logfile"
+
   # The build ran in a pipeline, so consult its status rather than $?.
   return "${PIPESTATUS[0]}"
 }
@@ -699,8 +711,16 @@ main() {
   echo "  build:    $BUILD_ROOT"
   echo "  output:   $OUT_DIR"
 
+  # Called plainly rather than from an `if`, so errexit stays live inside the
+  # target and the first real error is the one reported. See run_target.
+  local status
   for t in "${targets[@]}"; do
-    if ! run_target "$t"; then
+    set +e
+    run_target "$t"
+    status=$?
+    set -e
+
+    if [ "$status" -ne 0 ]; then
       if [ "$KEEP_GOING" = "1" ]; then
         failed+=("$t")
         echo "warning: target $t failed; continuing because KEEP_GOING=1" >&2

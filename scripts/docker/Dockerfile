@@ -20,13 +20,20 @@
 # Every ARG can be overridden with --build-arg (build.sh passes
 # IMAGE_BUILD_ARGS straight through).
 #
-# 22.04 rather than 24.04: it is what the published releases are built on, and
-# its gcc-11/12 clears the floor the bundled RocksDB needs (C++20 `using
-# enum`). The Linux package is statically linked, so the base image's glibc
-# only bounds what the *Windows* cross-build and the build tools see, but
-# keeping the two aligned means a package built here behaves like a release.
+# 24.04, for the cross compilers rather than the native one.
+#
+# The bundled RocksDB compiles as C++20 and uses `using enum`, which needs GCC
+# 11 or newer - and that has to hold for every toolchain here, not just the
+# host's. 22.04's own GCC is 11, but its MinGW-w64 is GCC 10, so the Windows
+# target failed to configure while Linux built fine. 24.04 brings GCC 13 for
+# the native, MinGW and aarch64 toolchains alike.
+#
+# This does not raise the floor on the Linux package: it is linked with
+# -static, so the base image's glibc bounds nothing it ships.
+# --build-arg UBUNTU_VERSION=22.04 still works for everything except the
+# Windows target.
 
-ARG UBUNTU_VERSION=22.04
+ARG UBUNTU_VERSION=24.04
 FROM ubuntu:${UBUNTU_VERSION}
 
 ARG DEBIAN_FRONTEND=noninteractive
@@ -41,8 +48,9 @@ ARG OPENSSL_VERSION=3.5.8
 # metapackage would also pull the i686 and win32-thread variants, and the
 # win32-thread one has no std::thread.
 #
-# CMake comes from apt.kitware.com: 22.04 ships 3.22, and the vendored RocksDB
-# expects newer. Same source Dockerfile and Dockerfile.portable use.
+# CMake comes from apt.kitware.com rather than the distribution, so the version
+# does not move when the base image does. Same source Dockerfile and
+# Dockerfile.portable use.
 # ---------------------------------------------------------------------------
 RUN apt-get update \
  && apt-get install -y --no-install-recommends ca-certificates curl gpg \
@@ -160,17 +168,15 @@ RUN apt-get update \
       libgtk-3-dev \
       liblzma-dev \
       libglu1-mesa \
-      libstdc++-12-dev \
       openjdk-17-jdk-headless \
-      lib32stdc++6 \
-      lib32z1 \
-      python3-pip \
       wget \
+      meson \
  && rm -rf /var/lib/apt/lists/* \
- # libucontext is a meson project. Ubuntu 22.04 ships meson 0.61, which is
- # older than it wants, so take it from pip instead.
- && pip3 install --no-cache-dir 'meson>=1.3' \
- && meson --version
+ # libucontext is a meson project. 24.04 ships meson 1.3, which is new enough;
+ # pip is not an option here because 24.04 marks its Python as externally
+ # managed and refuses to install into it.
+ && meson --version \
+ && java -version
 
 # Flutter and the Android SDK both run git inside directories this image owns
 # but the build does not: build.sh runs the container as the calling host user,
