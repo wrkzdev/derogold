@@ -247,6 +247,24 @@ survive between builds, and that would make the file unbuildable on the legacy
 builder for a saving that only appears on a rebuild. Expect a full compile each
 time, and note that `COPY . .` means any change to the tree causes one.
 
+#### The whole release set, for several operating systems
+
+`Dockerfile.portable` produces one Linux package. To build the release set for
+every supported platform in one command — Linux and Windows today — use
+`scripts/docker`:
+
+```sh
+bash scripts/docker/build.sh            # both targets
+bash scripts/docker/build.sh windows    # just one
+```
+
+That image carries the MinGW-w64 cross-toolchain and an OpenSSL built for the
+Windows target, bind-mounts the repository rather than copying it, and keeps
+its build trees and ccache between runs, so a second build is quick. Packages
+and a `SHA256SUMS` file land in `builds/`. See
+[scripts/docker/README.md](scripts/docker/README.md), which also explains what
+Android and macOS would still need.
+
 ### Building one
 
 Nothing about this needs presets. `ARCH=default` covers the CPU question; if

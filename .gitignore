@@ -1,6 +1,9 @@
 build/
 build-*/
 
+# Release packages from scripts/docker (build-docker/ is matched above).
+builds/
+
 # Left over from the old vcpkg-based build. Nothing references it any more,
 # so the directory can be deleted.
 vcpkg/
