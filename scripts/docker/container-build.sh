@@ -83,15 +83,65 @@ resolve_binaries() {
   [ "${#BINARIES[@]}" -gt 0 ] || die "no packageable executables declared in $cml"
 }
 
-# configure_and_build <build-dir> [cmake configure args...]
-configure_and_build() {
+# A short string identifying the toolchains in this environment, so a build
+# tree can tell whether it was configured by a different one.
+#
+# This is not belt and braces. CMake records the compiler's identity and
+# version inside the build tree and does not look again while the compiler's
+# path is unchanged - and every toolchain here is at a fixed path. So a tree
+# configured by an older image keeps reporting that image's compiler for ever:
+# upgrading the base image from one whose MinGW was GCC 10 to one with GCC 13
+# left the Windows tree still insisting it had GCC 10, and failing the
+# RocksDB C++20 check against a compiler that was no longer installed.
+#
+# The build trees are deliberately kept between runs, so this cannot be left
+# to whoever remembers to pass CLEAN=1.
+toolchain_fingerprint() {
+  {
+    if [ -r /etc/os-release ]; then
+      # shellcheck disable=SC1091
+      . /etc/os-release
+      printf 'os %s %s\n' "${ID:-?}" "${VERSION_ID:-?}"
+    fi
+    local cc
+    for cc in cc g++ \
+              "$MINGW_TRIPLE-g++-posix" "$MINGW_TRIPLE-g++" \
+              "$ARM64_TRIPLE-g++"; do
+      if command -v "$cc" >/dev/null 2>&1; then
+        printf '%s %s\n' "$cc" "$("$cc" -dumpversion 2>/dev/null || echo '?')"
+      fi
+    done
+  } | cksum | awk '{print $1 "-" $2}'
+}
+
+TOOLCHAIN_FINGERPRINT=""
+
+# ensure_fresh_tree <build-dir>: honour CLEAN, and discard a tree configured
+# by a toolchain that is no longer the one installed.
+ensure_fresh_tree() {
   local bd="$1"
-  shift
+  local stamp="$bd/.derogold-toolchain"
+
   if [ "$CLEAN" = "1" ] && [ -d "$bd" ]; then
     log "CLEAN=1: removing $bd"
     rm -rf "$bd"
   fi
+
+  if [ -f "$bd/CMakeCache.txt" ] \
+     && [ "$(cat "$stamp" 2>/dev/null || true)" != "$TOOLCHAIN_FINGERPRINT" ]; then
+    log "This tree was configured by a different toolchain; reconfiguring $bd from scratch"
+    rm -rf "$bd"
+  fi
+
   mkdir -p "$bd"
+  printf '%s\n' "$TOOLCHAIN_FINGERPRINT" > "$stamp"
+}
+
+# configure_and_build <build-dir> [cmake configure args...]
+configure_and_build() {
+  local bd="$1"
+  shift
+  ensure_fresh_tree "$bd"
   log "Configuring $bd"
   cmake -S "$REPO_ROOT" -B "$bd" \
     -G "$GENERATOR" \
@@ -421,11 +471,9 @@ build_web() {
   command -v emcmake >/dev/null 2>&1 || die "emcmake not on PATH after sourcing $EMSDK_ENV"
   emcc --version | head -1
 
-  if [ "$CLEAN" = "1" ] && [ -d "$bd" ]; then
-    log "CLEAN=1: removing $bd"
-    rm -rf "$bd"
-  fi
-  mkdir -p "$bd"
+  # Emscripten's own version is not in the fingerprint, but a change to it
+  # moves the emsdk path, which CMake notices by itself.
+  ensure_fresh_tree "$bd"
 
   log "Configuring the WebAssembly module"
   emcmake cmake -S "$REPO_ROOT" -B "$bd" \
@@ -698,6 +746,7 @@ main() {
 
   [ -n "$JOBS" ] || JOBS="$(nproc)"
   [ -n "$VERSION" ] || VERSION="$(read_version)"
+  TOOLCHAIN_FINGERPRINT="$(toolchain_fingerprint)"
 
   mkdir -p "$OUT_DIR" "$BUILD_ROOT"
   rm -f "$PACKAGE_LIST"
@@ -710,6 +759,7 @@ main() {
   echo "  jobs:     $JOBS"
   echo "  build:    $BUILD_ROOT"
   echo "  output:   $OUT_DIR"
+  echo "  toolchain: $TOOLCHAIN_FINGERPRINT"
 
   # Called plainly rather than from an `if`, so errexit stays live inside the
   # target and the first real error is the one reported. See run_target.
