@@ -146,9 +146,6 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       },
     );
     if (accepted != true) return false;
-    // tr is only read for the fallbacks above; keep the analyzer happy about
-    // the unused local when every string resolves.
-    assert(tr == null || tr.cancel.isNotEmpty);
     return true;
   }
 
