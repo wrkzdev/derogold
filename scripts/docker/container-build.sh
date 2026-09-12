@@ -202,6 +202,12 @@ cap_tool_parallelism() {
 org.gradle.workers.max=$JOBS
 org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g -XX:+HeapDumpOnOutOfMemoryError
 kotlin.daemon.jvmargs=-Xmx2g
+# flutter build does not pass --stacktrace through, and without it Gradle
+# reports only the outermost exception - "A failure occurred while executing
+# ...PackageAndroidArtifact\$IncrementalSplitterRunnable" - with the actual
+# cause left out. This is the same switch as a property, so every failure
+# lands in the log with its "Caused by:" lines.
+org.gradle.logging.stacktrace=all
 GRADLEPROPS
       ;;
   esac
