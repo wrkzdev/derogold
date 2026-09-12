@@ -1,0 +1,189 @@
+#!/usr/bin/env bash
+#
+# Build libucontext for Android, one static library per ABI.
+#
+#   bash scripts/build-libucontext-android.sh [abi ...]
+#
+# Why this exists
+# ---------------
+# The wallet's fibre dispatcher (src/platform/linux/system/) is built on
+# getcontext/setcontext/makecontext/swapcontext. glibc has them; bionic does
+# not, and never has - they were left out of Android's libc deliberately. So
+# on Android they have to come from somewhere else, and libucontext is that
+# somewhere: a small implementation of exactly those four functions.
+#
+# The result is what the CMake option LIBUCONTEXT_ROOT points at. Each ABI gets
+# its own root, because a static library is per-architecture:
+#
+#   <prefix>/arm64-v8a/{include,lib/libucontext.a}
+#   <prefix>/armeabi-v7a/{include,lib/libucontext.a}
+#   <prefix>/x86_64/{include,lib/libucontext.a}
+#
+# and a wallet build for one ABI is configured with
+#
+#   -D DEROGOLD_ANDROID_PROFILE=ON
+#   -D LIBUCONTEXT_ROOT=<prefix>/arm64-v8a
+#
+# Environment
+# -----------
+#   ANDROID_NDK_HOME   the NDK (required; ANDROID_NDK_ROOT also accepted)
+#   PREFIX             where to install    (default: build-android/libucontext)
+#   LIBUCONTEXT_VERSION  tag to build      (default: 1.2)
+#   API                Android API level   (default: 21)
+#   JOBS               parallel make jobs  (default: nproc)
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+NDK="${ANDROID_NDK_HOME:-${ANDROID_NDK_ROOT:-}}"
+PREFIX="${PREFIX:-$REPO_ROOT/build-android/libucontext}"
+LIBUCONTEXT_VERSION="${LIBUCONTEXT_VERSION:-1.2}"
+API="${API:-21}"
+JOBS="${JOBS:-$(nproc)}"
+
+die() { printf 'error: %s\n' "$*" >&2; exit 1; }
+log() { printf '\n==> %s\n' "$*"; }
+
+[ -n "$NDK" ] || die "set ANDROID_NDK_HOME to the Android NDK"
+[ -d "$NDK" ] || die "ANDROID_NDK_HOME does not exist: $NDK"
+
+TOOLCHAIN="$NDK/toolchains/llvm/prebuilt/linux-x86_64"
+[ -d "$TOOLCHAIN" ] || die "no linux-x86_64 LLVM toolchain under $NDK"
+
+# The ABIs to build, as <android-abi>:<libucontext-arch>:<clang-triple>.
+#
+# libucontext's own architecture names are not Android's: it calls arm64
+# "aarch64" and 32-bit arm "arm". The clang wrapper in the NDK is named after
+# the triple plus the API level.
+ALL_ABIS=(
+  "arm64-v8a:aarch64:aarch64-linux-android"
+  "armeabi-v7a:arm:armv7a-linux-androideabi"
+  "x86_64:x86_64:x86_64-linux-android"
+)
+
+select_abis() {
+  local requested=("$@") out=() want entry
+  if [ "${#requested[@]}" -eq 0 ]; then
+    printf '%s\n' "${ALL_ABIS[@]}"
+    return 0
+  fi
+  for want in "${requested[@]}"; do
+    local found=0
+    for entry in "${ALL_ABIS[@]}"; do
+      if [ "${entry%%:*}" = "$want" ]; then
+        out+=("$entry")
+        found=1
+        break
+      fi
+    done
+    [ "$found" = "1" ] || die "unknown ABI: $want (known: arm64-v8a armeabi-v7a x86_64)"
+  done
+  printf '%s\n' "${out[@]}"
+}
+
+SRC_DIR="$PREFIX/src/libucontext-$LIBUCONTEXT_VERSION"
+
+fetch_source() {
+  if [ -d "$SRC_DIR" ]; then
+    log "Source already present: $SRC_DIR"
+    return 0
+  fi
+
+  log "Fetching libucontext $LIBUCONTEXT_VERSION"
+  mkdir -p "$PREFIX/src"
+
+  local tarball="$PREFIX/src/libucontext-$LIBUCONTEXT_VERSION.tar.gz"
+
+  # The GitHub mirror of the upstream repository at git.sr.ht.
+  curl -fsSL -o "$tarball" \
+    "https://github.com/kaniini/libucontext/archive/refs/tags/libucontext-$LIBUCONTEXT_VERSION.tar.gz"
+
+  tar -C "$PREFIX/src" -xzf "$tarball"
+
+  # The tarball unpacks as libucontext-libucontext-<version>.
+  local unpacked="$PREFIX/src/libucontext-libucontext-$LIBUCONTEXT_VERSION"
+  [ -d "$unpacked" ] || die "unexpected archive layout under $PREFIX/src"
+  mv "$unpacked" "$SRC_DIR"
+
+  rm -f "$tarball"
+}
+
+build_abi() {
+  local abi="$1" arch="$2" triple="$3"
+  local out="$PREFIX/$abi"
+  local cc="$TOOLCHAIN/bin/${triple}${API}-clang"
+  local ar="$TOOLCHAIN/bin/llvm-ar"
+
+  [ -x "$cc" ] || die "no compiler for $abi at API $API: $cc"
+
+  log "Building libucontext for $abi (arch=$arch, API=$API)"
+
+  # Out-of-tree builds are not supported, so each ABI gets its own copy of the
+  # source rather than a shared tree that would carry the last ABI's objects.
+  local work="$PREFIX/work/$abi"
+  rm -rf "$work"
+  mkdir -p "$(dirname "$work")"
+  cp -a "$SRC_DIR" "$work"
+
+  make -C "$work" -j"$JOBS" \
+    ARCH="$arch" \
+    CC="$cc" \
+    AR="$ar" \
+    libucontext.a
+
+  local lib
+  lib="$(find "$work" -name 'libucontext.a' -print -quit)"
+  [ -n "$lib" ] || die "libucontext.a was not produced for $abi"
+
+  rm -rf "$out"
+  mkdir -p "$out/lib" "$out/include"
+  cp "$lib" "$out/lib/libucontext.a"
+  cp -r "$work/include/." "$out/include/"
+
+  # The wallet includes <ucontext.h> and expects the ordinary names. Upstream
+  # installs libucontext.h with ucontext.h as a compatibility header; make sure
+  # one of them is there rather than discovering it at link time.
+  if [ ! -f "$out/include/ucontext.h" ] && [ -f "$out/include/libucontext.h" ]; then
+    cat > "$out/include/ucontext.h" <<'HEADER'
+/* Generated by scripts/build-libucontext-android.sh.
+   bionic has no <ucontext.h>; this points at libucontext's implementation so
+   the fibre dispatcher can include it under the name it expects. */
+#pragma once
+#include <libucontext.h>
+HEADER
+  fi
+
+  rm -rf "$work"
+
+  echo "  -> $out/lib/libucontext.a"
+  "$TOOLCHAIN/bin/llvm-nm" "$out/lib/libucontext.a" 2>/dev/null \
+    | grep -qE '\b(T|t) _?(makecontext|swapcontext)' \
+    || die "$abi: libucontext.a does not define makecontext/swapcontext"
+}
+
+main() {
+  local selected
+  mapfile -t selected < <(select_abis "$@")
+
+  echo "libucontext $LIBUCONTEXT_VERSION for Android API $API"
+  echo "  NDK:    $NDK"
+  echo "  prefix: $PREFIX"
+  echo "  ABIs:   $(printf '%s ' "${selected[@]%%:*}")"
+
+  fetch_source
+
+  local entry abi arch triple
+  for entry in "${selected[@]}"; do
+    abi="${entry%%:*}"
+    arch="$(printf '%s' "$entry" | cut -d: -f2)"
+    triple="$(printf '%s' "$entry" | cut -d: -f3)"
+    build_abi "$abi" "$arch" "$triple"
+  done
+
+  log "Done. Configure a wallet build for one ABI with:"
+  echo "  -D DEROGOLD_ANDROID_PROFILE=ON -D LIBUCONTEXT_ROOT=$PREFIX/<abi>"
+}
+
+main "$@"

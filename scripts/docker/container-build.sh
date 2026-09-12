@@ -325,6 +325,289 @@ build_linux_arm64() {
 }
 
 # ---------------------------------------------------------------------------
+# App targets: the GUI wallet, the web wallet, the Android wallet
+#
+# Each of these is two builds - the wallet library with CMake, then the Flutter
+# app that loads it - so they do not go through configure_and_build's
+# executable-shaped assumptions.
+# ---------------------------------------------------------------------------
+
+# flutter_prepare <app-dir>: fail early and clearly if the app is not here.
+flutter_prepare() {
+  local app="$1" what="$2"
+  [ -d "$app" ] || die "$what is not in this checkout ($app)"
+  command -v flutter >/dev/null 2>&1 \
+    || die "flutter not found; this target needs the app toolchains in the builder image"
+  log "flutter pub get in $app"
+  (cd "$app" && flutter pub get)
+}
+
+# Flutter writes into the app directory, which is the bind-mounted repository.
+# Clearing it on CLEAN=1 keeps a stale bundle from being packaged as if it were
+# this build's output.
+flutter_clean() {
+  local app="$1"
+  if [ "$CLEAN" = "1" ] && [ -d "$app/build" ]; then
+    log "CLEAN=1: removing $app/build"
+    rm -rf "$app/build"
+  fi
+}
+
+build_gui() {
+  local app="$REPO_ROOT/extras/desktop-wallet"
+  local bd="$BUILD_ROOT/gui-linux-x86_64"
+  local name="derogold-gui-linux-x86_64-$VERSION"
+
+  flutter_prepare "$app" "the desktop wallet"
+  flutter_clean "$app"
+
+  # The wallet library the app loads over FFI. No executables: this build is
+  # the shared library and nothing else.
+  log "Building libwallet_capi.so"
+  configure_and_build "$bd" \
+    -D DEROGOLD_BUILD_EXECUTABLES=OFF \
+    -D DEROGOLD_BUILD_WALLET_CAPI=ON \
+    -D ARCH=default \
+    -D SET_COMMIT_ID_IN_VERSION=OFF
+
+  local lib="$bd/src/libwallet_capi.so"
+  [ -f "$lib" ] || die "libwallet_capi.so was not produced at $lib"
+
+  log "Building the Flutter Linux bundle"
+  (cd "$app" && flutter build linux --release)
+
+  local bundle="$app/build/linux/x64/release/bundle"
+  [ -d "$bundle" ] || die "no Flutter bundle at $bundle"
+
+  # wallet_ffi.dart calls DynamicLibrary.open('libwallet_capi.so') with no
+  # path, so the loader has to find it: a Flutter bundle is linked with an
+  # RPATH of $ORIGIN/lib, which is what makes this the right place.
+  install -m 755 "$lib" "$bundle/lib/libwallet_capi.so"
+
+  local stage
+  stage="$(stage_dir "$name")"
+  cp -a "$bundle/." "$stage/"
+  cp "$REPO_ROOT/LICENSE" "$stage/LICENSE"
+
+  log "Verifying the GUI bundle"
+  [ -f "$stage/lib/libwallet_capi.so" ] || die "libwallet_capi.so is missing from the bundle"
+  file "$stage/lib/libwallet_capi.so"
+  # The executable's name comes from linux/CMakeLists.txt in the app.
+  [ -x "$stage/derogold_wallet" ] || die "the bundle has no derogold_wallet executable"
+
+  make_tarball "$name"
+}
+
+build_web() {
+  local app="$REPO_ROOT/extras/web-wallet"
+  local js="$REPO_ROOT/extras/web-wallet-wasm/wasm/js"
+  local bd="$BUILD_ROOT/web-wasm"
+  local name="derogold-web-wallet-$VERSION"
+
+  flutter_prepare "$app" "the web wallet"
+  flutter_clean "$app"
+
+  [ -n "${EMSDK_ENV:-}" ] && [ -f "$EMSDK_ENV" ] \
+    || die "no Emscripten SDK (EMSDK_ENV); this target needs the app toolchains in the builder image"
+
+  # emsdk_env.sh sets EM_CONFIG and the cache location as well as PATH, so it
+  # has to be sourced rather than just put on PATH. It is noisy and it is not
+  # written to survive `set -u`.
+  log "Activating Emscripten"
+  set +u
+  # shellcheck disable=SC1090
+  . "$EMSDK_ENV"
+  set -u
+  command -v emcmake >/dev/null 2>&1 || die "emcmake not on PATH after sourcing $EMSDK_ENV"
+  emcc --version | head -1
+
+  if [ "$CLEAN" = "1" ] && [ -d "$bd" ]; then
+    log "CLEAN=1: removing $bd"
+    rm -rf "$bd"
+  fi
+  mkdir -p "$bd"
+
+  log "Configuring the WebAssembly module"
+  emcmake cmake -S "$REPO_ROOT" -B "$bd" \
+    -G "$GENERATOR" \
+    -D CMAKE_BUILD_TYPE="$BUILD_TYPE" \
+    -D DEROGOLD_BUILD_WALLET_WASM=ON \
+    -D DEROGOLD_WASM_PTHREADS=ON \
+    -D SET_COMMIT_ID_IN_VERSION=OFF
+
+  log "Building the WebAssembly module with $JOBS jobs"
+  cmake --build "$bd" --target wallet_wasm --parallel "$JOBS"
+
+  local glue="$bd/src/wallet_wasm.js"
+  local wasm="$bd/src/wallet_wasm.wasm"
+  [ -f "$glue" ] || die "wallet_wasm.js was not produced at $glue"
+  [ -f "$wasm" ] || die "wallet_wasm.wasm was not produced at $wasm"
+
+  log "Staging the module and the bridge into $app/web"
+  install -m 644 "$glue" "$app/web/wallet_wasm.js"
+  install -m 644 "$wasm" "$app/web/wallet_wasm.wasm"
+  # Some Emscripten versions emit a separate pthread worker script beside the
+  # glue; newer ones inline it. Copy it when it is there.
+  if [ -f "$bd/src/wallet_wasm.worker.js" ]; then
+    install -m 644 "$bd/src/wallet_wasm.worker.js" "$app/web/wallet_wasm.worker.js"
+  fi
+  install -m 644 "$js/wallet_bridge.js" "$js/wallet_storage.js" "$js/wallet_worker.js" "$app/web/"
+
+  log "Building the Flutter web bundle"
+  (cd "$app" && flutter build web --release)
+
+  local out="$app/build/web"
+  [ -d "$out" ] || die "no Flutter web bundle at $out"
+
+  local stage f
+  stage="$(stage_dir "$name")"
+  cp -a "$out/." "$stage/"
+  cp "$REPO_ROOT/LICENSE" "$stage/LICENSE"
+
+  log "Verifying the web bundle"
+  for f in index.html wallet_wasm.js wallet_wasm.wasm wallet_bridge.js wallet_worker.js wallet_storage.js; do
+    [ -f "$stage/$f" ] || die "the web bundle is missing $f"
+  done
+  ls -l "$stage/wallet_wasm.wasm"
+
+  # The page is served, not opened from disk, and it needs cross-origin
+  # isolation for SharedArrayBuffer. Ship the reason with the files rather than
+  # leaving it in a README nobody unpacks.
+  cat > "$stage/SERVING.txt" <<'SERVING'
+DeroGold Web Wallet
+===================
+
+This wallet is built with threads, so the browser will only run it on a
+cross-origin isolated page. Serve these files over HTTPS with both of:
+
+    Cross-Origin-Opener-Policy: same-origin
+    Cross-Origin-Embedder-Policy: require-corp
+
+Without them the wallet refuses to start and says so. nginx:
+
+    location / {
+        add_header Cross-Origin-Opener-Policy   same-origin;
+        add_header Cross-Origin-Embedder-Policy require-corp;
+        try_files $uri $uri/ /index.html;
+    }
+
+Serve .wasm as application/wasm. The wallet keeps its wallet files in the
+browser's IndexedDB for this origin: clearing site data deletes them, so keep
+the mnemonic seed somewhere else.
+SERVING
+
+  make_tarball "$name"
+}
+
+# Which Android ABIs to build the wallet library for, and what to ask Gradle
+# for. Overridable: ANDROID_ABIS="arm64-v8a" halves the build when testing.
+ANDROID_ABIS="${ANDROID_ABIS:-arm64-v8a armeabi-v7a x86_64}"
+MOBILE_MODES="${MOBILE_MODES:-release debug}"
+MOBILE_FORMATS="${MOBILE_FORMATS:-apk aab}"
+ANDROID_API="${ANDROID_API:-21}"
+
+build_android() {
+  local app="$REPO_ROOT/extras/mobile-wallet"
+  local name="derogold-android-$VERSION"
+  local libdir="$DEROGOLD_LIBUCONTEXT_DIR"
+
+  flutter_prepare "$app" "the mobile wallet"
+  flutter_clean "$app"
+
+  [ -n "${ANDROID_NDK_HOME:-}" ] && [ -d "$ANDROID_NDK_HOME" ] \
+    || die "no Android NDK (ANDROID_NDK_HOME); this target needs the app toolchains in the builder image"
+  [ -n "${libdir:-}" ] && [ -d "$libdir" ] \
+    || die "no libucontext (DEROGOLD_LIBUCONTEXT_DIR); see scripts/build-libucontext-android.sh"
+
+  local toolchain="$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake"
+  [ -f "$toolchain" ] || die "no android.toolchain.cmake under $ANDROID_NDK_HOME"
+
+  # One wallet library per ABI, dropped where Gradle picks native libraries up.
+  local abi bd lib jni
+  for abi in $ANDROID_ABIS; do
+    bd="$BUILD_ROOT/android-$abi"
+    [ -f "$libdir/$abi/lib/libucontext.a" ] \
+      || die "no libucontext for $abi under $libdir"
+
+    log "Building libwallet_capi.so for $abi"
+    # DEROGOLD_ANDROID_PROFILE turns the executables off (they need RocksDB and
+    # a P2P stack that cannot cross-compile here) and leaves the wallet
+    # library. OpenSSL is skipped: the NDK ships none, so cpp-httplib builds
+    # without TLS and the wallet reaches its node over plain HTTP.
+    configure_and_build "$bd" \
+      -D CMAKE_TOOLCHAIN_FILE="$toolchain" \
+      -D ANDROID_ABI="$abi" \
+      -D ANDROID_PLATFORM="android-$ANDROID_API" \
+      -D DEROGOLD_ANDROID_PROFILE=ON \
+      -D DEROGOLD_BUILD_WALLET_CAPI=ON \
+      -D LIBUCONTEXT_ROOT="$libdir/$abi" \
+      -D SET_COMMIT_ID_IN_VERSION=OFF
+
+    lib="$bd/src/libwallet_capi.so"
+    [ -f "$lib" ] || die "libwallet_capi.so was not produced for $abi at $lib"
+
+    jni="$app/android/app/src/main/jniLibs/$abi"
+    mkdir -p "$jni"
+    install -m 644 "$lib" "$jni/libwallet_capi.so"
+    echo "  -> $jni/libwallet_capi.so"
+  done
+
+  local stage
+  stage="$(stage_dir "$name")"
+
+  # Gradle task names: assembleRelease/assembleDebug for an APK,
+  # bundleRelease/bundleDebug for an AAB - which Flutter spells as
+  # `flutter build apk|appbundle --release|--debug`.
+  local mode fmt built=0
+  for mode in $MOBILE_MODES; do
+    for fmt in $MOBILE_FORMATS; do
+      case "$fmt" in
+        apk) log "Building the Android APK ($mode)"; (cd "$app" && flutter build apk "--$mode") ;;
+        aab) log "Building the Android App Bundle ($mode)"; (cd "$app" && flutter build appbundle "--$mode") ;;
+        *) die "unknown mobile format: $fmt (apk aab)" ;;
+      esac
+
+      # Flutter's output paths differ by format and by mode.
+      local src dest
+      if [ "$fmt" = "apk" ]; then
+        src="$app/build/app/outputs/flutter-apk/app-$mode.apk"
+        dest="derogold-wallet-$VERSION-$mode.apk"
+      else
+        src="$app/build/app/outputs/bundle/$mode/app-$mode.aab"
+        dest="derogold-wallet-$VERSION-$mode.aab"
+      fi
+
+      [ -f "$src" ] || die "expected $fmt at $src but it is not there"
+      install -m 644 "$src" "$stage/$dest"
+      echo "  -> $dest  ($(stat -c %s "$src") bytes)"
+      built=$((built + 1))
+    done
+  done
+
+  [ "$built" -gt 0 ] || die "no Android artifacts were built (MOBILE_MODES/MOBILE_FORMATS are empty)"
+
+  cp "$REPO_ROOT/LICENSE" "$stage/LICENSE"
+
+  cat > "$stage/README.txt" <<READMETXT
+DeroGold Wallet for Android
+===========================
+
+  *-release.apk   install directly on a device
+  *-release.aab   upload to Google Play
+  *-debug.*       debuggable build, for testing only
+
+The release builds here are signed with the debug key unless a release
+keystore was configured, which means Play will not accept the .aab as-is and
+an upgrade over a differently-signed install will fail. See
+extras/mobile-wallet/README.md for how to point the build at a real keystore.
+
+Native ABIs in these packages: $ANDROID_ABIS
+READMETXT
+
+  make_tarball "$name"
+}
+
+# ---------------------------------------------------------------------------
 # Driver
 # ---------------------------------------------------------------------------
 
@@ -347,8 +630,13 @@ main() {
 
   for t in "${requested[@]}"; do
     case "$t" in
-      all) targets+=(linux linux-arm64 windows) ;;
-      linux|linux-arm64|windows) targets+=("$t") ;;
+      # The CLI packages first: they are the fastest and the most likely to
+      # catch a source problem, so a full run fails early rather than after
+      # twenty minutes of Gradle.
+      all) targets+=(linux linux-arm64 windows gui web android) ;;
+      cli) targets+=(linux linux-arm64 windows) ;;
+      apps) targets+=(gui web android) ;;
+      linux|linux-arm64|windows|gui|web|android) targets+=("$t") ;;
       *) die "unknown target: $t" ;;
     esac
   done

@@ -5,6 +5,18 @@ build-*/
 builds/
 dist/
 
+# Flutter writes into the app directories, and the web target stages the
+# built WebAssembly module into extras/web-wallet/web/ before packaging.
+extras/*/build/
+extras/*/.dart_tool/
+extras/*/android/app/src/main/jniLibs/
+extras/web-wallet/web/wallet_wasm.js
+extras/web-wallet/web/wallet_wasm.wasm
+extras/web-wallet/web/wallet_wasm.worker.js
+extras/web-wallet/web/wallet_bridge.js
+extras/web-wallet/web/wallet_storage.js
+extras/web-wallet/web/wallet_worker.js
+
 # Left over from the old vcpkg-based build. Nothing references it any more,
 # so the directory can be deleted.
 vcpkg/

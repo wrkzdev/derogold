@@ -9,13 +9,22 @@
 # This is scripts/docker/build.sh with OUT_DIR pointed at dist/ and every
 # target selected, which is the combination a release needs:
 #
-#   dist/derogold-cli-linux-x86_64-<version>.tar.gz
-#   dist/derogold-cli-linux-arm64-<version>.tar.gz
-#   dist/derogold-cli-windows-x86_64-<version>.zip
+#   dist/derogold-cli-linux-x86_64-<version>.tar.gz     daemon + CLI wallet
+#   dist/derogold-cli-linux-arm64-<version>.tar.gz      daemon + CLI wallet
+#   dist/derogold-cli-windows-x86_64-<version>.zip      daemon + CLI wallet
+#   dist/derogold-gui-linux-x86_64-<version>.tar.gz     DeroGold GUI Wallet
+#   dist/derogold-web-wallet-<version>.tar.gz           DeroGold Web Wallet
+#   dist/derogold-android-<version>.tar.gz              APK + AAB, release and debug
 #   dist/SHA256SUMS-<version>.txt
 #
-# Android and macOS are not built: both are blocked in the source rather than
-# in the image. See "Other platforms" in scripts/docker/README.md.
+# Subsets, when the whole set is more than you want:
+#
+#   bash scripts/docker/dist.sh cli     # the three command line packages
+#   bash scripts/docker/dist.sh apps    # gui, web and android
+#
+# macOS is not built: this image has no macOS cross-toolchain, and Apple's SDK
+# cannot be redistributed in one. See "Other platforms" in
+# scripts/docker/README.md.
 #
 # Every environment variable build.sh understands works here too - JOBS,
 # VERSION, CLEAN, KEEP_GOING, IMAGE, DOCKER and the rest - because this script

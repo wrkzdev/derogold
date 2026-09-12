@@ -40,7 +40,12 @@ Targets (default: all):
   linux        Linux x86_64, fully static     -> .tar.gz
   linux-arm64  Linux ARM64, fully static      -> .tar.gz
   windows      Windows x86_64, MinGW-w64      -> .zip
-  all          linux linux-arm64 windows
+  gui          DeroGold GUI Wallet, Linux     -> .tar.gz
+  web          DeroGold Web Wallet (WASM)     -> .tar.gz
+  android      Android APK + AAB, release and debug
+  cli          linux linux-arm64 windows
+  apps         gui web android
+  all          everything above
 
 Options:
   --shell        open an interactive shell in the builder image instead
@@ -61,11 +66,18 @@ Environment:
   DOCKER=podman          container CLI to use
   DOCKER_PLATFORM=...    image platform (default: linux/amd64)
 
-Not available yet: android and macos. WrkzCoin builds both from its image, but
-this tree has neither the Android support they need (bionic has no
-getcontext/swapcontext for the fibre dispatcher, so it wants a libucontext and
-a build option to go without OpenSSL) nor a macOS cross-toolchain. See
-"Other platforms" in scripts/docker/README.md.
+  ANDROID_ABIS="..."     ABIs for the wallet library
+                         (default: "arm64-v8a armeabi-v7a x86_64")
+  MOBILE_MODES="..."     Android build modes  (default: "release debug")
+  MOBILE_FORMATS="..."   Android formats      (default: "apk aab")
+
+Not available: macos. This image has no macOS cross-toolchain, and Apple's SDK
+cannot be redistributed in one. See "Other platforms" in
+scripts/docker/README.md.
+
+The gui, web and android targets need the app toolchains (Flutter, the Android
+SDK/NDK, Emscripten). They are in the image, which is why it is large; the cli
+targets do not use them.
 EOF
 }
 
@@ -76,9 +88,9 @@ while [ $# -gt 0 ]; do
     -h|--help) usage; exit 0 ;;
     --shell) MODE=shell ;;
     --image-only) MODE=image ;;
-    linux|linux-arm64|windows|all) TARGETS+=("$1") ;;
-    android|macos)
-      echo "The '$1' target is not supported in this tree yet; see 'Other platforms' in scripts/docker/README.md." >&2
+    linux|linux-arm64|windows|gui|web|android|cli|apps|all) TARGETS+=("$1") ;;
+    macos)
+      echo "The 'macos' target needs a macOS cross-toolchain this image does not carry; see 'Other platforms' in scripts/docker/README.md." >&2
       exit 2
       ;;
     *)
@@ -134,7 +146,7 @@ if [ "$NO_IMAGE_BUILD" != "1" ]; then
     $IMAGE_BUILD_ARGS \
     -t "$IMAGE" \
     -f "$(host_path "$SCRIPT_DIR/Dockerfile")" \
-    "$(host_path "$SCRIPT_DIR")"
+    "$(host_path "$SCRIPT_DIR/..")"
 fi
 
 if [ "$MODE" = "image" ]; then
@@ -166,6 +178,14 @@ RUN_ARGS=(
   -e GIT_CONFIG_KEY_0=safe.directory
   -e "GIT_CONFIG_VALUE_0=*"
 )
+
+# Only forwarded when the caller set them, so the defaults stay where they are
+# documented - in container-build.sh - rather than being duplicated here.
+for var in ANDROID_ABIS MOBILE_MODES MOBILE_FORMATS ANDROID_API BUILD_TYPE GENERATOR PKG_PREFIX; do
+  if [ -n "${!var:-}" ]; then
+    RUN_ARGS+=(-e "$var=${!var}")
+  fi
+done
 
 if [ "$MODE" = "shell" ]; then
   if [ "${#TTY_ARGS[@]}" -eq 0 ]; then

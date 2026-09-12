@@ -324,8 +324,12 @@ if(EMSCRIPTEN AND DEROGOLD_BUILD_WALLET_WASM)
         ${CMAKE_SOURCE_DIR}/include
         ${CMAKE_SOURCE_DIR}/extras/web-wallet-wasm/wasm/include)
 
+    # Emits wallet_wasm.js beside wallet_wasm.wasm. The name matters: the glue
+    # script asks for the .wasm by the name it was linked under, so the pair
+    # cannot be renamed afterwards, and extras/web-wallet/web/ loads exactly
+    # these two.
     set_target_properties(wallet_wasm PROPERTIES
-        OUTPUT_NAME "derogold_wallet"
+        OUTPUT_NAME "wallet_wasm"
         SUFFIX ".js")
 
     # MODULARIZE gives the page a factory to call rather than a module that
@@ -334,7 +338,11 @@ if(EMSCRIPTEN AND DEROGOLD_BUILD_WALLET_WASM)
     target_link_options(wallet_wasm PRIVATE
         -fexceptions
         "-sMODULARIZE=1"
-        "-sEXPORT_NAME=DeroGoldWallet"
+        # The module factory. Named ...Module to keep it distinct from the
+        # DeroGoldWallet object wallet_bridge.js installs on the page: one is
+        # the raw Emscripten module inside the worker, the other is the API the
+        # app calls.
+        "-sEXPORT_NAME=DeroGoldWalletModule"
         "-sENVIRONMENT=web,worker"
         "-sEXPORTED_FUNCTIONS=['_wallet_wasm_request','_malloc','_free']"
         "-sEXPORTED_RUNTIME_METHODS=['ccall','cwrap','UTF8ToString','stringToUTF8','lengthBytesUTF8','HEAP32','HEAPU8']"

@@ -7,11 +7,15 @@
 #   - the aarch64 cross toolchain + a static OpenSSL built for it
 #                                        -> Linux ARM64 (fully static)
 #
+# It also carries the toolchains the apps need - Flutter, the Android SDK/NDK
+# and Emscripten - for the GUI, Android and web targets.
+#
 # The repository is never copied into the image. build.sh bind-mounts it at run
 # time, so the image only changes when one of the pinned versions below does.
-# The build context is this directory:
+# The build context is scripts/, not scripts/docker/, because the image builds
+# libucontext during its own build and needs that script:
 #
-#   docker build -t derogold-builder -f scripts/docker/Dockerfile scripts/docker
+#   docker build -t derogold-builder -f scripts/docker/Dockerfile scripts
 #
 # Every ARG can be overridden with --build-arg (build.sh passes
 # IMAGE_BUILD_ARGS straight through).
@@ -134,6 +138,143 @@ RUN set -eux; \
     rm -rf /tmp/openssl-arm64; \
     test -f "${DEROGOLD_ARM64_PREFIX_DIR}/lib/libcrypto.a"; \
     test -f "${DEROGOLD_ARM64_PREFIX_DIR}/lib/libssl.a"
+
+# ===========================================================================
+# App toolchains: the GUI wallet, the web wallet and the Android wallet.
+#
+# These are much larger than everything above - together they roughly quadruple
+# the image - and none of them is needed to build the CLI packages. They are
+# here anyway, in one image, because the alternative is two images to keep in
+# step, and a release needs all of it.
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# Packages the three app toolchains need:
+#   - GTK, clang: Flutter's Linux desktop build
+#   - JDK: Gradle, for Android
+#   - the rest: what the SDKs and emsdk want at run time
+# ---------------------------------------------------------------------------
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      clang \
+      libgtk-3-dev \
+      liblzma-dev \
+      libglu1-mesa \
+      libstdc++-12-dev \
+      openjdk-17-jdk-headless \
+      lib32stdc++6 \
+      lib32z1 \
+      python3-pip \
+      wget \
+ && rm -rf /var/lib/apt/lists/*
+
+# Flutter and the Android SDK both run git inside directories this image owns
+# but the build does not: build.sh runs the container as the calling host user,
+# and git refuses to work in a tree owned by somebody else. Marking every path
+# safe is right for a throwaway builder image and wrong anywhere else.
+RUN git config --system --add safe.directory '*'
+
+# ---------------------------------------------------------------------------
+# Flutter. Cloned at a tag rather than unpacked from a tarball, because that is
+# how Flutter expects to live - it runs git on its own directory to work out
+# its version, and a tarball-installed SDK trips over that.
+#
+# 3.38.0 is the floor: extras/mobile-wallet/pubspec.yaml asks for
+# flutter >= 3.38.0 and a Dart SDK of ^3.10.7.
+# ---------------------------------------------------------------------------
+ARG FLUTTER_VERSION=3.38.0
+ENV FLUTTER_HOME=/opt/flutter
+ENV PATH="${FLUTTER_HOME}/bin:${FLUTTER_HOME}/bin/cache/dart-sdk/bin:${PATH}"
+RUN set -eux; \
+    git clone --depth 1 --branch "${FLUTTER_VERSION}" \
+      https://github.com/flutter/flutter.git "${FLUTTER_HOME}"; \
+    flutter --version; \
+    flutter config --no-analytics --enable-linux-desktop --enable-web; \
+    # Pull the build artifacts now so no build has to download them, and so a
+    # container with no network can still produce a package.
+    flutter precache --universal --linux --web; \
+    # The SDK caches into its own directory, and the build runs as an
+    # arbitrary uid.
+    chmod -R a+rwX "${FLUTTER_HOME}"
+
+# ---------------------------------------------------------------------------
+# Android SDK and NDK.
+#
+# The NDK is what cross-compiles libwallet_capi.so for each ABI; the SDK and
+# build-tools are what Gradle assembles the APK and AAB with.
+# ---------------------------------------------------------------------------
+ARG ANDROID_CMDLINE_TOOLS=11076708
+ARG ANDROID_PLATFORM_VERSION=35
+ARG ANDROID_BUILD_TOOLS=35.0.0
+ARG ANDROID_NDK_VERSION=26.3.11579264
+ENV ANDROID_SDK_ROOT=/opt/android-sdk \
+    ANDROID_HOME=/opt/android-sdk
+ENV ANDROID_NDK_HOME=${ANDROID_SDK_ROOT}/ndk/${ANDROID_NDK_VERSION}
+ENV PATH="${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin:${ANDROID_SDK_ROOT}/platform-tools:${PATH}"
+RUN set -eux; \
+    mkdir -p "${ANDROID_SDK_ROOT}/cmdline-tools"; \
+    cd /tmp; \
+    curl -fsSL -o tools.zip \
+      "https://dl.google.com/android/repository/commandlinetools-linux-${ANDROID_CMDLINE_TOOLS}_latest.zip"; \
+    unzip -q tools.zip -d "${ANDROID_SDK_ROOT}/cmdline-tools"; \
+    mv "${ANDROID_SDK_ROOT}/cmdline-tools/cmdline-tools" "${ANDROID_SDK_ROOT}/cmdline-tools/latest"; \
+    rm -f tools.zip; \
+    yes | sdkmanager --licenses >/dev/null; \
+    sdkmanager --install \
+      "platform-tools" \
+      "platforms;android-${ANDROID_PLATFORM_VERSION}" \
+      "build-tools;${ANDROID_BUILD_TOOLS}" \
+      "ndk;${ANDROID_NDK_VERSION}" >/dev/null; \
+    test -d "${ANDROID_NDK_HOME}"; \
+    chmod -R a+rwX "${ANDROID_SDK_ROOT}"
+
+# ---------------------------------------------------------------------------
+# libucontext, for Android only.
+#
+# bionic has no getcontext/setcontext/makecontext/swapcontext, which the fibre
+# dispatcher needs. Built once here, per ABI, rather than on every build; see
+# scripts/build-libucontext-android.sh, which this runs.
+# ---------------------------------------------------------------------------
+ARG LIBUCONTEXT_VERSION=1.2
+ARG ANDROID_API=21
+ENV DEROGOLD_LIBUCONTEXT_DIR=/opt/toolchain/android/libucontext
+COPY build-libucontext-android.sh /tmp/build-libucontext-android.sh
+RUN set -eux; \
+    PREFIX="${DEROGOLD_LIBUCONTEXT_DIR}" \
+    LIBUCONTEXT_VERSION="${LIBUCONTEXT_VERSION}" \
+    API="${ANDROID_API}" \
+    bash /tmp/build-libucontext-android.sh arm64-v8a armeabi-v7a x86_64; \
+    rm -f /tmp/build-libucontext-android.sh; \
+    test -f "${DEROGOLD_LIBUCONTEXT_DIR}/arm64-v8a/lib/libucontext.a"; \
+    chmod -R a+rwX "${DEROGOLD_LIBUCONTEXT_DIR}"
+
+# ---------------------------------------------------------------------------
+# Emscripten, for the web wallet's WebAssembly module.
+#
+# Pinned: the module is linked with pthreads and a raised stack, and the
+# meaning of those flags has moved between emsdk releases.
+# ---------------------------------------------------------------------------
+ARG EMSDK_VERSION=3.1.64
+ENV EMSDK=/opt/emsdk
+RUN set -eux; \
+    git clone --depth 1 https://github.com/emscripten-core/emsdk.git "${EMSDK}"; \
+    cd "${EMSDK}"; \
+    ./emsdk install "${EMSDK_VERSION}"; \
+    ./emsdk activate "${EMSDK_VERSION}"; \
+    chmod -R a+rwX "${EMSDK}"
+# Not put on PATH: emsdk wants to be sourced (it sets EM_CONFIG and the cache
+# location as well as PATH). container-build.sh sources emsdk_env.sh in the web
+# target only, so the other targets keep the plain host toolchain.
+ENV EMSDK_ENV="${EMSDK}/emsdk_env.sh"
+
+# The Emscripten cache lives inside the SDK and is written on first use, which
+# is a build running as an arbitrary uid. Warm it here so that write happens
+# while we are still root - and with pthreads, since that is what the wallet
+# module is built with and the threaded sysroot is compiled separately.
+RUN set -eux; \
+    . "${EMSDK_ENV}"; \
+    embuilder build libc libc++ libc++abi libemmalloc --pthreads || true; \
+    chmod -R a+rwX "${EMSDK}"
 
 # ---------------------------------------------------------------------------
 # Run-time layout. build.sh mounts the repo at /work, the build tree at /build
