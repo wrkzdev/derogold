@@ -19,6 +19,20 @@
 #include <ucontext.h>
 #include <unistd.h>
 
+#if defined(__ANDROID__) || defined(__BIONIC__)
+/* bionic declares ucontext_t but implements none of the ucontext API; these
+   come from libucontext, which an Android build links (see LIBUCONTEXT_ROOT in
+   CMakeLists.txt). Declared rather than included so the header is not needed
+   at compile time, only the symbols at link time. */
+extern "C"
+{
+    int getcontext(ucontext_t *ucp);
+    int setcontext(const ucontext_t *ucp);
+    void makecontext(ucontext_t *ucp, void (*func)(), int argc, ...);
+    int swapcontext(ucontext_t *oucp, const ucontext_t *ucp);
+}
+#endif
+
 namespace System
 {
     namespace

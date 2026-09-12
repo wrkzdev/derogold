@@ -19,6 +19,15 @@ file(GLOB_RECURSE Config CONFIGURE_DEPENDS config/*)
 list(FILTER Config EXCLUDE REGEX "[.](ico|in)$")
 file(GLOB_RECURSE Crypto CONFIGURE_DEPENDS crypto/*)
 file(GLOB_RECURSE CryptoNoteCore CONFIGURE_DEPENDS cryptonotecore/* CryptoNoteConfig.h)
+
+# RocksDBWrapper is the daemon's database adapter and the only thing in the
+# tree that includes <rocksdb/...>. A wallet-only build does not link RocksDB,
+# and on Android or Emscripten it is not there to compile against either, so
+# drop it from the library rather than compiling dead code that needs headers
+# this configuration never fetched.
+if(NOT DEROGOLD_BUILD_EXECUTABLES)
+    list(FILTER CryptoNoteCore EXCLUDE REGEX "RocksDBWrapper\\.(h|cpp)$")
+endif()
 file(GLOB_RECURSE CryptoNoteProtocol CONFIGURE_DEPENDS cryptonoteprotocol/*)
 file(GLOB_RECURSE CryptoTest CONFIGURE_DEPENDS cryptotest/*)
 file(GLOB_RECURSE Errors CONFIGURE_DEPENDS errors/*)
@@ -114,6 +123,30 @@ if(DEROGOLD_BUILD_EXECUTABLES)
     add_executable(zedwallet++ ${zedwallet++} ${ZED_WALLET_SOURCES_OS})
 endif()
 
+# bionic has no ucontext API. libucontext supplies getcontext, setcontext,
+# makecontext and swapcontext, which the fibre dispatcher in
+# platform/linux/system/ is built on; without it the link fails there and
+# nowhere else, which reads as a mystery.
+set(DEROGOLD_ANDROID_UCONTEXT_LIB "")
+
+if(ANDROID)
+    if(LIBUCONTEXT_ROOT AND EXISTS "${LIBUCONTEXT_ROOT}/lib/libucontext.a")
+        if(EXISTS "${LIBUCONTEXT_ROOT}/include")
+            target_include_directories(System PRIVATE "${LIBUCONTEXT_ROOT}/include")
+        endif()
+
+        target_link_libraries(System PUBLIC "${LIBUCONTEXT_ROOT}/lib/libucontext.a")
+        set(DEROGOLD_ANDROID_UCONTEXT_LIB "${LIBUCONTEXT_ROOT}/lib/libucontext.a")
+        message(STATUS "Android: linking libucontext from ${LIBUCONTEXT_ROOT}/lib/libucontext.a")
+    else()
+        message(FATAL_ERROR
+            "An Android build needs libucontext, which was not found at:\n"
+            "  ${LIBUCONTEXT_ROOT}/lib/libucontext.a\n"
+            "Build it with scripts/build-libucontext-android.sh and pass "
+            "-D LIBUCONTEXT_ROOT=<prefix>.")
+    endif()
+endif()
+
 if(MSVC OR MINGW)
     target_link_libraries(System ws2_32)
     target_link_libraries(P2P bcrypt)
@@ -147,11 +180,26 @@ target_link_libraries(CryptoNoteCore PUBLIC Common Crypto Http Logging P2P Rpc S
 # PRIVATE on purpose: only the daemon also includes RocksDBWrapper.h, and it
 # links RocksDB itself, so the C++20 requirement RocksDB carries stays with
 # this target instead of spreading across the whole project.
-target_link_libraries(CryptoNoteCore PRIVATE RocksDB::rocksdb)
+#
+# A wallet-only build has no RocksDB to link and no RocksDBWrapper compiled
+# into the library either - it is filtered out of the glob above - so the
+# whole dependency drops away. That is what lets the Android and WebAssembly
+# wallets build: RocksDB cross-compiles to neither.
+if(DEROGOLD_BUILD_EXECUTABLES)
+    target_link_libraries(CryptoNoteCore PRIVATE RocksDB::rocksdb)
+endif()
+
 target_link_libraries(Errors Crypto SubWallets Utilities)
 target_link_libraries(Logging Common)
 target_link_libraries(Mnemonics Errors)
-target_link_libraries(Nigel CryptoNoteCore Errors httplib::httplib OpenSSL::Crypto OpenSSL::SSL)
+target_link_libraries(Nigel CryptoNoteCore Errors httplib::httplib)
+
+# OpenSSL is absent from an Android wallet build by design; cpp-httplib then
+# compiles without TLS and every https:// address is refused rather than
+# silently downgraded.
+if(TARGET OpenSSL::SSL)
+    target_link_libraries(Nigel OpenSSL::Crypto OpenSSL::SSL)
+endif()
 target_link_libraries(NodeRpcProxy Rpc)
 target_link_libraries(P2P CryptoNoteCore Serialization System miniupnpc::miniupnpc)
 target_link_libraries(Rpc CryptoNoteCore P2P Utilities httplib::httplib rapidjson)
@@ -178,7 +226,18 @@ endif()
 if(DEROGOLD_BUILD_WALLET_CAPI)
     # PRIVATE: nothing linking the shared library should inherit these, the
     # whole point being that a caller sees the C header and nothing else.
-    target_link_libraries(wallet_capi PRIVATE WalletBackend OpenSSL::Crypto OpenSSL::SSL rapidjson)
+    target_link_libraries(wallet_capi PRIVATE WalletBackend rapidjson)
+
+    if(TARGET OpenSSL::SSL)
+        target_link_libraries(wallet_capi PRIVATE OpenSSL::Crypto OpenSSL::SSL)
+    endif()
+
+    # A shared library does not inherit symbols from a static archive the way
+    # an executable does, so libucontext has to be named here as well as on
+    # System, or the link fails on getcontext/swapcontext/makecontext.
+    if(ANDROID AND DEROGOLD_ANDROID_UCONTEXT_LIB)
+        target_link_libraries(wallet_capi PRIVATE "${DEROGOLD_ANDROID_UCONTEXT_LIB}")
+    endif()
 
     set_target_properties(wallet_capi PROPERTIES
         OUTPUT_NAME "wallet_capi"

@@ -32,7 +32,12 @@ namespace Logging
         }
     }
 
-#ifndef __linux__
+/* The branch below reaches into libstdc++'s own members (_M_tie, _M_streambuf
+   and the rest), so it is only usable where the standard library actually is
+   libstdc++. Android is Linux but ships libc++ with bionic, and so is any
+   musl-based toolchain - both define __linux__ and neither defines __GLIBC__,
+   which is what tells them apart. */
+#if !defined(__linux__) || defined(__ANDROID__) || !defined(__GLIBC__)
 
     LoggerMessage::LoggerMessage(LoggerMessage &&other):
         std::ostream(std::move(other)),

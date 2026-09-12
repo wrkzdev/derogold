@@ -49,6 +49,46 @@ option(DEROGOLD_BUILD_EXECUTABLES
 option(DEROGOLD_BUILD_WALLET_CAPI
     "Build the wallet C API shared library" OFF)
 
+# The WebAssembly build of the same wallet, for the browser wallet under
+# extras/web-wallet. Needs the Emscripten toolchain and the C API.
+option(DEROGOLD_BUILD_WALLET_WASM
+    "Build the wallet WASM module (Emscripten)" OFF)
+
+# Threads in the browser. The wallet synchroniser has no single-step mode, so
+# the background threads are what make a browser wallet sync at all - which is
+# why this defaults ON, and why the page has to be served with
+# Cross-Origin-Opener-Policy and Cross-Origin-Embedder-Policy.
+option(DEROGOLD_WASM_PTHREADS
+    "Build the WASM module with pthreads (required for syncing)" ON)
+
+# Android defaults: a wallet library and nothing else.
+option(DEROGOLD_ANDROID_PROFILE
+    "Apply Android build defaults (wallet library only)" OFF)
+
+# The NDK ships no OpenSSL. Without it cpp-httplib has no TLS, so the wallet
+# reaches its node over plain HTTP - which is what the mobile wallet does.
+option(DEROGOLD_ANDROID_DISABLE_OPENSSL
+    "Do not look for or link OpenSSL on Android" ON)
+
+# bionic has no getcontext/swapcontext/makecontext, which the fibre dispatcher
+# in src/platform/linux/system/ needs. Build them with
+# scripts/build-libucontext-android.sh and point this at the result.
+set(LIBUCONTEXT_ROOT "" CACHE PATH
+    "Root of a prebuilt libucontext for Android (expects include/ and lib/libucontext.a)")
+
+# Both wallet-only profiles turn the daemon and the CLI tools off: they need
+# RocksDB and a P2P stack that neither target can build.
+if(DEROGOLD_ANDROID_PROFILE)
+    message(STATUS "Android profile: building the wallet library only")
+    set(DEROGOLD_BUILD_EXECUTABLES OFF CACHE BOOL "Build the daemon and the command line tools" FORCE)
+endif()
+
+if(EMSCRIPTEN AND DEROGOLD_BUILD_WALLET_WASM)
+    message(STATUS "Emscripten WASM build: building the wallet library only")
+    set(DEROGOLD_BUILD_EXECUTABLES OFF CACHE BOOL "Build the daemon and the command line tools" FORCE)
+    set(DEROGOLD_BUILD_WALLET_CAPI ON CACHE BOOL "Build the wallet C API shared library" FORCE)
+endif()
+
 include(CTest)
 
 # Enable c11
@@ -189,6 +229,12 @@ elseif(MINGW)
 elseif(APPLE)
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/platform/osx)
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/platform/posix)
+elseif(ANDROID)
+    # Android runs the Linux (epoll/ucontext) implementation; what bionic does
+    # not provide is #ifdef'd there and supplied by libucontext.
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/platform/linux)
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/platform/posix)
+    add_compile_definitions(_GNU_SOURCE _XOPEN_SOURCE=700)
 else()
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/platform/linux)
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/platform/posix)
@@ -239,7 +285,10 @@ if(NOT MSVC)
         endif()
     endif()
 
-    if(NOT APPLE)
+    # Emscripten takes -pthread per target instead, and only when the WASM
+    # module is built with threads; passing it globally here would apply it to
+    # every object whether or not that build wants shared memory.
+    if(NOT APPLE AND NOT EMSCRIPTEN)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
     endif()
 
@@ -260,7 +309,10 @@ if(NOT MSVC)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${RELEASE_FLAGS}")
 
     # # Statically link our binaries
-    if(NOT APPLE)
+    #
+    # Not on Android, where the NDK's own static libc++ is selected by the
+    # toolchain file, and not under Emscripten, which has no such libraries.
+    if(NOT APPLE AND NOT ANDROID AND NOT EMSCRIPTEN)
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc -static-libstdc++")
     endif()
 endif()
@@ -289,10 +341,26 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake")
 
 include(DeroGoldDependencies)
 
-derogold_require_openssl()
+# The NDK ships no OpenSSL, so an Android wallet build goes without: cpp-httplib
+# then has no TLS and the wallet reaches its node over plain HTTP. Everywhere
+# else it is required.
+if(ANDROID AND DEROGOLD_ANDROID_DISABLE_OPENSSL)
+    message(STATUS "OpenSSL: skipped for this Android build")
+else()
+    derogold_require_openssl()
+endif()
+
 derogold_add_cryptopp()
 derogold_add_miniupnpc()
-derogold_require_rocksdb()
+
+# RocksDB is the daemon's database. Nothing in the wallet chain links it - see
+# the RocksDBWrapper filter in src/CMakeLists.txt - so a wallet-only build
+# skips the library and its configure step entirely. That is what makes an
+# Android or WebAssembly build possible at all: RocksDB does not cross-compile
+# to either.
+if(DEROGOLD_BUILD_EXECUTABLES)
+    derogold_require_rocksdb()
+endif()
 
 # So we can use std::string with rapidjson
 add_compile_definitions(RAPIDJSON_HAS_STDSTRING)
