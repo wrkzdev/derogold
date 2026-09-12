@@ -9,6 +9,7 @@
 #include "TransactionUtils.h"
 #include "common/CryptoNoteTools.h"
 #include <common/CheckDifficulty.h>
+#include <cryptonotecore/TransactionPoW.h>
 #include <walletbackend/Transfer.h>
 
 #include <optional>
@@ -378,7 +379,7 @@ namespace CryptoNote
     void TransactionImpl::generateTxProofOfWork()
     {
         checkIfSigning();
-        transaction.extra = SendTransaction::generateTransactionPoW(transaction, transaction.extra);
+        transaction.extra = CryptoNote::generateTransactionPoW(transaction, transaction.extra);
     }
 
     bool TransactionImpl::getExtraNonce(BinaryArray &nonce) const

@@ -38,6 +38,17 @@ project(DeroGold VERSION 1.0.1.0 HOMEPAGE_URL https://derogold.com LANGUAGES C C
 option(DEROGOLD_SYSTEM_ROCKSDB
     "Link the system RocksDB instead of building it from source" OFF)
 
+# The daemon and the CLI tools. Turned off when building only the wallet
+# library for an application to link, which needs none of them and would
+# otherwise pay for the whole daemon - RocksDB included - to be compiled.
+option(DEROGOLD_BUILD_EXECUTABLES
+    "Build the daemon and the command line tools" ON)
+
+# libwallet_capi, the C interface to the wallet backend that the Flutter
+# wallets under extras/ load through dart:ffi. See include/walletcapi.
+option(DEROGOLD_BUILD_WALLET_CAPI
+    "Build the wallet C API shared library" OFF)
+
 include(CTest)
 
 # Enable c11

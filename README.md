@@ -246,6 +246,23 @@ choose the height.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
+## Transaction PoW Server
+
+Every transaction carries a small proof of work, which a phone or a browser is
+slow to compute. `DeroGold-txpow-server` computes it for them: it sees only the
+unsigned transaction prefix, holds no keys, and hands back the 8 nonce bytes,
+which the wallet verifies before it signs.
+
+```bash
+./DeroGold-txpow-server --bind-ip 0.0.0.0 --bind-port 17870 --threads 8
+```
+
+The CLI wallets always compute their own proof of work. See
+**[TXPOWSERVER.md](TXPOWSERVER.md)** for the protocol, the flags, the nginx
+setup and what the server can and cannot see.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ## RPC over a Local Socket
 
 The daemon can serve its RPC on an AF_UNIX socket alongside the TCP port. What
