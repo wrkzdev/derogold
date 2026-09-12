@@ -1,0 +1,72 @@
+name: derogold_web_wallet
+description: "DeroGold Web Wallet — a DeroGold (DEGO) wallet that runs entirely in the browser, on WebAssembly"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.7
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Localization
+  flutter_localizations:
+    sdk: flutter
+
+  # State management
+  flutter_riverpod: ^2.6.1
+
+  # Navigation
+  go_router: ^14.8.1
+
+  # Preferences and the lock-screen password verifier. On the web this is
+  # localStorage behind WebCrypto; the wallet file itself lives in IndexedDB
+  # and is handled by web/wallet_storage.js, not by this.
+  flutter_secure_storage: ^9.2.4
+
+  # PBKDF2 for the lock-screen password verifier (core/auth/wallet_auth.dart)
+  crypto: ^3.0.6
+
+  # QR code display (pure Dart — works on the web)
+  qr_flutter: ^4.1.0
+
+  # Path utilities
+  path: ^1.9.1
+
+  # Icons
+  cupertino_icons: ^1.0.8
+
+  # URL launcher (links on the About screen)
+  url_launcher: ^6.3.1
+
+  # Intl (number/date formatting)
+  intl: ^0.20.2
+
+  # Typed DOM bindings: notifications, and the Blob + anchor dance that is the
+  # only way a page can hand the user a downloaded file.
+  web: ^1.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  generate: true
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+
+# ── The WebAssembly wallet module ─────────────────────────────────────────────
+#
+# `flutter build web` does not build it and does not fetch it. Before building,
+# the CMake `wallet_wasm` target's output must already be sitting in web/:
+#
+#   wallet_wasm.js          emscripten glue
+#   wallet_wasm.wasm        the module itself
+#   wallet_wasm.worker.js   the pthread worker bootstrap
+#
+# Everything in web/ is copied verbatim into build/web. See README.md.

@@ -662,13 +662,13 @@ class SVi extends S {
   String get twitterX => 'Twitter / X';
 
   @override
-  String get twitterXSubtitle => 'Theo dõi @wrkzcoin';
+  String get twitterXSubtitle => 'Theo dõi @DeroGold';
 
   @override
   String get website => 'Trang web';
 
   @override
-  String get websiteSubtitle => 'wrkz.work';
+  String get websiteSubtitle => 'derogold.com';
 
   @override
   String get license => 'Giấy phép';
@@ -703,7 +703,7 @@ class SVi extends S {
 
   @override
   String get invalidWrkzAddress =>
-      'Địa chỉ DEGO không hợp lệ. Phải có 98 (tiêu chuẩn), 120 (tích hợp ngắn), hoặc 186 (tích hợp dài) ký tự bắt đầu bằng \"Wrkz\".';
+      'Địa chỉ DeroGold không hợp lệ. Phải có 97 ký tự (tiêu chuẩn) hoặc 185 (tích hợp), bắt đầu bằng \"dg\".';
 
   @override
   String get save => 'Lưu';

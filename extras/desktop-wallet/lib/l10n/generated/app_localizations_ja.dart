@@ -648,13 +648,13 @@ class SJa extends S {
   String get twitterX => 'Twitter / X';
 
   @override
-  String get twitterXSubtitle => '@wrkzcoinをフォロー';
+  String get twitterXSubtitle => '@DeroGoldをフォロー';
 
   @override
   String get website => 'ウェブサイト';
 
   @override
-  String get websiteSubtitle => 'wrkz.work';
+  String get websiteSubtitle => 'derogold.com';
 
   @override
   String get license => 'ライセンス';
@@ -689,7 +689,7 @@ class SJa extends S {
 
   @override
   String get invalidWrkzAddress =>
-      '無効なDEGOアドレスです。「Wrkz」で始まる98文字（標準）、120文字（短縮統合）、または186文字（長形統合）である必要があります。';
+      '無効なDeroGoldアドレスです。「dg」で始まる97文字（標準）または185文字（統合）である必要があります。';
 
   @override
   String get save => '保存';

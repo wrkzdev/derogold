@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base href="$FLUTTER_BASE_HREF">
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="DeroGold Web Wallet — a DeroGold (DEGO) wallet that runs entirely in your browser.">
+
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="DeroGold Web Wallet">
+
+  <title>DeroGold Web Wallet</title>
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="manifest" href="manifest.json">
+
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; background: #0f1115; }
+    #coi-error {
+      display: none;
+      box-sizing: border-box;
+      max-width: 44rem;
+      margin: 0 auto;
+      padding: 2.5rem 1.25rem;
+      color: #e6e8ec;
+      font: 15px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+    #coi-error h1 { font-size: 1.25rem; margin: 0 0 .75rem; color: #ff6b6b; }
+    #coi-error code, #coi-error pre {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px;
+    }
+    #coi-error pre {
+      background: #191c22; border: 1px solid #2a2f39; border-radius: 8px;
+      padding: .85rem 1rem; overflow-x: auto;
+    }
+  </style>
+
+  <!--
+    ── Cross-origin isolation is not optional here ──────────────────────────
+
+    The wallet module (extras/web-wallet-wasm, built by the CMake `wallet_wasm`
+    target) is compiled WITH pthreads: its synchroniser runs on real threads
+    and there is no single-step mode to drive from a timer instead. Threads in
+    WebAssembly mean SharedArrayBuffer, and a browser only hands that to a page
+    that is cross-origin isolated.
+
+    That state cannot be asked for from inside the document — no <meta> tag
+    grants it. The SERVER has to send, on the HTML document itself:
+
+        Cross-Origin-Opener-Policy: same-origin
+        Cross-Origin-Embedder-Policy: require-corp
+
+    and every subresource has to be same-origin or carry
+    Cross-Origin-Resource-Policy. Without them `self.crossOriginIsolated` is
+    false, `new SharedArrayBuffer()` throws, and the module fails to start with
+    an error that reads like a missing file. The banner below says so plainly
+    rather than leaving a blank page. README.md has a worked nginx block.
+  -->
+  <script>
+    window.deroGoldCrossOriginIsolated = self.crossOriginIsolated === true;
+    if (!window.deroGoldCrossOriginIsolated) {
+      console.error(
+        'DeroGold Web Wallet: this page is not cross-origin isolated. The ' +
+        'server must send Cross-Origin-Opener-Policy: same-origin and ' +
+        'Cross-Origin-Embedder-Policy: require-corp, or the wallet module ' +
+        'cannot start its threads.');
+    }
+  </script>
+
+  <!--
+    The bridge installs `globalThis.DeroGoldWallet`, which is the whole surface
+    lib/core/ffi/wallet_web.dart talks to. It owns the Web Worker, which in
+    turn loads the emscripten module (wallet_wasm.js, wallet_wasm.wasm and, on
+    the Emscripten versions that still emit one, wallet_wasm.worker.js — all
+    produced by the CMake `wallet_wasm` target and copied into this folder)
+    and wallet_storage.js, the IndexedDB store the wallet file lives in.
+    Neither is listed here: the worker pulls them in with importScripts.
+
+    A classic script on purpose, not type="module". The bridge is written as
+    a plain IIFE that assigns the global, and a classic script runs during
+    parsing - so the global is there before flutter_bootstrap.js, which is
+    async, can start. A module would be deferred until after the document
+    parsed, which opens a window where Dart can call init() on something that
+    does not exist yet.
+  -->
+  <script src="wallet_bridge.js"></script>
+</head>
+<body>
+  <div id="coi-error">
+    <h1>This page is not cross-origin isolated</h1>
+    <p>
+      The DeroGold wallet syncs the chain on WebAssembly threads, which browsers
+      only allow on a cross-origin isolated page. The server hosting this page
+      is not sending the two headers that grant it:
+    </p>
+    <pre>Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Embedder-Policy: require-corp</pre>
+    <p>
+      Add them and reload — the wallet will not start without them. See
+      <code>README.md</code> in <code>extras/web-wallet</code> for a worked
+      nginx configuration.
+    </p>
+  </div>
+
+  <script>
+    if (!window.deroGoldCrossOriginIsolated) {
+      document.getElementById('coi-error').style.display = 'block';
+    }
+  </script>
+
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>

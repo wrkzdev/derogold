@@ -1,0 +1,544 @@
+{
+  "@@locale": "ja",
+  "appTitle": "DeroGold Web Wallet",
+  "tabOverview": "概要",
+  "tabReceive": "受取",
+  "tabTransfer": "送金",
+  "tabHistory": "履歴",
+  "tabAddressBook": "アドレス帳",
+  "tabSettings": "設定",
+  "tabAbout": "情報",
+  "lockWallet": "ウォレットをロック",
+  "send": "送金",
+  "receive": "受取",
+  "transfer": "送金",
+  "available": "利用可能",
+  "locked": "ロック中",
+  "total": "合計",
+  "availableBalance": "利用可能残高",
+  "lockedUnconfirmed": "ロック中（未確認）: {amount} {ticker}",
+  "@lockedUnconfirmed": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "ticker": {
+        "type": "String"
+      }
+    }
+  },
+  "totalBalance": "合計: {amount} {ticker}",
+  "@totalBalance": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "ticker": {
+        "type": "String"
+      }
+    }
+  },
+  "balanceIncompleteWhileSyncing": "同期中は残高が不完全な場合があります",
+  "errorPrefix": "エラー: {message}",
+  "@errorPrefix": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "network": "ネットワーク",
+  "syncStatus": "同期状態",
+  "synced": "同期完了",
+  "syncing": "同期中…",
+  "walletBlock": "ウォレットブロック",
+  "networkBlock": "ネットワークブロック",
+  "peers": "ピア",
+  "walletType": "ウォレットの種類",
+  "viewOnly": "閲覧専用",
+  "full": "フル",
+  "nodeConnectionIssue": "ノード接続の問題",
+  "switchNodeInSettings": "設定でノードを切り替える →",
+  "recentTransactions": "最近のトランザクション",
+  "viewAll": "すべて表示 →",
+  "noTransactionsYet": "トランザクションはまだありません",
+  "received": "受取済み",
+  "sent": "送金済み",
+  "syncingProgress": "同期中 {pct}%（ブロック {wallet} / {network}）",
+  "@syncingProgress": {
+    "placeholders": {
+      "pct": {
+        "type": "String"
+      },
+      "wallet": {
+        "type": "int"
+      },
+      "network": {
+        "type": "int"
+      }
+    }
+  },
+  "shareAddressSubtitle": "DEGOを受け取るためにアドレスを共有してください",
+  "yourAddress": "あなたのアドレス",
+  "generateIntegratedAddress": "統合アドレスを生成",
+  "integratedAddressDescription": "アドレスとペイメントIDを組み合わせます。ランダムボタンで新しいIDを生成するか、下に入力してください。",
+  "randomShort16": "ランダム短縮 (16)",
+  "randomLong64": "ランダム長形 (64)",
+  "customPaymentIdLabel": "カスタムペイメントID（16または64文字の16進数）",
+  "generate": "生成",
+  "integratedAddress": "統合アドレス",
+  "paymentIdShort": "短縮 (16)",
+  "paymentIdLong": "長形 (64)",
+  "paymentIdLabel": "ペイメントID · {label}",
+  "@paymentIdLabel": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "enterPaymentIdError": "ペイメントIDを入力してください（16または64文字の16進数）",
+  "paymentIdInvalidError": "ペイメントIDは16または64文字の16進数である必要があります",
+  "copyAddress": "アドレスをコピー",
+  "copyPaymentId": "ペイメントIDをコピー",
+  "copy": "コピー",
+  "copied": "コピーしました！",
+  "sendDegoToAny": "任意のアドレスにDEGOを送金",
+  "sweepAllDescription": "すべての資金をアドレスに送金します（UTXOを統合）",
+  "sweepAll": "全額スイープ",
+  "sweepWarning": "スイープはすべてのUTXOを1つの出力に統合します。入力が多すぎてトランザクションが失敗する場合に使用してください。",
+  "sweepAvailableBalance": "利用可能: {amount} {ticker}（手数料を差し引いた全残高が送金されます）",
+  "@sweepAvailableBalance": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "ticker": {
+        "type": "String"
+      }
+    }
+  },
+  "destinationAddress": "送金先アドレス",
+  "addressBook": "アドレス帳",
+  "sweepAllFunds": "全額スイープ",
+  "recipientAddress": "受取人アドレス",
+  "amount": "金額",
+  "paymentIdOptional": "ペイメントID（任意）",
+  "hexCharacters": "16または64文字の16進数",
+  "reviewTransaction": "トランザクションを確認",
+  "reviewAndConfirm": "確認して送金",
+  "to": "宛先",
+  "fee": "手数料",
+  "totalDeducted": "差し引き合計",
+  "paymentId": "ペイメントID",
+  "transactionsIrreversible": "トランザクションは取り消せません。送金前にアドレスを確認してください。",
+  "back": "戻る",
+  "confirmAndSend": "確認して送金",
+  "transactionSent": "送金完了！",
+  "transactionBroadcast": "トランザクションがネットワークにブロードキャストされました。",
+  "transactionHash": "トランザクションハッシュ",
+  "sendAnother": "もう一度送金",
+  "enterDestinationAddress": "送金先アドレスを入力してください",
+  "enterValidAmount": "有効な金額を入力してください",
+  "computingPow": "PoW計算中... {seconds}秒",
+  "@computingPow": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "stepFillDetails": "詳細を入力",
+  "stepReview": "確認",
+  "stepDone": "完了",
+  "sweepFailed": "スイープに失敗しました",
+  "addressBookTitle": "アドレス帳",
+  "transactionHistory": "トランザクション履歴",
+  "searchByHash": "ハッシュ、アドレス、ペイメントIDで検索…",
+  "all": "すべて",
+  "filterReceived": "受取済み",
+  "filterSent": "送金済み",
+  "refresh": "更新",
+  "noTransactionsFound": "トランザクションが見つかりません",
+  "confirmed": "確認済み",
+  "pending": "保留中",
+  "hash": "ハッシュ",
+  "address": "アドレス",
+  "block": "ブロック",
+  "showingRange": "{start}–{end} / {total} 件を表示中",
+  "@showingRange": {
+    "placeholders": {
+      "start": {
+        "type": "int"
+      },
+      "end": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "previous": "前へ",
+  "next": "次へ",
+  "walletLocked": "ウォレットはロックされています",
+  "enterPasswordToContinue": "続行するにはウォレットのパスワードを入力してください",
+  "password": "パスワード",
+  "incorrectPassword": "パスワードが正しくありません",
+  "unlock": "ロック解除",
+  "closeWalletInstead": "代わりにウォレットを閉じる",
+  "closeWallet": "ウォレットを閉じる",
+  "closeWalletDescription": "ウォレットを保存して閉じます。\n\nログイン画面に戻ります。",
+  "cancel": "キャンセル",
+  "welcomeToDeroGold": "DeroGold Web Wallet へようこそ",
+  "selectOptionToStart": "オプションを選択して開始してください",
+  "createNewWallet": "新しいウォレットを作成",
+  "openExistingWallet": "既存のウォレットを開く",
+  "importFromSeed": "シードフレーズからインポート",
+  "importFromKeys": "秘密鍵からインポート",
+  "openWallet": "ウォレットを開く",
+  "importFromSeedTitle": "シードからインポート",
+  "importFromKeysTitle": "鍵からインポート",
+  "saveWalletTo": "ウォレットの保存先",
+  "walletFile": "ウォレット名",
+  "walletPassword": "ウォレットパスワード",
+  "mnemonicSeedPhrase": "ニーモニックシードフレーズ",
+  "scanFromHeight": "スキャン開始ブロック高（0 = フルスキャン）",
+  "daemonHost": "デーモンホスト",
+  "port": "ポート",
+  "continueButton": "続行",
+  "browse": "参照…",
+  "backupWarning": "続行する前にウォレットをバックアップしてください。\nこれらの鍵は紛失すると復元できません。",
+  "yourWalletAddress": "あなたのウォレットアドレス",
+  "seedPhrase25Words": "シードフレーズ（25語）",
+  "privateViewKey": "秘密ビューキー",
+  "privateSpendKey": "秘密スペンドキー",
+  "seedBackupConfirm": "シードフレーズと秘密鍵を安全な場所に書き留めました。",
+  "backedUpContinue": "ウォレットをバックアップしました — 続行",
+  "settings": "設定",
+  "sectionDaemonNode": "デーモンノード",
+  "nodeDescription": "リモートのデーモンノードに接続します。変更はすぐに反映されます。",
+  "hostIpAddress": "ホスト / IPアドレス",
+  "ssl": "SSL",
+  "apply": "適用",
+  "nodeUpdatedSuccess": "ノードが正常に更新されました",
+  "nodeUnreachable": "現在のノードに接続できません。下に新しいノードアドレスを入力して「適用」をタップしてください。",
+  "sectionWallet": "ウォレット",
+  "saveWallet": "ウォレットを保存",
+  "saveWalletSubtitle": "現在の状態をブラウザーストレージに書き込みます",
+  "walletSaved": "ウォレットを保存しました",
+  "exportToJson": "JSONにエクスポート",
+  "exportToJsonSubtitle": "ウォレットデータを JSON ファイルとしてダウンロード",
+  "exportJsonTitle": "ウォレットJSONエクスポート",
+  "exportedTo": "{path} にエクスポートしました",
+  "@exportedTo": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFailed": "エクスポートに失敗しました: {error}",
+  "@exportFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "resetScanHeight": "スキャン高をリセット",
+  "resetScanHeightSubtitle": "指定したブロック高からブロックチェーンを再スキャン",
+  "resetScanHeightDescription": "再スキャンを開始するブロック高を入力してください。フルスキャンの場合は0を使用してください。",
+  "scanHeight": "スキャン高",
+  "reset": "リセット",
+  "autosave": "自動保存",
+  "autosaveSubtitle": "同期後と 5 分ごとにウォレットをブラウザーストレージへ保存します",
+  "scanCoinbaseTx": "コインベーストランザクションをスキャン",
+  "scanCoinbaseSubtitle": "同期時にマイナー報酬を含める（デフォルトではオフ）",
+  "sectionAppearance": "外観",
+  "theme": "テーマ",
+  "themeSubtitle": "アプリの配色を選択",
+  "themeSystem": "システム",
+  "themeLight": "ライト",
+  "themeDark": "ダーク",
+  "sectionNotifications": "通知",
+  "incomingTxAlerts": "入金トランザクションの通知",
+  "incomingTxAlertsSubtitle": "DEGO を受信したときにブラウザー通知を表示します",
+  "sectionDebugLogs": "デバッグとログ",
+  "logLevel": "ログレベル",
+  "logLevelSubtitle": "ウォレットライブラリの詳細度を制御",
+  "viewLogs": "ログを表示",
+  "viewLogsSubtitle": "ウォレットライブラリのリアルタイムログ出力",
+  "walletLogs": "ウォレットログ",
+  "logEntries": "{count} 件のエントリ",
+  "@logEntries": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "autoScroll": "自動スクロール",
+  "copyAll": "すべてコピー",
+  "clear": "クリア",
+  "close": "閉じる",
+  "noLogsYet": "ログはまだありません。出力を表示するにはログレベルを「無効」以上に設定してください。",
+  "logsCopied": "ログをクリップボードにコピーしました",
+  "sectionDangerZone": "危険ゾーン",
+  "deleteWalletData": "ウォレットデータを削除",
+  "deleteWalletDataSubtitle": "ウォレットをブラウザーストレージから完全に削除します",
+  "deleteWalletWarning": "このブラウザーのストレージからウォレットを完全に削除します。\n\n続行する前に、シードフレーズと秘密鍵をバックアップしてください。この操作は取り消せません。",
+  "iUnderstandContinue": "理解しました、続行します",
+  "finalConfirmation": "最終確認",
+  "typeDeleteToConfirm": "確認するにはDELETEと入力してください：",
+  "deleteHint": "DELETE",
+  "deletePermanently": "完全に削除",
+  "aboutTitle": "情報",
+  "versionInfo": "バージョン {version} — DEGO ウェブウォレット",
+  "@versionInfo": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "aboutDescription": "DeroGold Web Wallet は DeroGold（DEGO）の公式ブラウザウォレットです。DEGO は高速で軽量な CryptoNote ベースの暗号通貨です。\n\nFlutter で構築され、WebAssembly にコンパイルされた wallet_capi を使用しています。",
+  "github": "GitHub",
+  "githubSubtitle": "ソースコードとリリースを表示",
+  "discord": "Discord",
+  "discordSubtitle": "コミュニティに参加",
+  "twitterX": "Twitter / X",
+  "twitterXSubtitle": "@DeroGold をフォロー",
+  "website": "ウェブサイト",
+  "websiteSubtitle": "derogold.com",
+  "license": "ライセンス",
+  "licenseText": "GNU General Public License v3.0 の下で公開されています。\n自己責任でご利用ください。シードフレーズは必ずバックアップしてください。",
+  "addButton": "追加",
+  "noSavedAddresses": "保存されたアドレスはありません",
+  "tapAddToSave": "「追加」をタップしてよく使うアドレスを保存してください。",
+  "addAddress": "アドレスを追加",
+  "nameLabel": "名前 / ラベル",
+  "addressLabel": "アドレス",
+  "noteOptional": "メモ（任意）",
+  "nameAndAddressRequired": "名前とアドレスは必須です",
+  "invalidDeroGoldAddress": "無効な DeroGold アドレスです。「dg」で始まる 97 文字（標準）または 185 文字（統合）である必要があります。",
+  "save": "保存",
+  "editEntry": "エントリを編集",
+  "deleteEntry": "エントリを削除",
+  "removeFromAddressBook": "「{name}」をアドレス帳から削除しますか？",
+  "@removeFromAddressBook": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "delete": "削除",
+  "edit": "編集",
+  "degoReceived": "DEGOを受信しました",
+  "youReceivedAmount": "{amount} を受信しました",
+  "@youReceivedAmount": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "show": "表示",
+  "exit": "終了",
+  "derogoldWallet": "DeroGold Web Wallet",
+  "language": "言語",
+  "selectLanguage": "言語を選択",
+  "chooseLanguage": "お好みの言語を選択してください",
+  "languageEn": "English",
+  "languageFr": "Français",
+  "languageDe": "Deutsch",
+  "languageZh": "中文",
+  "languageVi": "Tiếng Việt",
+  "languageJa": "日本語",
+  "languageEs": "Español",
+  "languagePt": "Português",
+  "languageRu": "Русский",
+  "deleteConfirmMismatch": "確認するにはDELETEと正確に入力してください。",
+  "unlockNeedsReopen": "このブラウザーではパスワードを確認できません。「代わりにウォレットを閉じる」を使い、ウォレットを開き直してください。",
+  "exportJsonWarningTitle": "暗号化されていないウォレットをエクスポートしますか？",
+  "exportJsonWarningBody": "エクスポートされたファイルには、プライベートビューキーとプライベートスペンドキーが平文で含まれます。読んだ人は誰でもあなたの資金を使えます。\n\n自分が管理する保存先にのみ保存し、用が済んだらすぐに削除してください。",
+  "passwordTooShort": "パスワードは{count}文字以上でなければなりません",
+  "ringSize": "リングサイズ",
+  "ringSizeReduced": "リングサイズが {actual} に縮小されました（通常は {normal}）。送金する金額に対して、チェーン上に完全なリングを構成するのに十分な出力がないため、この取引は通常よりも匿名性が低くなります。",
+  "liteNodeTitle": "ライトノード",
+  "liteNodeServesFrom": "このノードはブロック {height} 以降しか保持していません。それより前の取引はこのノードでは見つけられません。",
+  "@liteNodeServesFrom": {
+    "placeholders": {
+      "height": {
+        "type": "int"
+      }
+    }
+  },
+  "liteNodeMissesHistory": "このノードはブロック {nodeHeight} から始まりますが、このウォレットはブロック {walletHeight} から始まります。その間に受け取った分はここでは見えないため、表示される残高が実際より少ない可能性があります。チェーン全体を保持するノードに接続してください。",
+  "@liteNodeMissesHistory": {
+    "placeholders": {
+      "nodeHeight": {
+        "type": "int"
+      },
+      "walletHeight": {
+        "type": "int"
+      }
+    }
+  },
+  "liteNodeSyncStalled": "ブロック {wallet} で同期を停止しました。このノードはブロック {node} より下を保持していないため、その間のブロックを取得できません。チェーン全体を保持するノードに接続するまで残高は不完全です。",
+  "@liteNodeSyncStalled": {
+    "placeholders": {
+      "wallet": {
+        "type": "int"
+      },
+      "node": {
+        "type": "int"
+      }
+    }
+  },
+  "liteNodeRescanRefusedTitle": "このノードではそこまで遡って再スキャンできません",
+  "liteNodeRescanRefused": "接続中のノードはライトノードで、{height} より下のブロックデータを持っていません。それより低い位置から再スキャンすると、すでに見つかっている取引が失われ、ここでは二度と見つけられません。何も変更していません。",
+  "@liteNodeRescanRefused": {
+    "placeholders": {
+      "height": {
+        "type": "int"
+      }
+    }
+  },
+  "liteNodeRescanFromInstead": "代わりに {height} から再スキャン",
+  "@liteNodeRescanFromInstead": {
+    "placeholders": {
+      "height": {
+        "type": "int"
+      }
+    }
+  },
+  "liteNodeRescanHint": "接続中のノードはブロック {height} 以降からしか再スキャンできません。",
+  "@liteNodeRescanHint": {
+    "placeholders": {
+      "height": {
+        "type": "int"
+      }
+    }
+  },
+  "nodeServesFromLabel": "提供ブロック開始位置",
+  "nodeFullChain": "チェーン全体",
+  "sectionLocalNode": "ローカルライトノード",
+  "localNodeDescription": "このコンピューターでノードを動かし、リモートサーバーの代わりにそれと同期します。ライトノードはウォレットに必要なものだけを保存しますが、チェーン全体を一度はダウンロードします。",
+  "localNodeSetUp": "ローカルノードを設定",
+  "localNodeStart": "開始",
+  "localNodeStop": "停止",
+  "localNodeUse": "このノードを使う",
+  "localNodeDelete": "ノードデータを削除",
+  "localNodeStateStopped": "停止中",
+  "localNodeStateStarting": "起動中",
+  "localNodeStateSyncing": "同期中",
+  "localNodeStateReady": "同期済み",
+  "localNodeStateFailed": "失敗",
+  "localNodeProgress": "ブロック {height} / {network}",
+  "@localNodeProgress": {
+    "placeholders": {
+      "height": {
+        "type": "int"
+      },
+      "network": {
+        "type": "int"
+      }
+    }
+  },
+  "localNodePeers": "{count} ピア",
+  "@localNodePeers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "localNodeNotReadyYet": "ローカルノードはまだ追いついておらず、ウォレットに応答できません。バックグラウンドで同期を続けます。準備できるまでリモートノードを使い、その後で切り替えてください。",
+  "localNodeInUse": "ウォレットはこのノードに接続しています。",
+  "localNodeBinaryMissing": "{name} が見つかりません。デーモンの実行ファイルをウォレット実行ファイルの隣、または隣接する「sidecar」フォルダーに置いて、もう一度お試しください。",
+  "@localNodeBinaryMissing": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "localNodeSetupTitle": "ローカルライトノードを設定",
+  "localNodeSetupCost": "始める前に:\n• 約 6 GB のディスク容量が必要で、チェーン全体を一度ダウンロードします。\n• 初回同期には数時間かかります。バックグラウンドで続行し、その間はリモートノードを使えます。\n• 下の開始ブロック高は変更できません。後で変えるにはノードを削除し、最初から同期し直す必要があります。",
+  "localNodeStartHeightLabel": "開始ブロック高",
+  "localNodeStartHeightHelp": "この高さより下のブロックはダウンロードして検証したうえで、後続ブロックに必要なインデックスだけを残します。このウォレットの開始ブロック高 ({height}) 以下にしてください。",
+  "@localNodeStartHeightHelp": {
+    "placeholders": {
+      "height": {
+        "type": "int"
+      }
+    }
+  },
+  "localNodeStartHeightTooHigh": "このウォレットの開始ブロック高 ({height}) より高い値です。このノードでは古い取引を表示できなくなります。",
+  "@localNodeStartHeightTooHigh": {
+    "placeholders": {
+      "height": {
+        "type": "int"
+      }
+    }
+  },
+  "localNodeCreate": "ノードを作成",
+  "localNodeDeleteTitle": "ローカルノードのデータを削除しますか？",
+  "localNodeDeleteWarning": "ノードを停止し、そのブロックチェーンデータベースをディスクから完全に削除します。ウォレット、シード、資金には影響しませんが、新しいローカルノードは一からの同期になり数時間かかります。",
+  "localNodeDeleted": "ローカルノードを削除しました。",
+  "localNodeDiskUsage": "ディスク使用量 {size}",
+  "@localNodeDiskUsage": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "nodePresetRemote": "リモートノード",
+  "nodePresetLocal": "ローカルライトノード",
+  "savingWallet": "ウォレットを保存しています…",
+  "savingWalletBody": "DeroGold がウォレットをディスクに書き込んでいます。大きなウォレットでは少し時間がかかることがあります。",
+  "shutdownTakingLong": "予想より時間がかかっています。ここで終了すると今回の保存は失われます。ディスク上のウォレットファイルはそのままなので破損はしませんが、前回の保存以降の内容はなくなります。",
+  "quitAnyway": "強制終了",
+  "stillRunningInTray": "DeroGold は通知領域で実行中です。アイコンをクリックすると再表示できます。終了するにはアイコンを右クリックして「終了」を選択してください。",
+  "localNodeDataFolder": "データフォルダ",
+  "localNodeDataFolderHelp": "ここに約 6 GB が書き込まれます。空き容量のあるドライブを選んでください。",
+  "localNodeDataFolderInUse": "そのフォルダにはすでに他のファイルがあります。空のフォルダか新しいフォルダを選んでください。",
+  "localNodeStartHeightRequired": "完全なブロックを保持し始める高さを入力してください。0 より大きい必要があります。ライトノードはジェネシスブロックからは始められません。",
+  "nodeExitTitle": "ローカルノードはまだ実行中です",
+  "nodeExitBodySyncing": "初回同期がまだ終わっていません。数時間かかり、ノードが動いている間だけ進みます。ただし実行したままにすると、DeroGold を閉じた後もディスクとネットワークを使い続けます。",
+  "nodeExitBodySynced": "ネットワークに追いついています。実行したままにすればその状態を保てますが、DeroGold を閉じても CPU・帯域・ディスクを使います。停止すると次回に短い追いつきが必要です。",
+  "nodeExitKeep": "実行したままにする",
+  "nodeExitStop": "停止する",
+  "nodeExitChangeLater": "後から設定の「ローカルライトノード」で変更できます。",
+  "rememberMyChoice": "この選択を覚えておく",
+  "shutdownStoppingNode": "ローカルノードを停止しています…",
+  "shutdownStoppingNodeBody": "データベースを書き出させています。次回起動時に先行書き込みログを再生しなくて済みます。",
+  "nodeExitPolicyLabel": "ウォレットを閉じるとき",
+  "nodeExitPolicyAsk": "毎回尋ねる",
+  "nodeExitPolicyKeep": "ノードを実行したままにする",
+  "nodeExitPolicyStop": "ノードを停止する",
+  "localNodeStillRunningBody": "ローカルライトノードはバックグラウンドで実行中です。停止するには DeroGold を開いてください。",
+  "syncStoppedTitle": "同期を停止しました",
+  "syncGapStalled": "ブロック {covered} で同期が停止しました。接続先のノードはブロック {servesFrom} 以降しか応答しないため、その間のブロックを取得できません。全チェーンを保持するノードに接続するまで、残高は不完全です。",
+  "localNodeNotReadyTitle": "このノードはまだ使えません",
+  "localNodeNotReadyBody": "ローカルノードはまだネットワークより {behind} ブロック遅れています。今ウォレットをここに向けると、追いつくまで同期が止まり、未到達分を欠いた残高が表示されます——しかも理由は画面に出ません。リモートノードのままでも損はなく、ノードの同期はどちらでも続きます。",
+  "switchAnyway": "それでも切り替える",
+  "switchToRemoteNode": "リモートノードに切り替える",
+  "nodeWillServeFromLabel": "今後提供するブロックの開始位置",
+  "txPowServerSection": "トランザクション PoW サーバー",
+  "txPowServerUse": "外部 PoW サーバーを使用",
+  "txPowServerSubtitle": "トランザクションのプルーフ・オブ・ワークをこの端末で計算せず、サーバーに任せます。サーバーが応答しない場合は、この端末の CPU を使用します。",
+  "txPowServerSaved": "PoW サーバーの設定を保存しました",
+  "txPowServerInvalid": "有効なホストとポートを入力してください",
+  "txPowServerTest": "テスト",
+  "txPowServerTestOk": "サーバーに {ms} ms で接続できました: {threads} スレッド、キュー {queue}/{capacity} 使用中",
+  "txPowServerTestFailed": "サーバーに接続できません: {error}",
+  "nodeTest": "テスト",
+  "nodeInvalid": "有効なホストとポートを入力してください",
+  "nodeTestOk": "{ms} ms で接続できました: 高さ {height}、ピア {peers}",
+  "nodeTestSyncing": "{ms} ms で接続できましたが、ノードはまだ同期中です: 高さ {height}/{networkHeight}",
+  "nodeTestFailed": "ノードに接続できません: {error}"
+}

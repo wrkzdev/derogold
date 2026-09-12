@@ -645,13 +645,13 @@ class SZh extends S {
   String get twitterX => 'Twitter / X';
 
   @override
-  String get twitterXSubtitle => '关注 @wrkzcoin';
+  String get twitterXSubtitle => '关注 @DeroGold';
 
   @override
   String get website => '网站';
 
   @override
-  String get websiteSubtitle => 'wrkz.work';
+  String get websiteSubtitle => 'derogold.com';
 
   @override
   String get license => '许可证';
@@ -685,7 +685,7 @@ class SZh extends S {
 
   @override
   String get invalidWrkzAddress =>
-      '无效的 DEGO 地址。必须以 \"Wrkz\" 开头，长度为 98（标准）、120（短集成）或 186（长集成）个字符。';
+      '无效的 DeroGold 地址。必须为 97 个字符（标准）或 185 个字符（集成），并以 \"dg\" 开头。';
 
   @override
   String get save => '保存';

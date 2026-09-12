@@ -1,0 +1,544 @@
+{
+  "@@locale": "pt",
+  "appTitle": "DeroGold Web Wallet",
+  "tabOverview": "Visão Geral",
+  "tabReceive": "Receber",
+  "tabTransfer": "Transferir",
+  "tabHistory": "Histórico",
+  "tabAddressBook": "Agenda",
+  "tabSettings": "Configurações",
+  "tabAbout": "Sobre",
+  "lockWallet": "Bloquear Carteira",
+  "send": "Enviar",
+  "receive": "Receber",
+  "transfer": "Transferir",
+  "available": "Disponível",
+  "locked": "Bloqueado",
+  "total": "Total",
+  "availableBalance": "Saldo Disponível",
+  "lockedUnconfirmed": "Bloqueado (não confirmado): {amount} {ticker}",
+  "@lockedUnconfirmed": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "ticker": {
+        "type": "String"
+      }
+    }
+  },
+  "totalBalance": "Total: {amount} {ticker}",
+  "@totalBalance": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "ticker": {
+        "type": "String"
+      }
+    }
+  },
+  "balanceIncompleteWhileSyncing": "O saldo pode estar incompleto durante a sincronização",
+  "errorPrefix": "Erro: {message}",
+  "@errorPrefix": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "network": "Rede",
+  "syncStatus": "Status de sincronização",
+  "synced": "Sincronizado",
+  "syncing": "Sincronizando…",
+  "walletBlock": "Bloco da carteira",
+  "networkBlock": "Bloco da rede",
+  "peers": "Pares",
+  "walletType": "Tipo de carteira",
+  "viewOnly": "Somente leitura",
+  "full": "Completa",
+  "nodeConnectionIssue": "Problema de conexão com o nó",
+  "switchNodeInSettings": "Altere o nó em Configurações →",
+  "recentTransactions": "Transações Recentes",
+  "viewAll": "Ver tudo →",
+  "noTransactionsYet": "Nenhuma transação ainda",
+  "received": "Recebido",
+  "sent": "Enviado",
+  "syncingProgress": "Sincronizando {pct}% (bloco {wallet} / {network})",
+  "@syncingProgress": {
+    "placeholders": {
+      "pct": {
+        "type": "String"
+      },
+      "wallet": {
+        "type": "int"
+      },
+      "network": {
+        "type": "int"
+      }
+    }
+  },
+  "shareAddressSubtitle": "Compartilhe seu endereço para receber DEGO",
+  "yourAddress": "Seu Endereço",
+  "generateIntegratedAddress": "Gerar Endereço Integrado",
+  "integratedAddressDescription": "Combine seu endereço com um ID de pagamento. Use os botões aleatórios para um novo ID ou insira o seu abaixo.",
+  "randomShort16": "Aleatório Curto (16)",
+  "randomLong64": "Aleatório Longo (64)",
+  "customPaymentIdLabel": "ID de pagamento personalizado (16 ou 64 caracteres hex)",
+  "generate": "Gerar",
+  "integratedAddress": "Endereço Integrado",
+  "paymentIdShort": "Curto (16)",
+  "paymentIdLong": "Longo (64)",
+  "paymentIdLabel": "ID de Pagamento · {label}",
+  "@paymentIdLabel": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "enterPaymentIdError": "Insira um ID de pagamento (16 ou 64 caracteres hex)",
+  "paymentIdInvalidError": "O ID de pagamento deve ter 16 ou 64 caracteres hexadecimais",
+  "copyAddress": "Copiar endereço",
+  "copyPaymentId": "Copiar ID de pagamento",
+  "copy": "Copiar",
+  "copied": "Copiado!",
+  "sendDegoToAny": "Enviar DEGO para qualquer endereço",
+  "sweepAllDescription": "Enviar todos os fundos para um endereço (consolida UTXOs)",
+  "sweepAll": "Varrer tudo",
+  "sweepWarning": "Varrer consolida todos os UTXOs em uma única saída. Use quando as transações falharem devido a muitas entradas.",
+  "sweepAvailableBalance": "Disponível: {amount} {ticker} (todo o saldo será enviado menos a taxa)",
+  "@sweepAvailableBalance": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "ticker": {
+        "type": "String"
+      }
+    }
+  },
+  "destinationAddress": "Endereço de destino",
+  "addressBook": "Agenda de endereços",
+  "sweepAllFunds": "Varrer Todos os Fundos",
+  "recipientAddress": "Endereço do destinatário",
+  "amount": "Quantia",
+  "paymentIdOptional": "ID de pagamento (opcional)",
+  "hexCharacters": "16 ou 64 caracteres hexadecimais",
+  "reviewTransaction": "Revisar Transação",
+  "reviewAndConfirm": "Revisar e Confirmar",
+  "to": "Para",
+  "fee": "Taxa",
+  "totalDeducted": "Total deduzido",
+  "paymentId": "ID de Pagamento",
+  "transactionsIrreversible": "As transações são irreversíveis. Verifique o endereço antes de confirmar.",
+  "back": "Voltar",
+  "confirmAndSend": "Confirmar e Enviar",
+  "transactionSent": "Transação Enviada!",
+  "transactionBroadcast": "Sua transação foi transmitida para a rede.",
+  "transactionHash": "Hash da Transação",
+  "sendAnother": "Enviar Outra",
+  "enterDestinationAddress": "Insira um endereço de destino",
+  "enterValidAmount": "Insira uma quantia válida",
+  "computingPow": "Calculando PoW... {seconds}s",
+  "@computingPow": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "stepFillDetails": "Preencher Detalhes",
+  "stepReview": "Revisar",
+  "stepDone": "Concluído",
+  "sweepFailed": "Falha na varredura",
+  "addressBookTitle": "Agenda de Endereços",
+  "transactionHistory": "Histórico de Transações",
+  "searchByHash": "Pesquisar por hash, endereço ou ID de pagamento…",
+  "all": "Todos",
+  "filterReceived": "Recebidos",
+  "filterSent": "Enviados",
+  "refresh": "Atualizar",
+  "noTransactionsFound": "Nenhuma transação encontrada",
+  "confirmed": "Confirmada",
+  "pending": "Pendente",
+  "hash": "Hash",
+  "address": "Endereço",
+  "block": "Bloco",
+  "showingRange": "Mostrando {start}–{end} de {total}",
+  "@showingRange": {
+    "placeholders": {
+      "start": {
+        "type": "int"
+      },
+      "end": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "previous": "Anterior",
+  "next": "Próximo",
+  "walletLocked": "Carteira Bloqueada",
+  "enterPasswordToContinue": "Digite sua senha da carteira para continuar",
+  "password": "Senha",
+  "incorrectPassword": "Senha incorreta",
+  "unlock": "Desbloquear",
+  "closeWalletInstead": "Fechar a carteira em vez disso",
+  "closeWallet": "Fechar Carteira",
+  "closeWalletDescription": "Isso irá salvar e fechar a carteira.\n\nVocê será retornado à tela de login.",
+  "cancel": "Cancelar",
+  "welcomeToDeroGold": "Bem-vindo ao DeroGold Web Wallet",
+  "selectOptionToStart": "Selecione uma opção para começar",
+  "createNewWallet": "Criar Nova Carteira",
+  "openExistingWallet": "Abrir Carteira Existente",
+  "importFromSeed": "Importar da Frase Semente",
+  "importFromKeys": "Importar das Chaves Privadas",
+  "openWallet": "Abrir Carteira",
+  "importFromSeedTitle": "Importar da Semente",
+  "importFromKeysTitle": "Importar das Chaves",
+  "saveWalletTo": "Salvar carteira em",
+  "walletFile": "Nome da carteira",
+  "walletPassword": "Senha da carteira",
+  "mnemonicSeedPhrase": "Frase Semente Mnemônica",
+  "scanFromHeight": "Escanear a partir da altura (0 = escaneamento completo)",
+  "daemonHost": "Host do daemon",
+  "port": "Porta",
+  "continueButton": "Continuar",
+  "browse": "Procurar…",
+  "backupWarning": "Faça backup da sua carteira antes de continuar.\nEssas chaves não podem ser recuperadas se perdidas.",
+  "yourWalletAddress": "Seu Endereço da Carteira",
+  "seedPhrase25Words": "Frase Semente (25 palavras)",
+  "privateViewKey": "Chave Privada de Visualização",
+  "privateSpendKey": "Chave Privada de Gasto",
+  "seedBackupConfirm": "Eu anotei minha frase semente e chaves privadas em um local seguro.",
+  "backedUpContinue": "Fiz backup da minha carteira — Continuar",
+  "settings": "Configurações",
+  "sectionDaemonNode": "Nó do Daemon",
+  "nodeDescription": "Conecte-se a um nó daemon remoto. As alterações têm efeito imediato.",
+  "hostIpAddress": "Host / Endereço IP",
+  "ssl": "SSL",
+  "apply": "Aplicar",
+  "nodeUpdatedSuccess": "Nó atualizado com sucesso",
+  "nodeUnreachable": "Não é possível alcançar o nó atual. Insira um novo endereço de nó abaixo e toque em Aplicar.",
+  "sectionWallet": "Carteira",
+  "saveWallet": "Salvar Carteira",
+  "saveWalletSubtitle": "Gravar o estado atual no armazenamento do navegador",
+  "walletSaved": "Carteira salva",
+  "exportToJson": "Exportar para JSON",
+  "exportToJsonSubtitle": "Baixar os dados da carteira como arquivo JSON",
+  "exportJsonTitle": "Exportar JSON da carteira",
+  "exportedTo": "Exportado para {path}",
+  "@exportedTo": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFailed": "Falha na exportação: {error}",
+  "@exportFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "resetScanHeight": "Redefinir Altura de Escaneamento",
+  "resetScanHeightSubtitle": "Reescanear blockchain a partir de uma altura específica",
+  "resetScanHeightDescription": "Insira uma altura de bloco para reescanear. Use 0 para um escaneamento completo.",
+  "scanHeight": "Altura de escaneamento",
+  "reset": "Redefinir",
+  "autosave": "Salvamento automático",
+  "autosaveSubtitle": "Salvar a carteira no armazenamento do navegador após sincronizar e a cada 5 minutos",
+  "scanCoinbaseTx": "Escanear Transações Coinbase",
+  "scanCoinbaseSubtitle": "Incluir recompensas de mineração ao sincronizar (desativado por padrão)",
+  "sectionAppearance": "Aparência",
+  "theme": "Tema",
+  "themeSubtitle": "Escolha o esquema de cores do aplicativo",
+  "themeSystem": "Sistema",
+  "themeLight": "Claro",
+  "themeDark": "Escuro",
+  "sectionNotifications": "Notificações",
+  "incomingTxAlerts": "Alertas de Transações Recebidas",
+  "incomingTxAlertsSubtitle": "Mostrar uma notificação do navegador quando DEGO for recebido",
+  "sectionDebugLogs": "Depuração e Logs",
+  "logLevel": "Nível de Log",
+  "logLevelSubtitle": "Controla a verbosidade da biblioteca da carteira",
+  "viewLogs": "Ver Logs",
+  "viewLogsSubtitle": "Saída de log ao vivo da biblioteca da carteira",
+  "walletLogs": "Logs da Carteira",
+  "logEntries": "{count} entradas",
+  "@logEntries": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "autoScroll": "Rolagem automática",
+  "copyAll": "Copiar tudo",
+  "clear": "Limpar",
+  "close": "Fechar",
+  "noLogsYet": "Nenhum log ainda. Defina um nível de log acima de Desativado para ver a saída.",
+  "logsCopied": "Logs copiados para a área de transferência",
+  "sectionDangerZone": "Zona de Perigo",
+  "deleteWalletData": "Excluir Dados da Carteira",
+  "deleteWalletDataSubtitle": "Remover definitivamente a carteira do armazenamento do navegador",
+  "deleteWalletWarning": "Isto excluirá definitivamente a sua carteira do armazenamento deste navegador.\n\nCertifique-se de ter feito backup da frase semente e das chaves privadas antes de continuar. Esta ação não pode ser desfeita.",
+  "iUnderstandContinue": "Eu entendo, continuar",
+  "finalConfirmation": "Confirmação Final",
+  "typeDeleteToConfirm": "Digite DELETE para confirmar:",
+  "deleteHint": "DELETE",
+  "deletePermanently": "Excluir permanentemente",
+  "aboutTitle": "Sobre",
+  "versionInfo": "Versão {version} — Carteira web DEGO",
+  "@versionInfo": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "aboutDescription": "DeroGold Web Wallet é a carteira de navegador oficial do DeroGold (DEGO), uma criptomoeda rápida e leve baseada em CryptoNote.\n\nConstruída com Flutter, alimentada por wallet_capi compilado para WebAssembly.",
+  "github": "GitHub",
+  "githubSubtitle": "Ver código-fonte e lançamentos",
+  "discord": "Discord",
+  "discordSubtitle": "Junte-se à comunidade",
+  "twitterX": "Twitter / X",
+  "twitterXSubtitle": "Siga @DeroGold",
+  "website": "Site",
+  "websiteSubtitle": "derogold.com",
+  "license": "Licença",
+  "licenseText": "Lançado sob a Licença Pública Geral GNU v3.0.\nUse por sua própria conta e risco. Sempre faça backup da sua frase semente.",
+  "addButton": "Adicionar",
+  "noSavedAddresses": "Nenhum endereço salvo",
+  "tapAddToSave": "Toque em Adicionar para salvar um endereço usado frequentemente.",
+  "addAddress": "Adicionar Endereço",
+  "nameLabel": "Nome / rótulo",
+  "addressLabel": "Endereço",
+  "noteOptional": "Nota (opcional)",
+  "nameAndAddressRequired": "Nome e endereço são obrigatórios",
+  "invalidDeroGoldAddress": "Endereço DeroGold inválido. Deve ter 97 caracteres (padrão) ou 185 (integrado) e começar com \"dg\".",
+  "save": "Salvar",
+  "editEntry": "Editar Entrada",
+  "deleteEntry": "Excluir Entrada",
+  "removeFromAddressBook": "Remover \"{name}\" da sua agenda de endereços?",
+  "@removeFromAddressBook": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "delete": "Excluir",
+  "edit": "Editar",
+  "degoReceived": "DEGO Recebido",
+  "youReceivedAmount": "Você recebeu {amount}",
+  "@youReceivedAmount": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "show": "Mostrar",
+  "exit": "Sair",
+  "derogoldWallet": "DeroGold Web Wallet",
+  "language": "Idioma",
+  "selectLanguage": "Selecionar Idioma",
+  "chooseLanguage": "Escolha seu idioma preferido",
+  "languageEn": "English",
+  "languageFr": "Français",
+  "languageDe": "Deutsch",
+  "languageZh": "中文",
+  "languageVi": "Tiếng Việt",
+  "languageJa": "日本語",
+  "languageEs": "Español",
+  "languagePt": "Português",
+  "languageRu": "Русский",
+  "deleteConfirmMismatch": "Digite exatamente DELETE para confirmar.",
+  "unlockNeedsReopen": "Não é possível verificar a senha neste navegador. Use “Fechar a carteira” e abra-a novamente.",
+  "exportJsonWarningTitle": "Exportar a carteira não encriptada?",
+  "exportJsonWarningBody": "O ficheiro exportado contém a sua chave de visualização privada e as chaves de gasto privadas em texto simples. Quem o ler pode gastar os seus fundos.\n\nGuarde-o apenas em armazenamento que controla e elimine-o assim que terminar.",
+  "passwordTooShort": "A senha deve ter pelo menos {count} caracteres",
+  "ringSize": "Tamanho do anel",
+  "ringSizeReduced": "Tamanho do anel reduzido para {actual} (normalmente {normal}). Os valores enviados não têm saídas suficientes na cadeia para formar um anel completo, por isso esta transação é menos privada do que o habitual.",
+  "liteNodeTitle": "Nó leve",
+  "liteNodeServesFrom": "Este nó só guarda blocos a partir de {height}. Transações anteriores a esse bloco não podem ser encontradas através dele.",
+  "@liteNodeServesFrom": {
+    "placeholders": {
+      "height": {
+        "type": "int"
+      }
+    }
+  },
+  "liteNodeMissesHistory": "Este nó começa no bloco {nodeHeight}, mas esta carteira começa no bloco {walletHeight}. Tudo o que foi recebido entre os dois é invisível aqui, por isso o saldo apresentado pode estar baixo demais. Ligue-se a um nó com a cadeia completa para o ver.",
+  "@liteNodeMissesHistory": {
+    "placeholders": {
+      "nodeHeight": {
+        "type": "int"
+      },
+      "walletHeight": {
+        "type": "int"
+      }
+    }
+  },
+  "liteNodeSyncStalled": "Sincronização parada no bloco {wallet}. Este nó não guarda nada abaixo do bloco {node}, por isso os blocos intermédios não podem ser transferidos dele. O saldo fica incompleto até ligar um nó com a cadeia completa.",
+  "@liteNodeSyncStalled": {
+    "placeholders": {
+      "wallet": {
+        "type": "int"
+      },
+      "node": {
+        "type": "int"
+      }
+    }
+  },
+  "liteNodeRescanRefusedTitle": "Este nó não consegue reanalisar tão atrás",
+  "liteNodeRescanRefused": "O nó ligado é um nó leve sem dados de bloco abaixo de {height}. Reanalisar a partir de um ponto mais baixo descartaria transações que esta carteira já encontrou, sem forma de as recuperar aqui. Nada foi alterado.",
+  "@liteNodeRescanRefused": {
+    "placeholders": {
+      "height": {
+        "type": "int"
+      }
+    }
+  },
+  "liteNodeRescanFromInstead": "Reanalisar a partir de {height}",
+  "@liteNodeRescanFromInstead": {
+    "placeholders": {
+      "height": {
+        "type": "int"
+      }
+    }
+  },
+  "liteNodeRescanHint": "O nó ligado só pode reanalisar a partir do bloco {height} ou acima.",
+  "@liteNodeRescanHint": {
+    "placeholders": {
+      "height": {
+        "type": "int"
+      }
+    }
+  },
+  "nodeServesFromLabel": "Fornece blocos a partir de",
+  "nodeFullChain": "Cadeia completa",
+  "sectionLocalNode": "Nó leve local",
+  "localNodeDescription": "Execute um nó neste computador e sincronize com ele em vez de um servidor remoto. Um nó leve guarda apenas o que uma carteira precisa, mas ainda assim transfere a cadeia inteira uma vez.",
+  "localNodeSetUp": "Configurar nó local",
+  "localNodeStart": "Iniciar",
+  "localNodeStop": "Parar",
+  "localNodeUse": "Usar este nó",
+  "localNodeDelete": "Eliminar dados do nó",
+  "localNodeStateStopped": "Parado",
+  "localNodeStateStarting": "A iniciar",
+  "localNodeStateSyncing": "A sincronizar",
+  "localNodeStateReady": "Sincronizado",
+  "localNodeStateFailed": "Falhou",
+  "localNodeProgress": "Bloco {height} de {network}",
+  "@localNodeProgress": {
+    "placeholders": {
+      "height": {
+        "type": "int"
+      },
+      "network": {
+        "type": "int"
+      }
+    }
+  },
+  "localNodePeers": "{count} pares",
+  "@localNodePeers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "localNodeNotReadyYet": "O nó local ainda está a recuperar e não consegue servir a carteira. Continua a sincronizar em segundo plano — fique num nó remoto até estar pronto e depois mude.",
+  "localNodeInUse": "A carteira está ligada a este nó.",
+  "localNodeBinaryMissing": "{name} não foi encontrado. Coloque o binário do daemon junto ao executável da carteira, ou numa pasta \"sidecar\" ao lado, e tente novamente.",
+  "@localNodeBinaryMissing": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "localNodeSetupTitle": "Configurar um nó leve local",
+  "localNodeSetupCost": "Antes de começar:\n• Cerca de 6 GB de espaço em disco, e a cadeia inteira é transferida uma vez.\n• A primeira sincronização demora horas. Continua em segundo plano e pode usar um nó remoto entretanto.\n• A altura inicial abaixo é permanente. Alterá-la mais tarde implica eliminar o nó e sincronizar tudo de novo.",
+  "localNodeStartHeightLabel": "Altura inicial",
+  "localNodeStartHeightHelp": "Os blocos abaixo desta altura são transferidos e verificados, e só é guardado o índice de que os blocos seguintes precisam. Mantenha-a igual ou inferior à altura inicial desta carteira ({height}).",
+  "@localNodeStartHeightHelp": {
+    "placeholders": {
+      "height": {
+        "type": "int"
+      }
+    }
+  },
+  "localNodeStartHeightTooHigh": "Superior à altura inicial desta carteira ({height}). O nó nunca conseguiria mostrar as transações mais antigas desta carteira.",
+  "@localNodeStartHeightTooHigh": {
+    "placeholders": {
+      "height": {
+        "type": "int"
+      }
+    }
+  },
+  "localNodeCreate": "Criar nó",
+  "localNodeDeleteTitle": "Eliminar os dados do nó local?",
+  "localNodeDeleteWarning": "Isto para o nó e elimina permanentemente a sua base de dados da cadeia do disco. A carteira, a sua seed e os seus fundos não são afetados — mas um novo nó local voltará a sincronizar do zero, o que demora horas.",
+  "localNodeDeleted": "Nó local eliminado.",
+  "localNodeDiskUsage": "{size} em disco",
+  "@localNodeDiskUsage": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "nodePresetRemote": "Nó remoto",
+  "nodePresetLocal": "Nó leve local",
+  "savingWallet": "Salvando sua carteira…",
+  "savingWalletBody": "O DeroGold está gravando sua carteira no disco. Isso pode demorar um pouco em uma carteira grande.",
+  "shutdownTakingLong": "Está demorando mais do que o esperado. Sair agora perde este salvamento — o arquivo da carteira no disco fica como estava, então nada é danificado, mas tudo desde o último salvamento se perde.",
+  "quitAnyway": "Sair mesmo assim",
+  "stillRunningInTray": "O DeroGold continua rodando na bandeja do sistema. Clique no ícone para trazê-lo de volta, ou clique com o botão direito e escolha Sair.",
+  "localNodeDataFolder": "Pasta de dados",
+  "localNodeDataFolderHelp": "Cerca de 6 GB serão gravados aqui. Escolha um disco com espaço.",
+  "localNodeDataFolderInUse": "Essa pasta já contém outros arquivos. Escolha uma pasta vazia ou uma nova.",
+  "localNodeStartHeightRequired": "Informe a altura a partir da qual manter blocos completos. Precisa ser maior que zero — um nó lite não pode começar no bloco gênese.",
+  "nodeExitTitle": "O nó local ainda está rodando",
+  "nodeExitBodySyncing": "A primeira sincronização dele não terminou. Isso leva horas e só avança enquanto o nó está rodando — mas um nó deixado rodando continua usando o disco e a rede depois que o DeroGold fecha.",
+  "nodeExitBodySynced": "Ele está em dia com a rede. Deixá-lo rodando o mantém assim e continua usando CPU, banda e disco enquanto o DeroGold está fechado; pará-lo custa uma breve atualização na próxima vez.",
+  "nodeExitKeep": "Deixar rodando",
+  "nodeExitStop": "Parar",
+  "nodeExitChangeLater": "Pode ser alterado depois em Configurações, em Nó lite local.",
+  "rememberMyChoice": "Lembrar minha escolha",
+  "shutdownStoppingNode": "Parando o nó local…",
+  "shutdownStoppingNodeBody": "Deixando-o gravar o banco de dados, para o próximo início não ter de repetir o log de escrita.",
+  "nodeExitPolicyLabel": "Ao fechar a carteira",
+  "nodeExitPolicyAsk": "Perguntar",
+  "nodeExitPolicyKeep": "Deixar o nó rodando",
+  "nodeExitPolicyStop": "Parar o nó",
+  "localNodeStillRunningBody": "O nó lite local continua rodando em segundo plano. Abra o DeroGold para pará-lo.",
+  "syncStoppedTitle": "Sincronização parada",
+  "syncGapStalled": "Sincronização parada no bloco {covered}. O nó com que falava só responde a partir do bloco {servesFrom}, então os blocos intermediários não podem ser baixados dele. O saldo fica incompleto até você conectar um nó com a cadeia inteira.",
+  "localNodeNotReadyTitle": "Este nó não está pronto",
+  "localNodeNotReadyBody": "O nó local ainda está {behind} blocos atrás da rede. Apontar a carteira para ele agora faz a sincronização parar até ele alcançar, mostrando um saldo sem tudo o que ele ainda não alcançou — e sem nada na tela explicando. Ficar no nó remoto não custa nada; o nó continua sincronizando de qualquer forma.",
+  "switchAnyway": "Trocar mesmo assim",
+  "switchToRemoteNode": "Trocar para o nó remoto",
+  "nodeWillServeFromLabel": "Servirá blocos a partir de",
+  "txPowServerSection": "Servidor PoW de transações",
+  "txPowServerUse": "Usar um servidor PoW externo",
+  "txPowServerSubtitle": "Enviar a prova de trabalho da transação para um servidor em vez de calculá-la neste dispositivo. Se o servidor não responder, a CPU deste dispositivo é usada.",
+  "txPowServerSaved": "Configurações do servidor PoW salvas",
+  "txPowServerInvalid": "Informe um host e uma porta válidos",
+  "txPowServerTest": "Testar",
+  "txPowServerTestOk": "Servidor acessível em {ms} ms: {threads} threads, {queue} de {capacity} vagas da fila em uso",
+  "txPowServerTestFailed": "Servidor inacessível: {error}",
+  "nodeTest": "Testar",
+  "nodeInvalid": "Informe um host e uma porta válidos",
+  "nodeTestOk": "Acessível em {ms} ms: altura {height}, {peers} pares",
+  "nodeTestSyncing": "Acessível em {ms} ms, mas o nó ainda está sincronizando: altura {height} de {networkHeight}",
+  "nodeTestFailed": "Nó inacessível: {error}"
+}

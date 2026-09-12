@@ -669,13 +669,13 @@ class SEs extends S {
   String get twitterX => 'Twitter / X';
 
   @override
-  String get twitterXSubtitle => 'Seguir a @wrkzcoin';
+  String get twitterXSubtitle => 'Seguir a @DeroGold';
 
   @override
   String get website => 'Sitio web';
 
   @override
-  String get websiteSubtitle => 'wrkz.work';
+  String get websiteSubtitle => 'derogold.com';
 
   @override
   String get license => 'Licencia';
@@ -712,7 +712,7 @@ class SEs extends S {
 
   @override
   String get invalidWrkzAddress =>
-      'Dirección DEGO inválida. Debe tener 98 (estándar), 120 (integrada corta) o 186 (integrada larga) caracteres y comenzar con \"Wrkz\".';
+      'Dirección DeroGold inválida. Debe tener 97 caracteres (estándar) o 185 (integrada), comenzando con \"dg\".';
 
   @override
   String get save => 'Guardar';

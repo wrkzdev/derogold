@@ -1,0 +1,544 @@
+{
+  "@@locale": "de",
+  "appTitle": "DeroGold Web Wallet",
+  "tabOverview": "Übersicht",
+  "tabReceive": "Empfangen",
+  "tabTransfer": "Überweisen",
+  "tabHistory": "Verlauf",
+  "tabAddressBook": "Adressbuch",
+  "tabSettings": "Einstellungen",
+  "tabAbout": "Info",
+  "lockWallet": "Wallet sperren",
+  "send": "Senden",
+  "receive": "Empfangen",
+  "transfer": "Überweisen",
+  "available": "Verfügbar",
+  "locked": "Gesperrt",
+  "total": "Gesamt",
+  "availableBalance": "Verfügbares Guthaben",
+  "lockedUnconfirmed": "Gesperrt (unbestätigt): {amount} {ticker}",
+  "@lockedUnconfirmed": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "ticker": {
+        "type": "String"
+      }
+    }
+  },
+  "totalBalance": "Gesamt: {amount} {ticker}",
+  "@totalBalance": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "ticker": {
+        "type": "String"
+      }
+    }
+  },
+  "balanceIncompleteWhileSyncing": "Guthaben kann während der Synchronisierung unvollständig sein",
+  "errorPrefix": "Fehler: {message}",
+  "@errorPrefix": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "network": "Netzwerk",
+  "syncStatus": "Sync-Status",
+  "synced": "Synchronisiert",
+  "syncing": "Synchronisiere…",
+  "walletBlock": "Wallet-Block",
+  "networkBlock": "Netzwerk-Block",
+  "peers": "Peers",
+  "walletType": "Wallet-Typ",
+  "viewOnly": "Nur-Lesen",
+  "full": "Voll",
+  "nodeConnectionIssue": "Problem mit der Knotenverbindung",
+  "switchNodeInSettings": "Knoten in den Einstellungen wechseln →",
+  "recentTransactions": "Letzte Transaktionen",
+  "viewAll": "Alle anzeigen →",
+  "noTransactionsYet": "Noch keine Transaktionen",
+  "received": "Empfangen",
+  "sent": "Gesendet",
+  "syncingProgress": "Synchronisiere {pct}% (Block {wallet} / {network})",
+  "@syncingProgress": {
+    "placeholders": {
+      "pct": {
+        "type": "String"
+      },
+      "wallet": {
+        "type": "int"
+      },
+      "network": {
+        "type": "int"
+      }
+    }
+  },
+  "shareAddressSubtitle": "Teile deine Adresse, um DEGO zu empfangen",
+  "yourAddress": "Deine Adresse",
+  "generateIntegratedAddress": "Integrierte Adresse generieren",
+  "integratedAddressDescription": "Kombiniere deine Adresse mit einer Zahlungs-ID. Verwende die Zufallstasten für eine neue ID oder gib unten deine eigene ein.",
+  "randomShort16": "Zufällig kurz (16)",
+  "randomLong64": "Zufällig lang (64)",
+  "customPaymentIdLabel": "Benutzerdefinierte Zahlungs-ID (16 oder 64 Hex-Zeichen)",
+  "generate": "Generieren",
+  "integratedAddress": "Integrierte Adresse",
+  "paymentIdShort": "Kurz (16)",
+  "paymentIdLong": "Lang (64)",
+  "paymentIdLabel": "Zahlungs-ID · {label}",
+  "@paymentIdLabel": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "enterPaymentIdError": "Zahlungs-ID eingeben (16 oder 64 Hex-Zeichen)",
+  "paymentIdInvalidError": "Zahlungs-ID muss 16 oder 64 Hex-Zeichen lang sein",
+  "copyAddress": "Adresse kopieren",
+  "copyPaymentId": "Zahlungs-ID kopieren",
+  "copy": "Kopieren",
+  "copied": "Kopiert!",
+  "sendDegoToAny": "DEGO an eine beliebige Adresse senden",
+  "sweepAllDescription": "Alle Mittel an eine Adresse senden (konsolidiert UTXOs)",
+  "sweepAll": "Alles zusammenfassen",
+  "sweepWarning": "Zusammenfassen konsolidiert alle UTXOs in eine Ausgabe. Verwende dies, wenn Transaktionen wegen zu vieler Eingaben fehlschlagen.",
+  "sweepAvailableBalance": "Verfügbar: {amount} {ticker} (gesamtes Guthaben wird abzüglich Gebühr gesendet)",
+  "@sweepAvailableBalance": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "ticker": {
+        "type": "String"
+      }
+    }
+  },
+  "destinationAddress": "Zieladresse",
+  "addressBook": "Adressbuch",
+  "sweepAllFunds": "Alle Mittel zusammenfassen",
+  "recipientAddress": "Empfängeradresse",
+  "amount": "Betrag",
+  "paymentIdOptional": "Zahlungs-ID (optional)",
+  "hexCharacters": "16 oder 64 Hex-Zeichen",
+  "reviewTransaction": "Transaktion überprüfen",
+  "reviewAndConfirm": "Überprüfen & Bestätigen",
+  "to": "An",
+  "fee": "Gebühr",
+  "totalDeducted": "Gesamt abgezogen",
+  "paymentId": "Zahlungs-ID",
+  "transactionsIrreversible": "Transaktionen sind unwiderruflich. Überprüfe die Adresse vor der Bestätigung.",
+  "back": "Zurück",
+  "confirmAndSend": "Bestätigen & Senden",
+  "transactionSent": "Transaktion gesendet!",
+  "transactionBroadcast": "Deine Transaktion wurde an das Netzwerk gesendet.",
+  "transactionHash": "Transaktions-Hash",
+  "sendAnother": "Weitere senden",
+  "enterDestinationAddress": "Zieladresse eingeben",
+  "enterValidAmount": "Gültigen Betrag eingeben",
+  "computingPow": "Berechne PoW... {seconds}s",
+  "@computingPow": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "stepFillDetails": "Details ausfüllen",
+  "stepReview": "Überprüfen",
+  "stepDone": "Fertig",
+  "sweepFailed": "Zusammenfassung fehlgeschlagen",
+  "addressBookTitle": "Adressbuch",
+  "transactionHistory": "Transaktionsverlauf",
+  "searchByHash": "Nach Hash, Adresse oder Zahlungs-ID suchen…",
+  "all": "Alle",
+  "filterReceived": "Empfangen",
+  "filterSent": "Gesendet",
+  "refresh": "Aktualisieren",
+  "noTransactionsFound": "Keine Transaktionen gefunden",
+  "confirmed": "Bestätigt",
+  "pending": "Ausstehend",
+  "hash": "Hash",
+  "address": "Adresse",
+  "block": "Block",
+  "showingRange": "Zeige {start}–{end} von {total}",
+  "@showingRange": {
+    "placeholders": {
+      "start": {
+        "type": "int"
+      },
+      "end": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "previous": "Zurück",
+  "next": "Weiter",
+  "walletLocked": "Wallet gesperrt",
+  "enterPasswordToContinue": "Gib dein Wallet-Passwort ein, um fortzufahren",
+  "password": "Passwort",
+  "incorrectPassword": "Falsches Passwort",
+  "unlock": "Entsperren",
+  "closeWalletInstead": "Wallet stattdessen schließen",
+  "closeWallet": "Wallet schließen",
+  "closeWalletDescription": "Dies wird das Wallet speichern und schließen.\n\nDu wirst zum Anmeldebildschirm zurückkehren.",
+  "cancel": "Abbrechen",
+  "welcomeToDeroGold": "Willkommen bei DeroGold Web Wallet",
+  "selectOptionToStart": "Wähle eine Option, um loszulegen",
+  "createNewWallet": "Neues Wallet erstellen",
+  "openExistingWallet": "Vorhandenes Wallet öffnen",
+  "importFromSeed": "Aus Seed-Phrase importieren",
+  "importFromKeys": "Aus privaten Schlüsseln importieren",
+  "openWallet": "Wallet öffnen",
+  "importFromSeedTitle": "Aus Seed importieren",
+  "importFromKeysTitle": "Aus Schlüsseln importieren",
+  "saveWalletTo": "Wallet speichern unter",
+  "walletFile": "Wallet-Name",
+  "walletPassword": "Wallet-Passwort",
+  "mnemonicSeedPhrase": "Mnemonische Seed-Phrase",
+  "scanFromHeight": "Ab Höhe scannen (0 = vollständiger Scan)",
+  "daemonHost": "Daemon-Host",
+  "port": "Port",
+  "continueButton": "Weiter",
+  "browse": "Durchsuchen…",
+  "backupWarning": "Sichere dein Wallet, bevor du fortfährst.\nDiese Schlüssel können nicht wiederhergestellt werden, wenn sie verloren gehen.",
+  "yourWalletAddress": "Deine Wallet-Adresse",
+  "seedPhrase25Words": "Seed-Phrase (25 Wörter)",
+  "privateViewKey": "Privater View-Schlüssel",
+  "privateSpendKey": "Privater Spend-Schlüssel",
+  "seedBackupConfirm": "Ich habe meine Seed-Phrase und privaten Schlüssel an einem sicheren Ort aufgeschrieben.",
+  "backedUpContinue": "Ich habe mein Wallet gesichert — Weiter",
+  "settings": "Einstellungen",
+  "sectionDaemonNode": "Daemon-Knoten",
+  "nodeDescription": "Mit einem entfernten Daemon-Knoten verbinden. Änderungen werden sofort wirksam.",
+  "hostIpAddress": "Host / IP-Adresse",
+  "ssl": "SSL",
+  "apply": "Anwenden",
+  "nodeUpdatedSuccess": "Knoten erfolgreich aktualisiert",
+  "nodeUnreachable": "Der aktuelle Knoten ist nicht erreichbar. Gib unten eine neue Knotenadresse ein und tippe auf Anwenden.",
+  "sectionWallet": "Wallet",
+  "saveWallet": "Wallet speichern",
+  "saveWalletSubtitle": "Aktuellen Zustand in den Browser-Speicher schreiben",
+  "walletSaved": "Wallet gespeichert",
+  "exportToJson": "Als JSON exportieren",
+  "exportToJsonSubtitle": "Wallet-Daten als JSON-Datei herunterladen",
+  "exportJsonTitle": "Wallet-JSON exportieren",
+  "exportedTo": "Exportiert nach {path}",
+  "@exportedTo": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFailed": "Export fehlgeschlagen: {error}",
+  "@exportFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "resetScanHeight": "Scan-Höhe zurücksetzen",
+  "resetScanHeightSubtitle": "Blockchain ab einer bestimmten Höhe erneut scannen",
+  "resetScanHeightDescription": "Gib eine Blockhöhe ein, ab der erneut gescannt werden soll. Verwende 0 für einen vollständigen Scan.",
+  "scanHeight": "Scan-Höhe",
+  "reset": "Zurücksetzen",
+  "autosave": "Automatisches Speichern",
+  "autosaveSubtitle": "Wallet nach der Synchronisierung und alle 5 Minuten im Browser-Speicher sichern",
+  "scanCoinbaseTx": "Coinbase-Transaktionen scannen",
+  "scanCoinbaseSubtitle": "Miner-Belohnungen beim Synchronisieren einbeziehen (standardmäßig aus)",
+  "sectionAppearance": "Erscheinungsbild",
+  "theme": "Design",
+  "themeSubtitle": "Farbschema der App wählen",
+  "themeSystem": "System",
+  "themeLight": "Hell",
+  "themeDark": "Dunkel",
+  "sectionNotifications": "Benachrichtigungen",
+  "incomingTxAlerts": "Eingehende Transaktionsbenachrichtigungen",
+  "incomingTxAlertsSubtitle": "Eine Browser-Benachrichtigung anzeigen, wenn DEGO empfangen wird",
+  "sectionDebugLogs": "Debug & Protokolle",
+  "logLevel": "Protokollstufe",
+  "logLevelSubtitle": "Steuert die Ausführlichkeit der Wallet-Bibliothek",
+  "viewLogs": "Protokolle anzeigen",
+  "viewLogsSubtitle": "Live-Protokollausgabe der Wallet-Bibliothek",
+  "walletLogs": "Wallet-Protokolle",
+  "logEntries": "{count} Einträge",
+  "@logEntries": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "autoScroll": "Automatisch scrollen",
+  "copyAll": "Alles kopieren",
+  "clear": "Löschen",
+  "close": "Schließen",
+  "noLogsYet": "Noch keine Protokolle. Setze eine Protokollstufe über Deaktiviert, um die Ausgabe zu sehen.",
+  "logsCopied": "Protokolle in die Zwischenablage kopiert",
+  "sectionDangerZone": "Gefahrenzone",
+  "deleteWalletData": "Wallet-Daten löschen",
+  "deleteWalletDataSubtitle": "Das Wallet dauerhaft aus dem Browser-Speicher entfernen",
+  "deleteWalletWarning": "Dies löscht dein Wallet dauerhaft aus dem Speicher dieses Browsers.\n\nStelle sicher, dass du deine Seed-Phrase und privaten Schlüssel gesichert hast, bevor du fortfährst. Diese Aktion kann nicht rückgängig gemacht werden.",
+  "iUnderstandContinue": "Ich verstehe, fortfahren",
+  "finalConfirmation": "Letzte Bestätigung",
+  "typeDeleteToConfirm": "Gib DELETE ein, um zu bestätigen:",
+  "deleteHint": "DELETE",
+  "deletePermanently": "Dauerhaft löschen",
+  "aboutTitle": "Info",
+  "versionInfo": "Version {version} — DEGO Web-Wallet",
+  "@versionInfo": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "aboutDescription": "DeroGold Web Wallet ist das offizielle Browser-Wallet für DeroGold (DEGO), eine schnelle und leichtgewichtige CryptoNote-basierte Kryptowährung.\n\nErstellt mit Flutter, betrieben von wallet_capi als WebAssembly.",
+  "github": "GitHub",
+  "githubSubtitle": "Quellcode und Releases ansehen",
+  "discord": "Discord",
+  "discordSubtitle": "Der Community beitreten",
+  "twitterX": "Twitter / X",
+  "twitterXSubtitle": "@DeroGold folgen",
+  "website": "Webseite",
+  "websiteSubtitle": "derogold.com",
+  "license": "Lizenz",
+  "licenseText": "Veröffentlicht unter der GNU General Public License v3.0.\nVerwendung auf eigene Gefahr. Sichere immer deine Seed-Phrase.",
+  "addButton": "Hinzufügen",
+  "noSavedAddresses": "Keine gespeicherten Adressen",
+  "tapAddToSave": "Tippe auf Hinzufügen, um eine häufig verwendete Adresse zu speichern.",
+  "addAddress": "Adresse hinzufügen",
+  "nameLabel": "Name / Bezeichnung",
+  "addressLabel": "Adresse",
+  "noteOptional": "Notiz (optional)",
+  "nameAndAddressRequired": "Name und Adresse sind erforderlich",
+  "invalidDeroGoldAddress": "Ungültige DeroGold-Adresse. Muss 97 Zeichen (Standard) oder 185 (integriert) lang sein und mit \"dg\" beginnen.",
+  "save": "Speichern",
+  "editEntry": "Eintrag bearbeiten",
+  "deleteEntry": "Eintrag löschen",
+  "removeFromAddressBook": "\"{name}\" aus dem Adressbuch entfernen?",
+  "@removeFromAddressBook": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "delete": "Löschen",
+  "edit": "Bearbeiten",
+  "degoReceived": "DEGO empfangen",
+  "youReceivedAmount": "Du hast {amount} empfangen",
+  "@youReceivedAmount": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "show": "Anzeigen",
+  "exit": "Beenden",
+  "derogoldWallet": "DeroGold Web Wallet",
+  "language": "Sprache",
+  "selectLanguage": "Sprache auswählen",
+  "chooseLanguage": "Wähle deine bevorzugte Sprache",
+  "languageEn": "English",
+  "languageFr": "Français",
+  "languageDe": "Deutsch",
+  "languageZh": "中文",
+  "languageVi": "Tiếng Việt",
+  "languageJa": "日本語",
+  "languageEs": "Español",
+  "languagePt": "Português",
+  "languageRu": "Русский",
+  "deleteConfirmMismatch": "Geben Sie genau DELETE ein, um zu bestätigen.",
+  "unlockNeedsReopen": "Das Passwort kann in diesem Browser nicht überprüft werden. Verwende „Wallet stattdessen schließen“ und öffne das Wallet erneut.",
+  "exportJsonWarningTitle": "Unverschlüsselte Wallet exportieren?",
+  "exportJsonWarningBody": "Die exportierte Datei enthält Ihren privaten View-Key und Ihre privaten Spend-Keys im Klartext. Wer sie liest, kann Ihr Guthaben ausgeben.\n\nSpeichern Sie sie nur auf einem Datenträger, den Sie kontrollieren, und löschen Sie sie danach sofort.",
+  "passwordTooShort": "Das Passwort muss mindestens {count} Zeichen lang sein",
+  "ringSize": "Ringgröße",
+  "ringSizeReduced": "Ringgröße auf {actual} reduziert (normalerweise {normal}). Für die gesendeten Beträge gibt es in der Blockchain nicht genug Ausgänge für einen vollständigen Ring, daher ist diese Transaktion weniger privat als üblich.",
+  "liteNodeTitle": "Lite-Node",
+  "liteNodeServesFrom": "Dieser Node hält nur Blöcke ab {height}. Transaktionen vor diesem Block sind über ihn nicht auffindbar.",
+  "@liteNodeServesFrom": {
+    "placeholders": {
+      "height": {
+        "type": "int"
+      }
+    }
+  },
+  "liteNodeMissesHistory": "Dieser Node beginnt bei Block {nodeHeight}, diese Wallet aber bei Block {walletHeight}. Alles, was dazwischen empfangen wurde, ist hier unsichtbar, der angezeigte Kontostand kann also zu niedrig sein. Verbinde einen Node mit der vollständigen Blockchain, um ihn zu sehen.",
+  "@liteNodeMissesHistory": {
+    "placeholders": {
+      "nodeHeight": {
+        "type": "int"
+      },
+      "walletHeight": {
+        "type": "int"
+      }
+    }
+  },
+  "liteNodeSyncStalled": "Synchronisierung bei Block {wallet} gestoppt. Dieser Node hält nichts unterhalb von Block {node}, die Blöcke dazwischen können also nicht von ihm geladen werden. Der Kontostand bleibt unvollständig, bis du einen Node mit der vollständigen Blockchain verbindest.",
+  "@liteNodeSyncStalled": {
+    "placeholders": {
+      "wallet": {
+        "type": "int"
+      },
+      "node": {
+        "type": "int"
+      }
+    }
+  },
+  "liteNodeRescanRefusedTitle": "Dieser Node kann nicht so weit zurück scannen",
+  "liteNodeRescanRefused": "Der verbundene Node ist ein Lite-Node ohne Blockdaten unterhalb von {height}. Ein Rescan von tiefer würde bereits gefundene Transaktionen dieser Wallet verwerfen, ohne sie hier wiederfinden zu können. Es wurde nichts geändert.",
+  "@liteNodeRescanRefused": {
+    "placeholders": {
+      "height": {
+        "type": "int"
+      }
+    }
+  },
+  "liteNodeRescanFromInstead": "Stattdessen ab {height} scannen",
+  "@liteNodeRescanFromInstead": {
+    "placeholders": {
+      "height": {
+        "type": "int"
+      }
+    }
+  },
+  "liteNodeRescanHint": "Der verbundene Node kann nur ab Block {height} oder höher scannen.",
+  "@liteNodeRescanHint": {
+    "placeholders": {
+      "height": {
+        "type": "int"
+      }
+    }
+  },
+  "nodeServesFromLabel": "Liefert Blöcke ab",
+  "nodeFullChain": "Vollständige Blockchain",
+  "sectionLocalNode": "Lokaler Lite-Node",
+  "localNodeDescription": "Betreibe einen Node auf diesem Computer und synchronisiere darüber statt über einen entfernten Server. Ein Lite-Node speichert nur, was eine Wallet braucht, lädt aber trotzdem einmal die gesamte Blockchain herunter.",
+  "localNodeSetUp": "Lokalen Node einrichten",
+  "localNodeStart": "Starten",
+  "localNodeStop": "Stoppen",
+  "localNodeUse": "Diesen Node verwenden",
+  "localNodeDelete": "Node-Daten löschen",
+  "localNodeStateStopped": "Gestoppt",
+  "localNodeStateStarting": "Startet",
+  "localNodeStateSyncing": "Synchronisiert",
+  "localNodeStateReady": "Synchronisiert",
+  "localNodeStateFailed": "Fehlgeschlagen",
+  "localNodeProgress": "Block {height} von {network}",
+  "@localNodeProgress": {
+    "placeholders": {
+      "height": {
+        "type": "int"
+      },
+      "network": {
+        "type": "int"
+      }
+    }
+  },
+  "localNodePeers": "{count} Peers",
+  "@localNodePeers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "localNodeNotReadyYet": "Der lokale Node holt noch auf und kann die Wallet noch nicht bedienen. Er synchronisiert im Hintergrund weiter — bleib solange bei einem entfernten Node und wechsle, sobald er bereit ist.",
+  "localNodeInUse": "Die Wallet ist mit diesem Node verbunden.",
+  "localNodeBinaryMissing": "{name} wurde nicht gefunden. Lege die Daemon-Datei neben die Wallet-Anwendung oder in einen Ordner \"sidecar\" daneben und versuche es erneut.",
+  "@localNodeBinaryMissing": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "localNodeSetupTitle": "Lokalen Lite-Node einrichten",
+  "localNodeSetupCost": "Bevor du beginnst:\n• Rund 6 GB Speicherplatz, und die gesamte Blockchain wird einmal heruntergeladen.\n• Die erste Synchronisierung dauert Stunden. Sie läuft im Hintergrund weiter, und du kannst währenddessen einen entfernten Node nutzen.\n• Die Starthöhe unten ist endgültig. Eine spätere Änderung bedeutet, den Node zu löschen und wieder bei null zu synchronisieren.",
+  "localNodeStartHeightLabel": "Starthöhe",
+  "localNodeStartHeightHelp": "Blöcke unterhalb dieser Höhe werden geladen und geprüft; behalten wird nur der Index, den spätere Blöcke brauchen. Wähle sie gleich oder niedriger als die Starthöhe dieser Wallet ({height}).",
+  "@localNodeStartHeightHelp": {
+    "placeholders": {
+      "height": {
+        "type": "int"
+      }
+    }
+  },
+  "localNodeStartHeightTooHigh": "Höher als die Starthöhe dieser Wallet ({height}). Der Node könnte die älteren Transaktionen dieser Wallet nie anzeigen.",
+  "@localNodeStartHeightTooHigh": {
+    "placeholders": {
+      "height": {
+        "type": "int"
+      }
+    }
+  },
+  "localNodeCreate": "Node erstellen",
+  "localNodeDeleteTitle": "Lokale Node-Daten löschen?",
+  "localNodeDeleteWarning": "Das stoppt den Node und löscht seine Blockchain-Datenbank dauerhaft von der Festplatte. Deine Wallet, ihr Seed und ihr Guthaben bleiben unberührt — ein neuer lokaler Node synchronisiert aber wieder bei null, was Stunden dauert.",
+  "localNodeDeleted": "Lokaler Node gelöscht.",
+  "localNodeDiskUsage": "{size} auf der Festplatte",
+  "@localNodeDiskUsage": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "nodePresetRemote": "Entfernter Node",
+  "nodePresetLocal": "Lokaler Lite-Node",
+  "savingWallet": "Wallet wird gespeichert…",
+  "savingWalletBody": "DeroGold schreibt Ihr Wallet auf die Festplatte. Bei einem großen Wallet kann das einen Moment dauern.",
+  "shutdownTakingLong": "Das dauert länger als erwartet. Jetzt zu beenden verwirft diesen Speichervorgang — die Wallet-Datei auf der Festplatte bleibt unverändert, es wird also nichts beschädigt, aber alles seit dem letzten Speichern ist weg.",
+  "quitAnyway": "Trotzdem beenden",
+  "stillRunningInTray": "DeroGold läuft weiter im Infobereich. Klicken Sie auf das Symbol, um es zurückzuholen, oder klicken Sie mit der rechten Maustaste und wählen Sie Beenden.",
+  "localNodeDataFolder": "Datenordner",
+  "localNodeDataFolderHelp": "Hier werden etwa 6 GB geschrieben. Wählen Sie ein Laufwerk mit genügend Platz.",
+  "localNodeDataFolderInUse": "In diesem Ordner liegen bereits andere Dateien. Wählen Sie einen leeren oder einen neuen Ordner.",
+  "localNodeStartHeightRequired": "Geben Sie die Höhe an, ab der vollständige Blöcke behalten werden. Sie muss größer als null sein — ein Lite-Node kann nicht beim Genesis-Block beginnen.",
+  "nodeExitTitle": "Der lokale Node läuft noch",
+  "nodeExitBodySyncing": "Seine erste Synchronisierung ist nicht fertig. Sie dauert Stunden und kommt nur voran, solange der Node läuft — ein laufender Node nutzt aber auch nach dem Schließen von DeroGold weiter Festplatte und Netzwerk.",
+  "nodeExitBodySynced": "Er ist auf dem Stand des Netzwerks. Weiterlaufen zu lassen hält ihn dort und verbraucht weiter CPU, Bandbreite und Festplatte, während DeroGold geschlossen ist; ihn zu stoppen kostet beim nächsten Mal kurzes Aufholen.",
+  "nodeExitKeep": "Weiterlaufen lassen",
+  "nodeExitStop": "Stoppen",
+  "nodeExitChangeLater": "Später in den Einstellungen unter Lokaler Lite-Node änderbar.",
+  "rememberMyChoice": "Auswahl merken",
+  "shutdownStoppingNode": "Lokaler Node wird gestoppt…",
+  "shutdownStoppingNodeBody": "Er darf seine Datenbank schreiben, damit der nächste Start das Write-Ahead-Log nicht nachspielen muss.",
+  "nodeExitPolicyLabel": "Beim Schließen des Wallets",
+  "nodeExitPolicyAsk": "Nachfragen",
+  "nodeExitPolicyKeep": "Node weiterlaufen lassen",
+  "nodeExitPolicyStop": "Node stoppen",
+  "localNodeStillRunningBody": "Der lokale Lite-Node läuft weiter im Hintergrund. Öffnen Sie DeroGold, um ihn zu stoppen.",
+  "syncStoppedTitle": "Synchronisierung gestoppt",
+  "syncGapStalled": "Synchronisierung bei Block {covered} gestoppt. Der befragte Node antwortet erst ab Block {servesFrom}, die Blöcke dazwischen lassen sich von ihm also nicht laden. Der Kontostand bleibt unvollständig, bis Sie einen Node mit der ganzen Kette verbinden.",
+  "localNodeNotReadyTitle": "Dieser Node ist nicht bereit",
+  "localNodeNotReadyBody": "Der lokale Node liegt noch {behind} Blöcke hinter dem Netzwerk. Wenn Sie das Wallet jetzt darauf richten, pausiert die Synchronisierung, bis er aufgeholt hat, und zeigt einen Kontostand ohne alles, was er noch nicht erreicht hat — ohne dass etwas auf dem Bildschirm das erklärt. Auf dem entfernten Node zu bleiben kostet nichts; der Node synchronisiert so oder so weiter.",
+  "switchAnyway": "Trotzdem wechseln",
+  "switchToRemoteNode": "Zum entfernten Node wechseln",
+  "nodeWillServeFromLabel": "Wird Blöcke liefern ab",
+  "txPowServerSection": "Transaktions-PoW-Server",
+  "txPowServerUse": "Externen PoW-Server verwenden",
+  "txPowServerSubtitle": "Den Proof of Work der Transaktion an einen Server senden, statt ihn auf diesem Gerät zu berechnen. Antwortet der Server nicht, wird die CPU dieses Geräts verwendet.",
+  "txPowServerSaved": "PoW-Server-Einstellungen gespeichert",
+  "txPowServerInvalid": "Bitte einen gültigen Host und Port eingeben",
+  "txPowServerTest": "Testen",
+  "txPowServerTestOk": "Server in {ms} ms erreichbar: {threads} Threads, {queue} von {capacity} Warteschlangenplätzen belegt",
+  "txPowServerTestFailed": "Server nicht erreichbar: {error}",
+  "nodeTest": "Testen",
+  "nodeInvalid": "Bitte einen gültigen Host und Port eingeben",
+  "nodeTestOk": "In {ms} ms erreichbar: Höhe {height}, {peers} Peers",
+  "nodeTestSyncing": "In {ms} ms erreichbar, aber der Knoten synchronisiert noch: Höhe {height} von {networkHeight}",
+  "nodeTestFailed": "Knoten nicht erreichbar: {error}"
+}

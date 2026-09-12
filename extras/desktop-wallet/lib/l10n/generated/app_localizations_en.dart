@@ -664,13 +664,13 @@ class SEn extends S {
   String get twitterX => 'Twitter / X';
 
   @override
-  String get twitterXSubtitle => 'Follow @wrkzcoin';
+  String get twitterXSubtitle => 'Follow @DeroGold';
 
   @override
   String get website => 'Website';
 
   @override
-  String get websiteSubtitle => 'wrkz.work';
+  String get websiteSubtitle => 'derogold.com';
 
   @override
   String get license => 'License';

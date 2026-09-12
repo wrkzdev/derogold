@@ -669,13 +669,13 @@ class SRu extends S {
   String get twitterX => 'Twitter / X';
 
   @override
-  String get twitterXSubtitle => 'Подписывайтесь на @wrkzcoin';
+  String get twitterXSubtitle => 'Подписаться на @DeroGold';
 
   @override
   String get website => 'Веб-сайт';
 
   @override
-  String get websiteSubtitle => 'wrkz.work';
+  String get websiteSubtitle => 'derogold.com';
 
   @override
   String get license => 'Лицензия';
@@ -711,7 +711,7 @@ class SRu extends S {
 
   @override
   String get invalidWrkzAddress =>
-      'Недопустимый адрес DEGO. Должен содержать 98 (стандартный), 120 (короткий интегрированный) или 186 (длинный интегрированный) символов и начинаться с «Wrkz».';
+      'Недопустимый адрес DeroGold. Должен содержать 97 символов (стандартный) или 185 (интегрированный) и начинаться с "dg".';
 
   @override
   String get save => 'Сохранить';

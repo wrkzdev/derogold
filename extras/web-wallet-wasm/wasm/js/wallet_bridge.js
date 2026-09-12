@@ -134,8 +134,17 @@
           console.warn('DeroGoldWallet: the module reports no thread support; syncing will not work.');
         }
 
-        /* Nothing arrives unless something is polling for it. */
-        await post({ type: 'events', on: true, intervalMs: opts.eventIntervalMs || 1000 });
+        /* Event polling is off unless asked for, and that is deliberate.
+           wallet_poll_event takes an event off a queue with one consumer, so
+           whoever polls it owns it: a poll running in the worker and a caller
+           polling through `call` would each take half the events and neither
+           would see the other's. The Flutter app drains pollEvent itself, so
+           the default is to leave the queue alone. Pass autoPollEvents: true
+           to have the worker drive it and deliver through onEvent instead -
+           but then do not also poll it yourself. */
+        if (opts.autoPollEvents === true) {
+          await post({ type: 'events', on: true, intervalMs: opts.eventIntervalMs || 1000 });
+        }
 
         return result;
       })();
@@ -197,7 +206,11 @@
     },
 
     /* fn(eventType, eventData). Returns a function that removes it.
-       eventType: 1 = synced, 2 = transaction. */
+       eventType: 1 = synced, 2 = transaction.
+
+       Only ever fires when the worker is polling, which means init() was
+       given autoPollEvents: true. A caller that drains pollEvent through
+       `call` gets its events there instead, and must not do both. */
     onEvent(fn) {
       eventListeners.push(fn);
 

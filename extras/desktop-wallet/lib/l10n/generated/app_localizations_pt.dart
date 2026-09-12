@@ -671,13 +671,13 @@ class SPt extends S {
   String get twitterX => 'Twitter / X';
 
   @override
-  String get twitterXSubtitle => 'Siga @wrkzcoin';
+  String get twitterXSubtitle => 'Seguir @DeroGold';
 
   @override
   String get website => 'Site';
 
   @override
-  String get websiteSubtitle => 'wrkz.work';
+  String get websiteSubtitle => 'derogold.com';
 
   @override
   String get license => 'Licença';
@@ -713,7 +713,7 @@ class SPt extends S {
 
   @override
   String get invalidWrkzAddress =>
-      'Endereço DEGO inválido. Deve ter 98 (padrão), 120 (integrado curto) ou 186 (integrado longo) caracteres começando com \"Wrkz\".';
+      'Endereço DeroGold inválido. Deve ter 97 caracteres (padrão) ou 185 (integrado), começando com \"dg\".';
 
   @override
   String get save => 'Salvar';

@@ -673,13 +673,13 @@ class SFr extends S {
   String get twitterX => 'Twitter / X';
 
   @override
-  String get twitterXSubtitle => 'Suivre @wrkzcoin';
+  String get twitterXSubtitle => 'Suivre @DeroGold';
 
   @override
   String get website => 'Site web';
 
   @override
-  String get websiteSubtitle => 'wrkz.work';
+  String get websiteSubtitle => 'derogold.com';
 
   @override
   String get license => 'Licence';
@@ -715,7 +715,7 @@ class SFr extends S {
 
   @override
   String get invalidWrkzAddress =>
-      'Adresse DEGO invalide. Doit contenir 98 (standard), 120 (intégrée courte) ou 186 (intégrée longue) caractères commençant par « Wrkz ».';
+      'Adresse DeroGold invalide. Doit contenir 97 caractères (standard) ou 185 (intégrée), commençant par "dg".';
 
   @override
   String get save => 'Enregistrer';
