@@ -1,0 +1,100 @@
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    id "dev.flutter.flutter-gradle-plugin"
+}
+
+// Release signing is read from android/key.properties, or from the
+// DEROGOLD_KEYSTORE / DEROGOLD_KEYSTORE_PASSWORD / DEROGOLD_KEY_ALIAS /
+// DEROGOLD_KEY_PASSWORD environment variables, so a CI or Docker build can
+// supply them without a file in the tree. key.properties is gitignored and is
+// NOT committed here — nobody's signing key belongs in a repository.
+//
+// When none of that is present the release build falls back to the debug
+// keystore so that `assembleRelease` still produces an installable APK for
+// testing. Such an APK is NOT publishable: Play and any update path need a
+// real, stable key.
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file("key.properties")
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.withInputStream { keystoreProperties.load(it) }
+}
+
+def signingStorePath = keystoreProperties.getProperty("storeFile") ?: System.getenv("DEROGOLD_KEYSTORE")
+def signingStorePassword = keystoreProperties.getProperty("storePassword") ?: System.getenv("DEROGOLD_KEYSTORE_PASSWORD")
+def signingKeyAlias = keystoreProperties.getProperty("keyAlias") ?: System.getenv("DEROGOLD_KEY_ALIAS")
+def signingKeyPassword = keystoreProperties.getProperty("keyPassword") ?: System.getenv("DEROGOLD_KEY_PASSWORD")
+def hasReleaseSigning = signingStorePath != null && !signingStorePath.isEmpty() && file(signingStorePath).exists()
+
+android {
+    namespace = "com.derogold.wallet"
+    compileSdk = 36
+    ndkVersion = flutter.ndkVersion
+
+    compileOptions {
+        coreLibraryDesugaringEnabled = true
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_17
+    }
+
+    defaultConfig {
+        applicationId = "com.derogold.wallet"
+        minSdk = 24
+        targetSdk = 35
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
+
+        // The ABIs libwallet_capi.so is built for. Anything listed here must
+        // have a matching jniLibs/<abi>/libwallet_capi.so or the app installs
+        // and then fails to load the wallet at runtime.
+        ndk {
+            abiFilters "arm64-v8a", "x86_64"
+        }
+    }
+
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+            keepDebugSymbols.clear()
+            excludes += ['**/armeabi-v7a/**']
+        }
+    }
+
+    signingConfigs {
+        if (hasReleaseSigning) {
+            release {
+                storeFile = file(signingStorePath)
+                storePassword = signingStorePassword
+                keyAlias = signingKeyAlias
+                keyPassword = signingKeyPassword
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            // Debug signing uses the default debug keystore.
+        }
+        release {
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.release
+            } else {
+                // Testing only — see the note at the top of this file.
+                logger.lifecycle("DeroGold Wallet: no release keystore configured, signing release with the debug key (not publishable)")
+                signingConfig = signingConfigs.debug
+            }
+        }
+    }
+}
+
+dependencies {
+    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.4"
+}
+
+flutter {
+    source = "../.."
+}

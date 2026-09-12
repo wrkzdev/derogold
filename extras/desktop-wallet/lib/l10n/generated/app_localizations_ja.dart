@@ -661,7 +661,7 @@ class SJa extends S {
 
   @override
   String get licenseText =>
-      'MITライセンスの下で公開されています。\n自己責任でご利用ください。シードフレーズは必ずバックアップしてください。';
+      'GNU 一般公衆利用許諾書 v3 の下で公開されています。\n自己責任でご利用ください。シードフレーズは必ずバックアップしてください。';
 
   @override
   String get addButton => '追加';

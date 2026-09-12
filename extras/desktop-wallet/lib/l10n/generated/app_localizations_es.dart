@@ -682,7 +682,7 @@ class SEs extends S {
 
   @override
   String get licenseText =>
-      'Publicado bajo la licencia MIT.\nÚsalo bajo tu propio riesgo. Siempre respalda tu frase semilla.';
+      'Publicado bajo la Licencia Pública General de GNU v3.\nÚsalo bajo tu propio riesgo. Siempre respalda tu frase semilla.';
 
   @override
   String get addButton => 'Añadir';

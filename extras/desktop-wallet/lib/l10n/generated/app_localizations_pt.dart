@@ -684,7 +684,7 @@ class SPt extends S {
 
   @override
   String get licenseText =>
-      'Lançado sob a Licença MIT.\nUse por sua própria conta e risco. Sempre faça backup da sua frase semente.';
+      'Lançado sob a Licença Pública Geral GNU v3.\nUse por sua própria conta e risco. Sempre faça backup da sua frase semente.';
 
   @override
   String get addButton => 'Adicionar';

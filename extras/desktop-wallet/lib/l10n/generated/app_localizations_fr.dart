@@ -686,7 +686,7 @@ class SFr extends S {
 
   @override
   String get licenseText =>
-      'Publié sous la licence MIT.\nUtilisation à vos propres risques. Sauvegardez toujours votre phrase de récupération.';
+      'Publié sous la licence publique générale GNU v3.\nUtilisation à vos propres risques. Sauvegardez toujours votre phrase de récupération.';
 
   @override
   String get addButton => 'Ajouter';

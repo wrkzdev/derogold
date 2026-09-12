@@ -312,7 +312,7 @@
   "website": "Site web",
   "websiteSubtitle": "wrkz.work",
   "license": "Licence",
-  "licenseText": "Publié sous la licence MIT.\nUtilisation à vos propres risques. Sauvegardez toujours votre phrase de récupération.",
+  "licenseText": "Publié sous la licence publique générale GNU v3.\nUtilisation à vos propres risques. Sauvegardez toujours votre phrase de récupération.",
   "addButton": "Ajouter",
   "noSavedAddresses": "Aucune adresse enregistrée",
   "tapAddToSave": "Appuyez sur Ajouter pour enregistrer une adresse fréquemment utilisée.",

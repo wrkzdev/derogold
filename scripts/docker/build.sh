@@ -66,8 +66,9 @@ Environment:
   DOCKER=podman          container CLI to use
   DOCKER_PLATFORM=...    image platform (default: linux/amd64)
 
-  ANDROID_ABIS="..."     ABIs for the wallet library
-                         (default: "arm64-v8a armeabi-v7a x86_64")
+  ANDROID_ABIS="..."     ABIs for the wallet library; must match abiFilters
+                         in extras/mobile-wallet/android/app/build.gradle
+                         (default: "arm64-v8a x86_64")
   MOBILE_MODES="..."     Android build modes  (default: "release debug")
   MOBILE_FORMATS="..."   Android formats      (default: "apk aab")
 

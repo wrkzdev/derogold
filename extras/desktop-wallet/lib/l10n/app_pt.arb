@@ -312,7 +312,7 @@
   "website": "Site",
   "websiteSubtitle": "wrkz.work",
   "license": "Licença",
-  "licenseText": "Lançado sob a Licença MIT.\nUse por sua própria conta e risco. Sempre faça backup da sua frase semente.",
+  "licenseText": "Lançado sob a Licença Pública Geral GNU v3.\nUse por sua própria conta e risco. Sempre faça backup da sua frase semente.",
   "addButton": "Adicionar",
   "noSavedAddresses": "Nenhum endereço salvo",
   "tapAddToSave": "Toque em Adicionar para salvar um endereço usado frequentemente.",

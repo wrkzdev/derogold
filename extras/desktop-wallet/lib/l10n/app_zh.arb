@@ -312,7 +312,7 @@
   "website": "网站",
   "websiteSubtitle": "wrkz.work",
   "license": "许可证",
-  "licenseText": "基于 MIT 许可证发布。\n使用风险自负。请务必备份您的助记词。",
+  "licenseText": "基于 GNU 通用公共许可证 v3 发布。\n使用风险自负。请务必备份您的助记词。",
   "addButton": "添加",
   "noSavedAddresses": "没有已保存的地址",
   "tapAddToSave": "点击“添加”以保存常用地址。",

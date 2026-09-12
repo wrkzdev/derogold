@@ -675,7 +675,7 @@ class SVi extends S {
 
   @override
   String get licenseText =>
-      'Phát hành theo Giấy phép MIT.\nSử dụng theo rủi ro của bạn. Luôn sao lưu cụm từ hạt giống.';
+      'Phát hành theo Giấy phép Công cộng GNU v3.\nSử dụng theo rủi ro của bạn. Luôn sao lưu cụm từ hạt giống.';
 
   @override
   String get addButton => 'Thêm';

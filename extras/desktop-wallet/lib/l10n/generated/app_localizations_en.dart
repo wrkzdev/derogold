@@ -677,7 +677,7 @@ class SEn extends S {
 
   @override
   String get licenseText =>
-      'Released under the MIT License.\nUse at your own risk. Always back up your seed phrase.';
+      'Released under the GNU General Public License v3.\nUse at your own risk. Always back up your seed phrase.';
 
   @override
   String get addButton => 'Add';

@@ -1356,7 +1356,7 @@ abstract class S {
   /// No description provided for @licenseText.
   ///
   /// In en, this message translates to:
-  /// **'Released under the MIT License.\nUse at your own risk. Always back up your seed phrase.'**
+  /// **'Released under the GNU General Public License v3.\nUse at your own risk. Always back up your seed phrase.'**
   String get licenseText;
 
   /// No description provided for @addButton.

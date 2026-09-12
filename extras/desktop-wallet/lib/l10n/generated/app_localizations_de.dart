@@ -682,7 +682,7 @@ class SDe extends S {
 
   @override
   String get licenseText =>
-      'Veröffentlicht unter der MIT-Lizenz.\nVerwendung auf eigene Gefahr. Sichere immer deine Seed-Phrase.';
+      'Veröffentlicht unter der GNU General Public License v3.\nVerwendung auf eigene Gefahr. Sichere immer deine Seed-Phrase.';
 
   @override
   String get addButton => 'Hinzufügen';

@@ -312,7 +312,7 @@
   "website": "Webseite",
   "websiteSubtitle": "wrkz.work",
   "license": "Lizenz",
-  "licenseText": "Veröffentlicht unter der MIT-Lizenz.\nVerwendung auf eigene Gefahr. Sichere immer deine Seed-Phrase.",
+  "licenseText": "Veröffentlicht unter der GNU General Public License v3.\nVerwendung auf eigene Gefahr. Sichere immer deine Seed-Phrase.",
   "addButton": "Hinzufügen",
   "noSavedAddresses": "Keine gespeicherten Adressen",
   "tapAddToSave": "Tippe auf Hinzufügen, um eine häufig verwendete Adresse zu speichern.",

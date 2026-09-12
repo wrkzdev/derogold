@@ -501,7 +501,14 @@ SERVING
 
 # Which Android ABIs to build the wallet library for, and what to ask Gradle
 # for. Overridable: ANDROID_ABIS="arm64-v8a" halves the build when testing.
-ANDROID_ABIS="${ANDROID_ABIS:-arm64-v8a armeabi-v7a x86_64}"
+#
+# This list has to agree with abiFilters in
+# extras/mobile-wallet/android/app/build.gradle. An ABI listed there with no
+# library behind it produces an app that installs and then fails on the first
+# wallet call, and one built here but not listed there is time spent on a
+# library that never reaches the package. armeabi-v7a is in neither: 32-bit
+# arm is excluded there deliberately.
+ANDROID_ABIS="${ANDROID_ABIS:-arm64-v8a x86_64}"
 MOBILE_MODES="${MOBILE_MODES:-release debug}"
 MOBILE_FORMATS="${MOBILE_FORMATS:-apk aab}"
 ANDROID_API="${ANDROID_API:-21}"
@@ -521,6 +528,32 @@ build_android() {
 
   local toolchain="$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake"
   [ -f "$toolchain" ] || die "no android.toolchain.cmake under $ANDROID_NDK_HOME"
+
+  # Gradle decides which ABIs ship; this script decides which ones get a
+  # library built. When they disagree the app still installs and only fails at
+  # the first wallet call, which is a miserable way to find out, so compare
+  # them here while the answer is cheap.
+  local gradle_file="$app/android/app/build.gradle"
+  if [ -f "$gradle_file" ]; then
+    local filters
+    filters="$(sed -n 's/.*abiFilters[[:space:]]*//p' "$gradle_file" \
+                | tr -d '"'"'"' ' | tr ',' ' ' | head -1)"
+    if [ -n "$filters" ]; then
+      local want
+      for want in $filters; do
+        case " $ANDROID_ABIS " in
+          *" $want "*) ;;
+          *) die "build.gradle packages ABI '$want' but ANDROID_ABIS ($ANDROID_ABIS) does not build it" ;;
+        esac
+      done
+      for want in $ANDROID_ABIS; do
+        case " $filters " in
+          *" $want "*) ;;
+          *) echo "warning: building '$want' but build.gradle does not package it; it will be discarded" >&2 ;;
+        esac
+      done
+    fi
+  fi
 
   # One wallet library per ABI, dropped where Gradle picks native libraries up.
   local abi bd lib jni

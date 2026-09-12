@@ -1,0 +1,39 @@
+name: derogold_wallet
+description: DeroGold Wallet — the DeroGold (DEGO) mobile wallet, powered by wallet_capi.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.0
+  flutter: '>=3.38.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  flutter_riverpod: ^2.6.1
+  go_router: ^14.8.1
+  flutter_secure_storage: ^9.2.4
+  path_provider: ^2.1.5
+  qr_flutter: ^4.1.0
+  mobile_scanner: ^6.0.0
+  local_auth: ^2.3.0
+  flutter_local_notifications: ^18.0.0
+  share_plus: ^10.1.4
+  intl: ^0.20.2
+  ffi: ^2.1.3
+  # PBKDF2 for the lock-screen password verifier (see core/auth/wallet_auth.dart)
+  crypto: ^3.0.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  generate: true
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/flags/

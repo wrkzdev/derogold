@@ -682,7 +682,7 @@ class SRu extends S {
 
   @override
   String get licenseText =>
-      'Выпущено под лицензией MIT.\nИспользуйте на свой риск. Всегда делайте резервную копию мнемонической фразы.';
+      'Выпущено под лицензией GNU General Public License v3.\nИспользуйте на свой риск. Всегда делайте резервную копию мнемонической фразы.';
 
   @override
   String get addButton => 'Добавить';

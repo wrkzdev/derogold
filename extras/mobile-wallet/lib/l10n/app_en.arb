@@ -1,0 +1,543 @@
+{
+  "@@locale": "en",
+  "appTitle": "DeroGold Wallet",
+  "tabOverview": "Overview",
+  "tabReceive": "Receive",
+  "tabSend": "Send",
+  "tabHistory": "History",
+  "tabSettings": "Settings",
+  "send": "Send",
+  "receive": "Receive",
+  "available": "Available",
+  "locked": "Locked",
+  "total": "Total",
+  "lockedAmount": "Locked: {amount}",
+  "@lockedAmount": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "totalAmount": "Total: {amount}",
+  "@totalAmount": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "recentTransactions": "Recent Transactions",
+  "viewAll": "View all",
+  "noTransactionsYet": "No transactions yet",
+  "noMatchingTransactions": "No matching transactions",
+  "pending": "Pending...",
+  "justNow": "Just now",
+  "minutesAgo": "{count}m ago",
+  "@minutesAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "hoursAgo": "{count}h ago",
+  "@hoursAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "daysAgo": "{count}d ago",
+  "@daysAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "received": "Received",
+  "sent": "Sent",
+  "networkStatus": "Network Status",
+  "node": "Node",
+  "status": "Status",
+  "connected": "Connected",
+  "disconnected": "Disconnected",
+  "walletHeight": "Wallet Height",
+  "networkHeight": "Network Height",
+  "peers": "Peers",
+  "type": "Type",
+  "viewOnly": "View-only",
+  "couldNotFetchStatus": "Could not fetch status. Check your node in Settings.",
+  "errorPrefix": "Error: {message}",
+  "@errorPrefix": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "seedBackupWarning": "Back up your seed phrase in Settings to protect your funds.",
+  "noConnectionToDaemon": "No connection to daemon",
+  "syncingPercent": "Syncing {percent}%",
+  "@syncingPercent": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "yourAddress": "Your Address",
+  "errorLoadingAddress": "Error loading address",
+  "integratedAddress": "Integrated Address",
+  "embedPaymentId": "Embed a payment ID into your address",
+  "randomShort": "Random Short (16)",
+  "randomLong": "Random Long (64)",
+  "enterCustomPaymentId": "Or enter custom payment ID (16 or 64 hex)",
+  "enterPaymentId": "Enter a payment ID",
+  "paymentIdInvalid": "Payment ID must be 16 or 64 hex characters",
+  "shortPid": "Short PID",
+  "longPid": "Long PID",
+  "share": "Share",
+  "copy": "Copy",
+  "sweepAllFunds": "Sweep All Funds",
+  "normalSend": "Normal Send",
+  "sweep": "Sweep",
+  "recipientAddress": "Recipient Address",
+  "scanQr": "Scan QR",
+  "amount": "Amount",
+  "availableBalance": "Available: {amount}",
+  "@availableBalance": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "sweepInfo": "Sweep consolidates all UTXOs and sends your entire unlocked balance ({amount}) minus fees.",
+  "@sweepInfo": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "paymentIdOptional": "Payment ID (optional)",
+  "hexCharacters": "16 or 64 hex characters",
+  "mustBeHex": "Must be 16 or 64 hex characters",
+  "recipientRequired": "Recipient address is required",
+  "invalidAddress": "Invalid DEGO address",
+  "enterValidAmount": "Enter a valid amount",
+  "reviewTransaction": "Review Transaction",
+  "to": "To",
+  "fee": "Fee",
+  "paymentId": "Payment ID",
+  "transactionsIrreversible": "Transactions are irreversible. Please verify the details.",
+  "back": "Back",
+  "confirmAndSend": "Confirm & Send",
+  "transactionSent": "Transaction Sent!",
+  "transactionHash": "Transaction Hash",
+  "sendAnother": "Send Another",
+  "scanQrCode": "Scan QR Code",
+  "scannedAddress": "Scanned Address",
+  "cancel": "Cancel",
+  "useThisAddress": "Use this address",
+  "sweepFailed": "Sweep failed",
+  "searchPlaceholder": "Search by hash, address, payment ID...",
+  "all": "All",
+  "filterReceived": "Received",
+  "filterSent": "Sent",
+  "hash": "Hash",
+  "address": "Address",
+  "block": "Block",
+  "confirmed": "Confirmed",
+  "password": "Password",
+  "unlock": "Unlock",
+  "switchWallet": "Switch Wallet",
+  "enterPasswordToUnlock": "Enter your password to unlock",
+  "incorrectPassword": "Incorrect password",
+  "enterYourPassword": "Enter your password",
+  "appName": "DeroGold Wallet",
+  "createFirstWalletSubtitle": "Create your first wallet to get started",
+  "selectWalletSubtitle": "Select a wallet to open",
+  "yourWallets": "Your Wallets",
+  "noWalletsYet": "No wallets yet",
+  "lastOpened": "Last opened",
+  "createdDate": "Created {date}",
+  "@createdDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "createFirstWallet": "Create First Wallet",
+  "addWallet": "Add Wallet",
+  "deleteWallet": "Delete Wallet",
+  "deleteWalletConfirm": "Delete \"{name}\"?\n\nThis will permanently remove the wallet file and keys. Make sure you have backed up your seed phrase.",
+  "@deleteWalletConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "delete": "Delete",
+  "createNewWallet": "Create New Wallet",
+  "createNewWalletSubtitle": "Generate a new wallet with a fresh seed phrase",
+  "importFromSeed": "Import from Seed Phrase",
+  "importFromSeedSubtitle": "Restore wallet using your 25-word mnemonic seed",
+  "importFromKeys": "Import from Private Keys",
+  "importFromKeysSubtitle": "Restore using spend key and view key",
+  "viewOnlyWallet": "View-Only Wallet",
+  "viewOnlyWalletSubtitle": "Watch-only wallet using view key and address",
+  "createWallet": "Create Wallet",
+  "importWallet": "Import Wallet",
+  "walletName": "Wallet Name",
+  "walletNameHint": "e.g. Main Wallet",
+  "passwordLabel": "Password",
+  "enterPassword": "Enter password",
+  "confirmPassword": "Confirm password",
+  "seedPhrase": "Seed Phrase (25 words)",
+  "enterSeedPhrase": "Enter your seed phrase...",
+  "scanHeight": "Scan Height (optional)",
+  "scanHeightHint": "0 = scan from beginning",
+  "privateSpendKey": "Private Spend Key",
+  "privateViewKey": "Private View Key",
+  "walletAddress": "Wallet Address",
+  "walletAddressHint": "dg... address",
+  "hexKey": "64-char hex",
+  "daemonNode": "Daemon Node",
+  "custom": "Custom",
+  "host": "Host",
+  "hostHint": "Host / IP",
+  "port": "Port",
+  "ssl": "SSL",
+  "walletNameRequired": "Wallet name is required",
+  "passwordRequired": "Password is required",
+  "passwordTooShort": "Password must be at least {count} characters",
+  "passwordsDoNotMatch": "Passwords do not match",
+  "seedRequired": "Seed phrase is required",
+  "spendKeyRequired": "Spend key is required",
+  "viewKeyRequired": "View key is required",
+  "addressRequired": "Address is required",
+  "daemonHostRequired": "Daemon host is required",
+  "backupSeedTitle": "Backup Your Seed",
+  "backupWarning": "Write down your seed phrase and store it safely. If you lose it, your funds are gone forever.",
+  "seedPhraseLabel": "Seed Phrase",
+  "privateViewKeyLabel": "Private View Key",
+  "privateSpendKeyLabel": "Private Spend Key",
+  "backupConfirmCheck": "I have safely backed up my seed phrase",
+  "continueToWallet": "Continue to Wallet",
+  "sectionDaemonNode": "Daemon Node",
+  "apply": "Apply",
+  "nodeUpdated": "Node updated to {host}:{port}",
+  "@nodeUpdated": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      },
+      "port": {
+        "type": "int"
+      }
+    }
+  },
+  "hostRequired": "Host is required",
+  "currentWallet": "Current Wallet — {name}",
+  "@currentWallet": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "saveWallet": "Save Wallet",
+  "walletSaved": "Wallet saved",
+  "saveFailed": "Save failed: {error}",
+  "@saveFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "backupSeed": "Backup Seed",
+  "changePassword": "Change Password",
+  "resetScanHeight": "Reset Scan Height",
+  "reset": "Reset",
+  "resetScanConfirm": "This will rescan the blockchain from block {height}. This may take a while. Continue?",
+  "@resetScanConfirm": {
+    "placeholders": {
+      "height": {
+        "type": "int"
+      }
+    }
+  },
+  "scanResetTo": "Scan reset to block {height}",
+  "@scanResetTo": {
+    "placeholders": {
+      "height": {
+        "type": "int"
+      }
+    }
+  },
+  "resetFailed": "Reset failed: {error}",
+  "@resetFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "enterPasswordTitle": "Enter Password",
+  "confirm": "Confirm",
+  "seedBackup": "Seed Backup",
+  "seedPhraseColon": "Seed Phrase:",
+  "privateViewKeyColon": "Private View Key:",
+  "iveBackedUp": "I've backed up",
+  "currentPasswordLabel": "Current password",
+  "newPasswordLabel": "New password",
+  "confirmNewPasswordLabel": "Confirm new password",
+  "change": "Change",
+  "currentPasswordIncorrect": "Current password is incorrect",
+  "newPasswordsDoNotMatch": "New passwords do not match",
+  "passwordChanged": "Password changed",
+  "walletManagement": "Wallet Management",
+  "switchWalletSubtitle": "Save & close, pick another",
+  "manageWallets": "Manage Wallets",
+  "manageWalletsSubtitle": "Rename or delete wallets",
+  "currentlyOpen": "(currently open)",
+  "close": "Close",
+  "renameWallet": "Rename Wallet",
+  "newName": "New name",
+  "rename": "Rename",
+  "deleteWalletConfirmShort": "Delete \"{name}\"? This cannot be undone.",
+  "@deleteWalletConfirmShort": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "security": "Security",
+  "biometricUnlock": "Biometric Unlock",
+  "biometricSubtitle": "Fingerprint / Face ID",
+  "biometricNotAvailable": "Biometric not available",
+  "autoLock": "Auto-Lock",
+  "appearance": "Appearance",
+  "theme": "Theme",
+  "themeAuto": "Auto",
+  "themeLight": "Light",
+  "themeDark": "Dark",
+  "preferences": "Preferences",
+  "transactionNotifications": "Transaction Notifications",
+  "notificationsSubtitle": "Alert on incoming transactions",
+  "autosave": "Autosave",
+  "autosaveSubtitle": "Save after sync, then every 5 minutes",
+  "skipCoinbaseTx": "Skip Coinbase Transactions",
+  "skipCoinbaseSubtitle": "Faster sync, but miner rewards are not shown (off by default)",
+  "dangerZone": "Danger Zone",
+  "deleteCurrentWallet": "Delete Current Wallet",
+  "deleteCurrentWalletSubtitle": "Permanently remove wallet data",
+  "deleteWalletTypeCaps": "This will permanently delete the wallet file and keys. Make sure you have backed up your seed phrase.\n\nType DELETE to confirm:",
+  "deleteHint": "DELETE",
+  "language": "Language",
+  "selectLanguage": "Select Language",
+  "languageEn": "English",
+  "languageFr": "Français",
+  "languageDe": "Deutsch",
+  "languageZh": "中文",
+  "languageVi": "Tiếng Việt",
+  "languageJa": "日本語",
+  "languageEs": "Español",
+  "languagePt": "Português",
+  "languageRu": "Русский",
+  "autoLockImmediately": "Immediately",
+  "autoLock1Min": "1 minute",
+  "autoLock5Min": "5 minutes",
+  "autoLockNever": "Never",
+  "deleteConfirmMismatch": "Type DELETE exactly to confirm.",
+  "@deleteConfirmMismatch": {
+    "description": "Added by the wallet review fixes"
+  },
+  "seedNotBackedUpWarning": "You have not confirmed a backup of this wallet's seed phrase. Deleting it now means the funds cannot be recovered.",
+  "@seedNotBackedUpWarning": {
+    "description": "Added by the wallet review fixes"
+  },
+  "degoReceived": "DEGO received",
+  "@degoReceived": {
+    "description": "Added by the wallet review fixes"
+  },
+  "retry": "Retry",
+  "@retry": {
+    "description": "Added by the wallet review fixes"
+  },
+  "youReceivedAmount": "You received {amount}",
+  "@youReceivedAmount": {
+    "description": "Added by the wallet review fixes",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "@passwordTooShort": {
+    "description": "Shown when a chosen wallet password is below the minimum length",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "ringSize": "Ring size",
+  "@ringSize": {
+    "description": "Label for the ring size a transaction was built with"
+  },
+  "ringSizeReduced": "Ring size reduced to {actual} (normally {normal}). The amounts being sent do not have enough outputs on the chain to form a full ring, so this transaction is less private than usual.",
+  "@ringSizeReduced": {
+    "description": "Warning shown before confirming a send whose ring came out below the network default",
+    "placeholders": {
+      "actual": {
+        "type": "int"
+      },
+      "normal": {
+        "type": "int"
+      }
+    }
+  },
+  "liteNodeTitle": "Lite node",
+  "liteNodeServesFrom": "This node only holds blocks from {height} onward. Transactions before that block cannot be found through it.",
+  "@liteNodeServesFrom": {
+    "placeholders": {
+      "height": {
+        "type": "int"
+      }
+    }
+  },
+  "nodeServesFromLabel": "Serves blocks from",
+  "nodeFullChain": "Full chain",
+  "syncStoppedTitle": "Sync stopped",
+  "@syncStoppedTitle": {
+    "description": "Banner label when sync has stopped over a range no daemon served"
+  },
+  "txPowServerSection": "Transaction PoW Server",
+  "txPowServerUse": "Use an external PoW server",
+  "txPowServerSubtitle": "Send the transaction proof of work to a server instead of computing it on this device. If the server does not respond, this device's CPU is used.",
+  "txPowServerSaved": "PoW server settings saved",
+  "txPowServerInvalid": "Enter a valid host and port",
+  "txPowServerTest": "Test",
+  "txPowServerTestOk": "Server reachable in {ms} ms: {threads} threads, {queue} of {capacity} queue slots in use",
+  "@txPowServerTestOk": {
+    "placeholders": {
+      "ms": {
+        "type": "int"
+      },
+      "threads": {
+        "type": "int"
+      },
+      "queue": {
+        "type": "int"
+      },
+      "capacity": {
+        "type": "int"
+      }
+    }
+  },
+  "txPowServerTestFailed": "Server not reachable: {error}",
+  "@txPowServerTestFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "nodeTest": "Test",
+  "nodeTestOk": "Reachable in {ms} ms: height {height}, {peers} peers",
+  "@nodeTestOk": {
+    "placeholders": {
+      "ms": {
+        "type": "int"
+      },
+      "height": {
+        "type": "int"
+      },
+      "peers": {
+        "type": "int"
+      }
+    }
+  },
+  "nodeTestSyncing": "Reachable in {ms} ms, but the node is still syncing: height {height} of {networkHeight}",
+  "@nodeTestSyncing": {
+    "placeholders": {
+      "ms": {
+        "type": "int"
+      },
+      "height": {
+        "type": "int"
+      },
+      "networkHeight": {
+        "type": "int"
+      }
+    }
+  },
+  "nodeTestFailed": "Node not reachable: {error}",
+  "@nodeTestFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "computingPow": "Computing PoW... {seconds}s",
+  "@computingPow": {
+    "description": "Progress label while a transaction proof of work runs",
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "feeDeductedOnSend": "deducted when the transaction is sent",
+  "@feeDeductedOnSend": {
+    "description": "Shown in place of a fee figure on the review step: the backend settles the fee when it builds the transaction, which is the same moment it sends it"
+  },
+  "about": "About",
+  "@about": {
+    "description": "Settings section header for app information and links"
+  },
+  "versionInfo": "Version {version} — DEGO Mobile Wallet",
+  "@versionInfo": {
+    "description": "App version line",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "license": "License",
+  "@license": {
+    "description": "License row label"
+  },
+  "licenseText": "Released under the GNU General Public License v3.0. Use at your own risk. Always back up your seed phrase.",
+  "@licenseText": {
+    "description": "License body. GPL-3.0, matching LICENSE in this repository"
+  },
+  "slowRescanTitle": "This will take a very long time",
+  "@slowRescanTitle": {
+    "description": "Title of the confirmation before a rescan from a low height"
+  },
+  "slowRescanWarning": "A rescan from below block {height} walks almost the whole chain. On a phone that is hours of uninterrupted work, and the app has to stay in the foreground while it runs.",
+  "@slowRescanWarning": {
+    "description": "Body of the slow-rescan confirmation",
+    "placeholders": {
+      "height": {
+        "type": "int"
+      }
+    }
+  },
+  "slowRescanContinue": "Rescan anyway",
+  "@slowRescanContinue": {
+    "description": "Confirm button of the slow-rescan warning"
+  }
+}

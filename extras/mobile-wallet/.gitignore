@@ -1,0 +1,68 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+migrate_working_dir/
+
+# IntelliJ / Android Studio
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# VS Code
+.vscode/
+
+# Flutter/Dart/Pub
+**/doc/api/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+build/
+
+# Android
+android/.gradle/
+android/.kotlin/
+android/captures/
+android/local.properties
+android/**/GeneratedPluginRegistrant.java
+# Signing material never belongs in the repository — see android/app/build.gradle
+android/key.properties
+*.jks
+*.keystore
+
+# The native wallet library is a build output: build it with
+# -D DEROGOLD_BUILD_WALLET_CAPI=ON and drop it in per ABI (see README.md).
+# The whole jniLibs/ tree is already ignored by the repository root, so the ABI
+# directories are NOT tracked — a container build has to mkdir them itself.
+android/app/src/main/jniLibs/*/*.so
+
+# The repository root ignores "[Dd]ebug/" (a Visual Studio build-output rule),
+# which would otherwise swallow the Android debug source set. Re-include the
+# directory so the file inside it is considered again — re-including a file
+# whose parent directory is excluded does not work, so the directory has to be
+# named first.
+!android/app/src/debug/
+!android/app/src/debug/**
+
+# The Gradle wrapper (gradlew, gradlew.bat, gradle/wrapper/) IS committed, so a
+# container build needs nothing but a JDK and the Android SDK.
+
+# iOS
+ios/Flutter/Generated.xcconfig
+ios/Flutter/flutter_export_environment.sh
+ios/Flutter/ephemeral/
+ios/Pods/
+ios/.symlinks/
+
+# Symbolication / obfuscation
+app.*.symbols
+app.*.map.json

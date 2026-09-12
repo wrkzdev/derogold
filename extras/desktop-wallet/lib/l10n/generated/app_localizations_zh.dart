@@ -657,7 +657,7 @@ class SZh extends S {
   String get license => '许可证';
 
   @override
-  String get licenseText => '基于 MIT 许可证发布。\n使用风险自负。请务必备份您的助记词。';
+  String get licenseText => '基于 GNU 通用公共许可证 v3 发布。\n使用风险自负。请务必备份您的助记词。';
 
   @override
   String get addButton => '添加';

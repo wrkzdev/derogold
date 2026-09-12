@@ -312,7 +312,7 @@
   "website": "ウェブサイト",
   "websiteSubtitle": "wrkz.work",
   "license": "ライセンス",
-  "licenseText": "MITライセンスの下で公開されています。\n自己責任でご利用ください。シードフレーズは必ずバックアップしてください。",
+  "licenseText": "GNU 一般公衆利用許諾書 v3 の下で公開されています。\n自己責任でご利用ください。シードフレーズは必ずバックアップしてください。",
   "addButton": "追加",
   "noSavedAddresses": "保存されたアドレスはありません",
   "tapAddToSave": "「追加」をタップしてよく使うアドレスを保存してください。",

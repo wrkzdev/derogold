@@ -1,0 +1,442 @@
+{
+  "@@locale": "ru",
+  "appTitle": "DeroGold Wallet",
+  "tabOverview": "Обзор",
+  "tabReceive": "Получить",
+  "tabSend": "Отправить",
+  "tabHistory": "История",
+  "tabSettings": "Настройки",
+  "send": "Отправить",
+  "receive": "Получить",
+  "available": "Доступно",
+  "locked": "Заблокировано",
+  "total": "Итого",
+  "lockedAmount": "Заблокировано: {amount}",
+  "@lockedAmount": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "totalAmount": "Итого: {amount}",
+  "@totalAmount": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "recentTransactions": "Последние транзакции",
+  "viewAll": "Смотреть все",
+  "noTransactionsYet": "Транзакций пока нет",
+  "noMatchingTransactions": "Подходящих транзакций не найдено",
+  "pending": "В ожидании...",
+  "justNow": "Только что",
+  "minutesAgo": "{count} мин. назад",
+  "@minutesAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "hoursAgo": "{count} ч. назад",
+  "@hoursAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "daysAgo": "{count} д. назад",
+  "@daysAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "received": "Получено",
+  "sent": "Отправлено",
+  "networkStatus": "Состояние сети",
+  "node": "Узел",
+  "status": "Статус",
+  "connected": "Подключено",
+  "disconnected": "Отключено",
+  "walletHeight": "Высота кошелька",
+  "networkHeight": "Высота сети",
+  "peers": "Пиры",
+  "type": "Тип",
+  "viewOnly": "Только просмотр",
+  "couldNotFetchStatus": "Не удалось получить статус. Проверьте узел в Настройках.",
+  "errorPrefix": "Ошибка: {message}",
+  "@errorPrefix": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "seedBackupWarning": "Сделайте резервную копию сид-фразы в Настройках, чтобы защитить свои средства.",
+  "noConnectionToDaemon": "Нет подключения к демону",
+  "syncingPercent": "Синхронизация {percent}%",
+  "@syncingPercent": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "yourAddress": "Ваш адрес",
+  "errorLoadingAddress": "Ошибка загрузки адреса",
+  "integratedAddress": "Интегрированный адрес",
+  "embedPaymentId": "Встроить идентификатор платежа в адрес",
+  "randomShort": "Случайный короткий (16)",
+  "randomLong": "Случайный длинный (64)",
+  "enterCustomPaymentId": "Или введите свой идентификатор платежа (16 или 64 hex)",
+  "enterPaymentId": "Введите идентификатор платежа",
+  "paymentIdInvalid": "Идентификатор платежа должен содержать 16 или 64 hex-символа",
+  "shortPid": "Короткий PID",
+  "longPid": "Длинный PID",
+  "share": "Поделиться",
+  "copy": "Копировать",
+  "sweepAllFunds": "Собрать все средства",
+  "normalSend": "Обычная отправка",
+  "sweep": "Собрать",
+  "recipientAddress": "Адрес получателя",
+  "scanQr": "Сканировать QR",
+  "amount": "Сумма",
+  "availableBalance": "Доступно: {amount}",
+  "@availableBalance": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "sweepInfo": "Сбор объединяет все UTXO и отправляет весь разблокированный баланс ({amount}) за вычетом комиссии.",
+  "@sweepInfo": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "paymentIdOptional": "Идентификатор платежа (необязательно)",
+  "hexCharacters": "16 или 64 hex-символа",
+  "mustBeHex": "Должно быть 16 или 64 hex-символа",
+  "recipientRequired": "Адрес получателя обязателен",
+  "invalidAddress": "Недействительный адрес DEGO",
+  "enterValidAmount": "Введите корректную сумму",
+  "reviewTransaction": "Проверка транзакции",
+  "to": "Кому",
+  "fee": "Комиссия",
+  "paymentId": "Идентификатор платежа",
+  "transactionsIrreversible": "Транзакции необратимы. Пожалуйста, проверьте данные.",
+  "back": "Назад",
+  "confirmAndSend": "Подтвердить и отправить",
+  "transactionSent": "Транзакция отправлена!",
+  "transactionHash": "Хэш транзакции",
+  "sendAnother": "Отправить ещё",
+  "scanQrCode": "Сканировать QR-код",
+  "scannedAddress": "Отсканированный адрес",
+  "cancel": "Отмена",
+  "useThisAddress": "Использовать этот адрес",
+  "sweepFailed": "Сбор не удался",
+  "searchPlaceholder": "Поиск по хэшу, адресу, идентификатору платежа...",
+  "all": "Все",
+  "filterReceived": "Полученные",
+  "filterSent": "Отправленные",
+  "hash": "Хэш",
+  "address": "Адрес",
+  "block": "Блок",
+  "confirmed": "Подтверждено",
+  "password": "Пароль",
+  "unlock": "Разблокировать",
+  "switchWallet": "Сменить кошелёк",
+  "enterPasswordToUnlock": "Введите пароль для разблокировки",
+  "incorrectPassword": "Неверный пароль",
+  "enterYourPassword": "Введите ваш пароль",
+  "appName": "DeroGold Wallet",
+  "createFirstWalletSubtitle": "Создайте первый кошелёк для начала работы",
+  "selectWalletSubtitle": "Выберите кошелёк для открытия",
+  "yourWallets": "Ваши кошельки",
+  "noWalletsYet": "Кошельков пока нет",
+  "lastOpened": "Последнее открытие",
+  "createdDate": "Создан {date}",
+  "@createdDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "createFirstWallet": "Создать первый кошелёк",
+  "addWallet": "Добавить кошелёк",
+  "deleteWallet": "Удалить кошелёк",
+  "deleteWalletConfirm": "Удалить \"{name}\"?\n\nЭто навсегда удалит файл кошелька и ключи. Убедитесь, что вы сохранили резервную копию сид-фразы.",
+  "@deleteWalletConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "delete": "Удалить",
+  "createNewWallet": "Создать новый кошелёк",
+  "createNewWalletSubtitle": "Сгенерировать новый кошелёк с новой сид-фразой",
+  "importFromSeed": "Импорт из сид-фразы",
+  "importFromSeedSubtitle": "Восстановить кошелёк с помощью мнемонической сид-фразы из 25 слов",
+  "importFromKeys": "Импорт из приватных ключей",
+  "importFromKeysSubtitle": "Восстановить с помощью ключа расходования и ключа просмотра",
+  "viewOnlyWallet": "Кошелёк только для просмотра",
+  "viewOnlyWalletSubtitle": "Кошелёк-наблюдатель с использованием ключа просмотра и адреса",
+  "createWallet": "Создать кошелёк",
+  "importWallet": "Импортировать кошелёк",
+  "walletName": "Название кошелька",
+  "walletNameHint": "напр. Основной кошелёк",
+  "passwordLabel": "Пароль",
+  "enterPassword": "Введите пароль",
+  "confirmPassword": "Подтвердите пароль",
+  "seedPhrase": "Сид-фраза (25 слов)",
+  "enterSeedPhrase": "Введите вашу сид-фразу...",
+  "scanHeight": "Высота сканирования (необязательно)",
+  "scanHeightHint": "0 = сканировать с начала",
+  "privateSpendKey": "Приватный ключ расходования",
+  "privateViewKey": "Приватный ключ просмотра",
+  "walletAddress": "Адрес кошелька",
+  "walletAddressHint": "dg... адрес",
+  "hexKey": "64-символьный hex",
+  "daemonNode": "Узел демона",
+  "custom": "Свой",
+  "host": "Хост",
+  "hostHint": "Хост / IP",
+  "port": "Порт",
+  "ssl": "SSL",
+  "walletNameRequired": "Название кошелька обязательно",
+  "passwordRequired": "Пароль обязателен",
+  "passwordTooShort": "Пароль должен содержать не менее {count} символов",
+  "passwordsDoNotMatch": "Пароли не совпадают",
+  "seedRequired": "Сид-фраза обязательна",
+  "spendKeyRequired": "Ключ расходования обязателен",
+  "viewKeyRequired": "Ключ просмотра обязателен",
+  "addressRequired": "Адрес обязателен",
+  "daemonHostRequired": "Хост демона обязателен",
+  "backupSeedTitle": "Резервная копия сид-фразы",
+  "backupWarning": "Запишите сид-фразу и храните её в надёжном месте. Если вы её потеряете, ваши средства будут утеряны навсегда.",
+  "seedPhraseLabel": "Сид-фраза",
+  "privateViewKeyLabel": "Приватный ключ просмотра",
+  "privateSpendKeyLabel": "Приватный ключ расходования",
+  "backupConfirmCheck": "Я надёжно сохранил(а) резервную копию сид-фразы",
+  "continueToWallet": "Перейти к кошельку",
+  "sectionDaemonNode": "Узел демона",
+  "apply": "Применить",
+  "nodeUpdated": "Узел обновлён: {host}:{port}",
+  "@nodeUpdated": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      },
+      "port": {
+        "type": "int"
+      }
+    }
+  },
+  "hostRequired": "Хост обязателен",
+  "currentWallet": "Текущий кошелёк — {name}",
+  "@currentWallet": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "saveWallet": "Сохранить кошелёк",
+  "walletSaved": "Кошелёк сохранён",
+  "saveFailed": "Ошибка сохранения: {error}",
+  "@saveFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "backupSeed": "Резервная копия сид-фразы",
+  "changePassword": "Изменить пароль",
+  "resetScanHeight": "Сбросить высоту сканирования",
+  "reset": "Сбросить",
+  "resetScanConfirm": "Это приведёт к повторному сканированию блокчейна начиная с блока {height}. Это может занять некоторое время. Продолжить?",
+  "@resetScanConfirm": {
+    "placeholders": {
+      "height": {
+        "type": "int"
+      }
+    }
+  },
+  "scanResetTo": "Сканирование сброшено до блока {height}",
+  "@scanResetTo": {
+    "placeholders": {
+      "height": {
+        "type": "int"
+      }
+    }
+  },
+  "resetFailed": "Сброс не удался: {error}",
+  "@resetFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "enterPasswordTitle": "Введите пароль",
+  "confirm": "Подтвердить",
+  "seedBackup": "Резервная копия сид-фразы",
+  "seedPhraseColon": "Сид-фраза:",
+  "privateViewKeyColon": "Приватный ключ просмотра:",
+  "iveBackedUp": "Я сохранил(а) резервную копию",
+  "currentPasswordLabel": "Текущий пароль",
+  "newPasswordLabel": "Новый пароль",
+  "confirmNewPasswordLabel": "Подтвердите новый пароль",
+  "change": "Изменить",
+  "currentPasswordIncorrect": "Текущий пароль неверен",
+  "newPasswordsDoNotMatch": "Новые пароли не совпадают",
+  "passwordChanged": "Пароль изменён",
+  "walletManagement": "Управление кошельками",
+  "switchWalletSubtitle": "Сохранить и закрыть, выбрать другой",
+  "manageWallets": "Управление кошельками",
+  "manageWalletsSubtitle": "Переименовать или удалить кошельки",
+  "currentlyOpen": "(открыт сейчас)",
+  "close": "Закрыть",
+  "renameWallet": "Переименовать кошелёк",
+  "newName": "Новое название",
+  "rename": "Переименовать",
+  "deleteWalletConfirmShort": "Удалить \"{name}\"? Это действие нельзя отменить.",
+  "@deleteWalletConfirmShort": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "security": "Безопасность",
+  "biometricUnlock": "Биометрическая разблокировка",
+  "biometricSubtitle": "Отпечаток пальца / Face ID",
+  "biometricNotAvailable": "Биометрия недоступна",
+  "autoLock": "Автоблокировка",
+  "appearance": "Внешний вид",
+  "theme": "Тема",
+  "themeAuto": "Авто",
+  "themeLight": "Светлая",
+  "themeDark": "Тёмная",
+  "preferences": "Предпочтения",
+  "transactionNotifications": "Уведомления о транзакциях",
+  "notificationsSubtitle": "Оповещение о входящих транзакциях",
+  "autosave": "Автосохранение",
+  "autosaveSubtitle": "Сохранять после синхронизации, затем каждые 5 минут",
+  "skipCoinbaseTx": "Пропускать Coinbase-транзакции",
+  "skipCoinbaseSubtitle": "Синхронизация быстрее, но награды майнера не отображаются (по умолчанию выключено)",
+  "dangerZone": "Опасная зона",
+  "deleteCurrentWallet": "Удалить текущий кошелёк",
+  "deleteCurrentWalletSubtitle": "Навсегда удалить данные кошелька",
+  "deleteWalletTypeCaps": "Это навсегда удалит файл кошелька и ключи. Убедитесь, что вы сохранили резервную копию сид-фразы.\n\nВведите DELETE для подтверждения:",
+  "deleteHint": "DELETE",
+  "language": "Язык",
+  "selectLanguage": "Выбрать язык",
+  "languageEn": "English",
+  "languageFr": "Français",
+  "languageDe": "Deutsch",
+  "languageZh": "中文",
+  "languageVi": "Tiếng Việt",
+  "languageJa": "日本語",
+  "languageEs": "Español",
+  "languagePt": "Português",
+  "languageRu": "Русский",
+  "autoLockImmediately": "Немедленно",
+  "autoLock1Min": "1 минута",
+  "autoLock5Min": "5 минут",
+  "autoLockNever": "Никогда",
+  "deleteConfirmMismatch": "Введите точно DELETE для подтверждения.",
+  "seedNotBackedUpWarning": "Вы не подтвердили резервную копию сид-фразы этого кошелька. Удаление сейчас означает, что средства невозможно будет восстановить.",
+  "degoReceived": "DEGO получены",
+  "retry": "Повторить",
+  "youReceivedAmount": "Вы получили {amount}",
+  "ringSize": "Размер кольца",
+  "ringSizeReduced": "Размер кольца уменьшен до {actual} (обычно {normal}). Для отправляемых сумм в цепочке недостаточно выходов, чтобы сформировать полное кольцо, поэтому эта транзакция менее приватна, чем обычно.",
+  "liteNodeTitle": "Облегчённый узел",
+  "liteNodeServesFrom": "Этот узел хранит блоки только начиная с {height}. Транзакции до этого блока через него найти невозможно.",
+  "@liteNodeServesFrom": {
+    "placeholders": {
+      "height": {
+        "type": "int"
+      }
+    }
+  },
+  "nodeServesFromLabel": "Отдаёт блоки с",
+  "nodeFullChain": "Полная цепочка",
+  "syncStoppedTitle": "Синхронизация остановлена",
+  "txPowServerSection": "PoW-сервер транзакций",
+  "txPowServerUse": "Использовать внешний PoW-сервер",
+  "txPowServerSubtitle": "Отправлять proof of work транзакции на сервер вместо вычисления на этом устройстве. Если сервер не отвечает, используется процессор этого устройства.",
+  "txPowServerSaved": "Настройки PoW-сервера сохранены",
+  "txPowServerInvalid": "Введите корректный хост и порт",
+  "txPowServerTest": "Проверить",
+  "txPowServerTestOk": "Сервер доступен за {ms} мс: потоков {threads}, занято {queue} из {capacity} мест в очереди",
+  "txPowServerTestFailed": "Сервер недоступен: {error}",
+  "nodeTest": "Проверить",
+  "nodeTestOk": "Доступна за {ms} мс: высота {height}, пиров {peers}",
+  "nodeTestSyncing": "Доступна за {ms} мс, но нода ещё синхронизируется: высота {height} из {networkHeight}",
+  "nodeTestFailed": "Нода недоступна: {error}",
+  "computingPow": "Вычисление PoW... {seconds}с",
+  "@computingPow": {
+    "description": "Progress label while a transaction proof of work runs",
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "feeDeductedOnSend": "списывается при отправке транзакции",
+  "@feeDeductedOnSend": {
+    "description": "Shown in place of a fee figure on the review step: the backend settles the fee when it builds the transaction, which is the same moment it sends it"
+  },
+  "about": "О приложении",
+  "@about": {
+    "description": "Settings section header for app information and links"
+  },
+  "versionInfo": "Версия {version} — Мобильный кошелёк DEGO",
+  "@versionInfo": {
+    "description": "App version line",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "license": "Лицензия",
+  "@license": {
+    "description": "License row label"
+  },
+  "licenseText": "Выпущено под лицензией GNU General Public License v3.0. Используйте на свой риск. Всегда делайте резервную копию мнемонической фразы.",
+  "@licenseText": {
+    "description": "License body. GPL-3.0, matching LICENSE in this repository"
+  },
+  "slowRescanTitle": "Это займёт очень много времени",
+  "@slowRescanTitle": {
+    "description": "Title of the confirmation before a rescan from a low height"
+  },
+  "slowRescanWarning": "Повторное сканирование ниже блока {height} проходит почти всю цепочку. На телефоне это часы непрерывной работы, и приложение должно оставаться на переднем плане.",
+  "@slowRescanWarning": {
+    "description": "Body of the slow-rescan confirmation",
+    "placeholders": {
+      "height": {
+        "type": "int"
+      }
+    }
+  },
+  "slowRescanContinue": "Всё равно сканировать",
+  "@slowRescanContinue": {
+    "description": "Confirm button of the slow-rescan warning"
+  }
+}
