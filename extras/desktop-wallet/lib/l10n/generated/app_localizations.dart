@@ -1,0 +1,2149 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:intl/intl.dart' as intl;
+
+import 'app_localizations_de.dart';
+import 'app_localizations_en.dart';
+import 'app_localizations_es.dart';
+import 'app_localizations_fr.dart';
+import 'app_localizations_ja.dart';
+import 'app_localizations_pt.dart';
+import 'app_localizations_ru.dart';
+import 'app_localizations_vi.dart';
+import 'app_localizations_zh.dart';
+
+// ignore_for_file: type=lint
+
+/// Callers can lookup localized strings with an instance of S
+/// returned by `S.of(context)`.
+///
+/// Applications need to include `S.delegate()` in their app's
+/// `localizationDelegates` list, and the locales they support in the app's
+/// `supportedLocales` list. For example:
+///
+/// ```dart
+/// import 'generated/app_localizations.dart';
+///
+/// return MaterialApp(
+///   localizationsDelegates: S.localizationsDelegates,
+///   supportedLocales: S.supportedLocales,
+///   home: MyApplicationHome(),
+/// );
+/// ```
+///
+/// ## Update pubspec.yaml
+///
+/// Please make sure to update your pubspec.yaml to include the following
+/// packages:
+///
+/// ```yaml
+/// dependencies:
+///   # Internationalization support.
+///   flutter_localizations:
+///     sdk: flutter
+///   intl: any # Use the pinned version from flutter_localizations
+///
+///   # Rest of dependencies
+/// ```
+///
+/// ## iOS Applications
+///
+/// iOS applications define key application metadata, including supported
+/// locales, in an Info.plist file that is built into the application bundle.
+/// To configure the locales supported by your app, you’ll need to edit this
+/// file.
+///
+/// First, open your project’s ios/Runner.xcworkspace Xcode workspace file.
+/// Then, in the Project Navigator, open the Info.plist file under the Runner
+/// project’s Runner folder.
+///
+/// Next, select the Information Property List item, select Add Item from the
+/// Editor menu, then select Localizations from the pop-up menu.
+///
+/// Select and expand the newly-created Localizations item then, for each
+/// locale your application supports, add a new item and select the locale
+/// you wish to add from the pop-up menu in the Value field. This list should
+/// be consistent with the languages listed in the S.supportedLocales
+/// property.
+abstract class S {
+  S(String locale)
+    : localeName = intl.Intl.canonicalizedLocale(locale.toString());
+
+  final String localeName;
+
+  static S? of(BuildContext context) {
+    return Localizations.of<S>(context, S);
+  }
+
+  static const LocalizationsDelegate<S> delegate = _SDelegate();
+
+  /// A list of this localizations delegate along with the default localizations
+  /// delegates.
+  ///
+  /// Returns a list of localizations delegates containing this delegate along with
+  /// GlobalMaterialLocalizations.delegate, GlobalCupertinoLocalizations.delegate,
+  /// and GlobalWidgetsLocalizations.delegate.
+  ///
+  /// Additional delegates can be added by appending to this list in
+  /// MaterialApp. This list does not have to be used at all if a custom list
+  /// of delegates is preferred or required.
+  static const List<LocalizationsDelegate<dynamic>> localizationsDelegates =
+      <LocalizationsDelegate<dynamic>>[
+        delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+      ];
+
+  /// A list of this localizations delegate's supported locales.
+  static const List<Locale> supportedLocales = <Locale>[
+    Locale('de'),
+    Locale('en'),
+    Locale('es'),
+    Locale('fr'),
+    Locale('ja'),
+    Locale('pt'),
+    Locale('ru'),
+    Locale('vi'),
+    Locale('zh'),
+  ];
+
+  /// No description provided for @appTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'DeroGold Wallet'**
+  String get appTitle;
+
+  /// No description provided for @tabOverview.
+  ///
+  /// In en, this message translates to:
+  /// **'Overview'**
+  String get tabOverview;
+
+  /// No description provided for @tabReceive.
+  ///
+  /// In en, this message translates to:
+  /// **'Receive'**
+  String get tabReceive;
+
+  /// No description provided for @tabTransfer.
+  ///
+  /// In en, this message translates to:
+  /// **'Transfer'**
+  String get tabTransfer;
+
+  /// No description provided for @tabHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get tabHistory;
+
+  /// No description provided for @tabAddressBook.
+  ///
+  /// In en, this message translates to:
+  /// **'Address Book'**
+  String get tabAddressBook;
+
+  /// No description provided for @tabSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get tabSettings;
+
+  /// No description provided for @tabAbout.
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get tabAbout;
+
+  /// No description provided for @lockWallet.
+  ///
+  /// In en, this message translates to:
+  /// **'Lock Wallet'**
+  String get lockWallet;
+
+  /// No description provided for @send.
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get send;
+
+  /// No description provided for @receive.
+  ///
+  /// In en, this message translates to:
+  /// **'Receive'**
+  String get receive;
+
+  /// No description provided for @transfer.
+  ///
+  /// In en, this message translates to:
+  /// **'Transfer'**
+  String get transfer;
+
+  /// No description provided for @available.
+  ///
+  /// In en, this message translates to:
+  /// **'Available'**
+  String get available;
+
+  /// No description provided for @locked.
+  ///
+  /// In en, this message translates to:
+  /// **'Locked'**
+  String get locked;
+
+  /// No description provided for @total.
+  ///
+  /// In en, this message translates to:
+  /// **'Total'**
+  String get total;
+
+  /// No description provided for @availableBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Available Balance'**
+  String get availableBalance;
+
+  /// No description provided for @lockedUnconfirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Locked (unconfirmed): {amount} {ticker}'**
+  String lockedUnconfirmed(String amount, String ticker);
+
+  /// No description provided for @totalBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Total: {amount} {ticker}'**
+  String totalBalance(String amount, String ticker);
+
+  /// No description provided for @balanceIncompleteWhileSyncing.
+  ///
+  /// In en, this message translates to:
+  /// **'Balance may be incomplete while syncing'**
+  String get balanceIncompleteWhileSyncing;
+
+  /// No description provided for @errorPrefix.
+  ///
+  /// In en, this message translates to:
+  /// **'Error: {message}'**
+  String errorPrefix(String message);
+
+  /// No description provided for @network.
+  ///
+  /// In en, this message translates to:
+  /// **'Network'**
+  String get network;
+
+  /// No description provided for @syncStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync status'**
+  String get syncStatus;
+
+  /// No description provided for @synced.
+  ///
+  /// In en, this message translates to:
+  /// **'Synced'**
+  String get synced;
+
+  /// No description provided for @syncing.
+  ///
+  /// In en, this message translates to:
+  /// **'Syncing…'**
+  String get syncing;
+
+  /// No description provided for @walletBlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Wallet block'**
+  String get walletBlock;
+
+  /// No description provided for @networkBlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Network block'**
+  String get networkBlock;
+
+  /// No description provided for @peers.
+  ///
+  /// In en, this message translates to:
+  /// **'Peers'**
+  String get peers;
+
+  /// No description provided for @walletType.
+  ///
+  /// In en, this message translates to:
+  /// **'Wallet type'**
+  String get walletType;
+
+  /// No description provided for @viewOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'View-only'**
+  String get viewOnly;
+
+  /// No description provided for @full.
+  ///
+  /// In en, this message translates to:
+  /// **'Full'**
+  String get full;
+
+  /// No description provided for @nodeConnectionIssue.
+  ///
+  /// In en, this message translates to:
+  /// **'Node connection issue'**
+  String get nodeConnectionIssue;
+
+  /// No description provided for @switchNodeInSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch node in Settings →'**
+  String get switchNodeInSettings;
+
+  /// No description provided for @recentTransactions.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent Transactions'**
+  String get recentTransactions;
+
+  /// No description provided for @viewAll.
+  ///
+  /// In en, this message translates to:
+  /// **'View all →'**
+  String get viewAll;
+
+  /// No description provided for @noTransactionsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No transactions yet'**
+  String get noTransactionsYet;
+
+  /// No description provided for @received.
+  ///
+  /// In en, this message translates to:
+  /// **'Received'**
+  String get received;
+
+  /// No description provided for @sent.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent'**
+  String get sent;
+
+  /// No description provided for @syncingProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Syncing {pct}% (block {wallet} / {network})'**
+  String syncingProgress(String pct, int wallet, int network);
+
+  /// No description provided for @shareAddressSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Share your address to receive DEGO'**
+  String get shareAddressSubtitle;
+
+  /// No description provided for @yourAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Address'**
+  String get yourAddress;
+
+  /// No description provided for @generateIntegratedAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate Integrated Address'**
+  String get generateIntegratedAddress;
+
+  /// No description provided for @integratedAddressDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Combine your address with a payment ID. Use the random buttons for a new ID, or enter your own below.'**
+  String get integratedAddressDescription;
+
+  /// No description provided for @randomShort16.
+  ///
+  /// In en, this message translates to:
+  /// **'Random Short (16)'**
+  String get randomShort16;
+
+  /// No description provided for @randomLong64.
+  ///
+  /// In en, this message translates to:
+  /// **'Random Long (64)'**
+  String get randomLong64;
+
+  /// No description provided for @customPaymentIdLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom payment ID (16 or 64 hex chars)'**
+  String get customPaymentIdLabel;
+
+  /// No description provided for @generate.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate'**
+  String get generate;
+
+  /// No description provided for @integratedAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Integrated Address'**
+  String get integratedAddress;
+
+  /// No description provided for @paymentIdShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Short (16)'**
+  String get paymentIdShort;
+
+  /// No description provided for @paymentIdLong.
+  ///
+  /// In en, this message translates to:
+  /// **'Long (64)'**
+  String get paymentIdLong;
+
+  /// No description provided for @paymentIdLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment ID · {label}'**
+  String paymentIdLabel(String label);
+
+  /// No description provided for @enterPaymentIdError.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a payment ID (16 or 64 hex chars)'**
+  String get enterPaymentIdError;
+
+  /// No description provided for @paymentIdInvalidError.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment ID must be 16 or 64 hex characters'**
+  String get paymentIdInvalidError;
+
+  /// No description provided for @copyAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy address'**
+  String get copyAddress;
+
+  /// No description provided for @copyPaymentId.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy payment ID'**
+  String get copyPaymentId;
+
+  /// No description provided for @copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get copy;
+
+  /// No description provided for @copied.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied!'**
+  String get copied;
+
+  /// No description provided for @sendWrkzToAny.
+  ///
+  /// In en, this message translates to:
+  /// **'Send DEGO to any address'**
+  String get sendWrkzToAny;
+
+  /// No description provided for @sweepAllDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Send all funds to an address (consolidates UTXOs)'**
+  String get sweepAllDescription;
+
+  /// No description provided for @sweepAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Sweep all'**
+  String get sweepAll;
+
+  /// No description provided for @sweepWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Sweep consolidates all UTXOs into one output. Use this when transactions fail due to too many inputs.'**
+  String get sweepWarning;
+
+  /// No description provided for @sweepAvailableBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Available: {amount} {ticker} (entire balance will be sent minus fee)'**
+  String sweepAvailableBalance(String amount, String ticker);
+
+  /// No description provided for @destinationAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Destination address'**
+  String get destinationAddress;
+
+  /// No description provided for @addressBook.
+  ///
+  /// In en, this message translates to:
+  /// **'Address book'**
+  String get addressBook;
+
+  /// No description provided for @sweepAllFunds.
+  ///
+  /// In en, this message translates to:
+  /// **'Sweep All Funds'**
+  String get sweepAllFunds;
+
+  /// No description provided for @recipientAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Recipient address'**
+  String get recipientAddress;
+
+  /// No description provided for @amount.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount'**
+  String get amount;
+
+  /// No description provided for @paymentIdOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment ID (optional)'**
+  String get paymentIdOptional;
+
+  /// No description provided for @hexCharacters.
+  ///
+  /// In en, this message translates to:
+  /// **'16 or 64 hex characters'**
+  String get hexCharacters;
+
+  /// No description provided for @reviewTransaction.
+  ///
+  /// In en, this message translates to:
+  /// **'Review Transaction'**
+  String get reviewTransaction;
+
+  /// No description provided for @reviewAndConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Review & Confirm'**
+  String get reviewAndConfirm;
+
+  /// No description provided for @to.
+  ///
+  /// In en, this message translates to:
+  /// **'To'**
+  String get to;
+
+  /// No description provided for @fee.
+  ///
+  /// In en, this message translates to:
+  /// **'Fee'**
+  String get fee;
+
+  /// No description provided for @totalDeducted.
+  ///
+  /// In en, this message translates to:
+  /// **'Total deducted'**
+  String get totalDeducted;
+
+  /// No description provided for @paymentId.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment ID'**
+  String get paymentId;
+
+  /// No description provided for @transactionsIrreversible.
+  ///
+  /// In en, this message translates to:
+  /// **'Transactions are irreversible. Verify the address before confirming.'**
+  String get transactionsIrreversible;
+
+  /// No description provided for @back.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get back;
+
+  /// No description provided for @confirmAndSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm & Send'**
+  String get confirmAndSend;
+
+  /// No description provided for @transactionSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Transaction Sent!'**
+  String get transactionSent;
+
+  /// No description provided for @transactionBroadcast.
+  ///
+  /// In en, this message translates to:
+  /// **'Your transaction has been broadcast to the network.'**
+  String get transactionBroadcast;
+
+  /// No description provided for @transactionHash.
+  ///
+  /// In en, this message translates to:
+  /// **'Transaction Hash'**
+  String get transactionHash;
+
+  /// No description provided for @sendAnother.
+  ///
+  /// In en, this message translates to:
+  /// **'Send Another'**
+  String get sendAnother;
+
+  /// No description provided for @enterDestinationAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a destination address'**
+  String get enterDestinationAddress;
+
+  /// No description provided for @enterValidAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid amount'**
+  String get enterValidAmount;
+
+  /// No description provided for @computingPow.
+  ///
+  /// In en, this message translates to:
+  /// **'Computing PoW... {seconds}s'**
+  String computingPow(int seconds);
+
+  /// No description provided for @stepFillDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Fill Details'**
+  String get stepFillDetails;
+
+  /// No description provided for @stepReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Review'**
+  String get stepReview;
+
+  /// No description provided for @stepDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get stepDone;
+
+  /// No description provided for @sweepFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Sweep failed'**
+  String get sweepFailed;
+
+  /// No description provided for @addressBookTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Address Book'**
+  String get addressBookTitle;
+
+  /// No description provided for @transactionHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Transaction History'**
+  String get transactionHistory;
+
+  /// No description provided for @searchByHash.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by hash, address or payment ID…'**
+  String get searchByHash;
+
+  /// No description provided for @all.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get all;
+
+  /// No description provided for @filterReceived.
+  ///
+  /// In en, this message translates to:
+  /// **'Received'**
+  String get filterReceived;
+
+  /// No description provided for @filterSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent'**
+  String get filterSent;
+
+  /// No description provided for @refresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh'**
+  String get refresh;
+
+  /// No description provided for @noTransactionsFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No transactions found'**
+  String get noTransactionsFound;
+
+  /// No description provided for @confirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirmed'**
+  String get confirmed;
+
+  /// No description provided for @pending.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending'**
+  String get pending;
+
+  /// No description provided for @hash.
+  ///
+  /// In en, this message translates to:
+  /// **'Hash'**
+  String get hash;
+
+  /// No description provided for @address.
+  ///
+  /// In en, this message translates to:
+  /// **'Address'**
+  String get address;
+
+  /// No description provided for @block.
+  ///
+  /// In en, this message translates to:
+  /// **'Block'**
+  String get block;
+
+  /// No description provided for @showingRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Showing {start}–{end} of {total}'**
+  String showingRange(int start, int end, int total);
+
+  /// No description provided for @previous.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous'**
+  String get previous;
+
+  /// No description provided for @next.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get next;
+
+  /// No description provided for @walletLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Wallet Locked'**
+  String get walletLocked;
+
+  /// No description provided for @enterPasswordToContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your wallet password to continue'**
+  String get enterPasswordToContinue;
+
+  /// No description provided for @password.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get password;
+
+  /// No description provided for @incorrectPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Incorrect password'**
+  String get incorrectPassword;
+
+  /// No description provided for @unlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock'**
+  String get unlock;
+
+  /// No description provided for @closeWalletInstead.
+  ///
+  /// In en, this message translates to:
+  /// **'Close wallet instead'**
+  String get closeWalletInstead;
+
+  /// No description provided for @closeWallet.
+  ///
+  /// In en, this message translates to:
+  /// **'Close Wallet'**
+  String get closeWallet;
+
+  /// No description provided for @closeWalletDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'This will save and close the wallet.\n\nYou will be returned to the login screen.'**
+  String get closeWalletDescription;
+
+  /// No description provided for @cancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancel;
+
+  /// No description provided for @welcomeToDeroGold.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome to DeroGold Wallet'**
+  String get welcomeToDeroGold;
+
+  /// No description provided for @selectOptionToStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Select an option to get started'**
+  String get selectOptionToStart;
+
+  /// No description provided for @createNewWallet.
+  ///
+  /// In en, this message translates to:
+  /// **'Create New Wallet'**
+  String get createNewWallet;
+
+  /// No description provided for @openExistingWallet.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Existing Wallet'**
+  String get openExistingWallet;
+
+  /// No description provided for @importFromSeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Import from Seed Phrase'**
+  String get importFromSeed;
+
+  /// No description provided for @importFromKeys.
+  ///
+  /// In en, this message translates to:
+  /// **'Import from Private Keys'**
+  String get importFromKeys;
+
+  /// No description provided for @openWallet.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Wallet'**
+  String get openWallet;
+
+  /// No description provided for @importFromSeedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Import from Seed'**
+  String get importFromSeedTitle;
+
+  /// No description provided for @importFromKeysTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Import from Keys'**
+  String get importFromKeysTitle;
+
+  /// No description provided for @saveWalletTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Save wallet to'**
+  String get saveWalletTo;
+
+  /// No description provided for @walletFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Wallet file'**
+  String get walletFile;
+
+  /// No description provided for @walletPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Wallet password'**
+  String get walletPassword;
+
+  /// No description provided for @mnemonicSeedPhrase.
+  ///
+  /// In en, this message translates to:
+  /// **'Mnemonic Seed Phrase'**
+  String get mnemonicSeedPhrase;
+
+  /// No description provided for @scanFromHeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan from height (0 = full scan)'**
+  String get scanFromHeight;
+
+  /// No description provided for @daemonHost.
+  ///
+  /// In en, this message translates to:
+  /// **'Daemon host'**
+  String get daemonHost;
+
+  /// No description provided for @port.
+  ///
+  /// In en, this message translates to:
+  /// **'Port'**
+  String get port;
+
+  /// No description provided for @continueButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get continueButton;
+
+  /// Local node data folder picker and start-height hint
+  ///
+  /// In en, this message translates to:
+  /// **'Browse…'**
+  String get browse;
+
+  /// No description provided for @backupWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Back up your wallet before continuing.\nThese keys cannot be recovered if lost.'**
+  String get backupWarning;
+
+  /// No description provided for @yourWalletAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Wallet Address'**
+  String get yourWalletAddress;
+
+  /// No description provided for @seedPhrase25Words.
+  ///
+  /// In en, this message translates to:
+  /// **'Seed Phrase (25 words)'**
+  String get seedPhrase25Words;
+
+  /// No description provided for @privateViewKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Private View Key'**
+  String get privateViewKey;
+
+  /// No description provided for @privateSpendKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Private Spend Key'**
+  String get privateSpendKey;
+
+  /// No description provided for @seedBackupConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'I have written down my seed phrase and private keys in a safe place.'**
+  String get seedBackupConfirm;
+
+  /// No description provided for @backedUpContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'I\'ve backed up my wallet — Continue'**
+  String get backedUpContinue;
+
+  /// No description provided for @settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get settings;
+
+  /// No description provided for @sectionDaemonNode.
+  ///
+  /// In en, this message translates to:
+  /// **'Daemon Node'**
+  String get sectionDaemonNode;
+
+  /// No description provided for @nodeDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect to a local or remote daemon node. Changes take effect immediately.'**
+  String get nodeDescription;
+
+  /// No description provided for @hostIpAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Host / IP address'**
+  String get hostIpAddress;
+
+  /// No description provided for @ssl.
+  ///
+  /// In en, this message translates to:
+  /// **'SSL'**
+  String get ssl;
+
+  /// No description provided for @apply.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get apply;
+
+  /// No description provided for @nodeUpdatedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Node updated successfully'**
+  String get nodeUpdatedSuccess;
+
+  /// No description provided for @nodeUnreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot reach the current node. Enter a new node address below and tap Apply.'**
+  String get nodeUnreachable;
+
+  /// No description provided for @sectionWallet.
+  ///
+  /// In en, this message translates to:
+  /// **'Wallet'**
+  String get sectionWallet;
+
+  /// No description provided for @saveWallet.
+  ///
+  /// In en, this message translates to:
+  /// **'Save Wallet'**
+  String get saveWallet;
+
+  /// No description provided for @saveWalletSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Flush current state to disk'**
+  String get saveWalletSubtitle;
+
+  /// No description provided for @walletSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Wallet saved'**
+  String get walletSaved;
+
+  /// No description provided for @exportToJson.
+  ///
+  /// In en, this message translates to:
+  /// **'Export to JSON'**
+  String get exportToJson;
+
+  /// No description provided for @exportToJsonSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Save wallet data as a JSON file'**
+  String get exportToJsonSubtitle;
+
+  /// No description provided for @exportJsonTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Export wallet JSON'**
+  String get exportJsonTitle;
+
+  /// No description provided for @exportedTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Exported to {path}'**
+  String exportedTo(String path);
+
+  /// No description provided for @exportFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Export failed: {error}'**
+  String exportFailed(String error);
+
+  /// No description provided for @resetScanHeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset Scan Height'**
+  String get resetScanHeight;
+
+  /// No description provided for @resetScanHeightSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Rescan blockchain from a specific height'**
+  String get resetScanHeightSubtitle;
+
+  /// No description provided for @resetScanHeightDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a block height to rescan from. Use 0 for a full rescan.'**
+  String get resetScanHeightDescription;
+
+  /// No description provided for @scanHeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan height'**
+  String get scanHeight;
+
+  /// No description provided for @reset.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset'**
+  String get reset;
+
+  /// No description provided for @autosave.
+  ///
+  /// In en, this message translates to:
+  /// **'Autosave'**
+  String get autosave;
+
+  /// No description provided for @autosaveSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Save wallet to disk after sync and every 5 minutes'**
+  String get autosaveSubtitle;
+
+  /// No description provided for @scanCoinbaseTx.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan Coinbase Transactions'**
+  String get scanCoinbaseTx;
+
+  /// No description provided for @scanCoinbaseSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Include miner rewards when syncing (off by default)'**
+  String get scanCoinbaseSubtitle;
+
+  /// No description provided for @sectionAppearance.
+  ///
+  /// In en, this message translates to:
+  /// **'Appearance'**
+  String get sectionAppearance;
+
+  /// No description provided for @theme.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme'**
+  String get theme;
+
+  /// No description provided for @themeSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose app colour scheme'**
+  String get themeSubtitle;
+
+  /// No description provided for @themeSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get themeSystem;
+
+  /// No description provided for @themeLight.
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get themeLight;
+
+  /// No description provided for @themeDark.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get themeDark;
+
+  /// No description provided for @sectionNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications'**
+  String get sectionNotifications;
+
+  /// No description provided for @incomingTxAlerts.
+  ///
+  /// In en, this message translates to:
+  /// **'Incoming Transaction Alerts'**
+  String get incomingTxAlerts;
+
+  /// No description provided for @incomingTxAlertsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Show a desktop notification when DEGO is received'**
+  String get incomingTxAlertsSubtitle;
+
+  /// No description provided for @sectionDebugLogs.
+  ///
+  /// In en, this message translates to:
+  /// **'Debug & Logs'**
+  String get sectionDebugLogs;
+
+  /// No description provided for @logLevel.
+  ///
+  /// In en, this message translates to:
+  /// **'Log Level'**
+  String get logLevel;
+
+  /// No description provided for @logLevelSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Controls wallet library verbosity'**
+  String get logLevelSubtitle;
+
+  /// No description provided for @viewLogs.
+  ///
+  /// In en, this message translates to:
+  /// **'View Logs'**
+  String get viewLogs;
+
+  /// No description provided for @viewLogsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Live wallet library log output'**
+  String get viewLogsSubtitle;
+
+  /// No description provided for @walletLogs.
+  ///
+  /// In en, this message translates to:
+  /// **'Wallet Logs'**
+  String get walletLogs;
+
+  /// No description provided for @logEntries.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} entries'**
+  String logEntries(int count);
+
+  /// No description provided for @autoScroll.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-scroll'**
+  String get autoScroll;
+
+  /// No description provided for @copyAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy all'**
+  String get copyAll;
+
+  /// No description provided for @clear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get clear;
+
+  /// No description provided for @close.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get close;
+
+  /// No description provided for @noLogsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No logs yet. Set a log level above Disabled to see output.'**
+  String get noLogsYet;
+
+  /// No description provided for @logsCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Logs copied to clipboard'**
+  String get logsCopied;
+
+  /// No description provided for @sectionDangerZone.
+  ///
+  /// In en, this message translates to:
+  /// **'Danger Zone'**
+  String get sectionDangerZone;
+
+  /// No description provided for @deleteWalletData.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Wallet Data'**
+  String get deleteWalletData;
+
+  /// No description provided for @deleteWalletDataSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Permanently remove wallet file from disk'**
+  String get deleteWalletDataSubtitle;
+
+  /// No description provided for @deleteWalletWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'This will permanently delete your wallet file from disk.\n\nMake sure you have backed up your seed phrase and private keys before proceeding. This action cannot be undone.'**
+  String get deleteWalletWarning;
+
+  /// No description provided for @iUnderstandContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'I understand, continue'**
+  String get iUnderstandContinue;
+
+  /// No description provided for @finalConfirmation.
+  ///
+  /// In en, this message translates to:
+  /// **'Final Confirmation'**
+  String get finalConfirmation;
+
+  /// No description provided for @typeDeleteToConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Type DELETE to confirm:'**
+  String get typeDeleteToConfirm;
+
+  /// No description provided for @deleteHint.
+  ///
+  /// In en, this message translates to:
+  /// **'DELETE'**
+  String get deleteHint;
+
+  /// No description provided for @deletePermanently.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete permanently'**
+  String get deletePermanently;
+
+  /// No description provided for @aboutTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get aboutTitle;
+
+  /// No description provided for @versionInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Version {version} — DEGO Desktop Wallet'**
+  String versionInfo(String version);
+
+  /// No description provided for @aboutDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'DeroGold Wallet is the official desktop wallet for DeroGold (DEGO), a fast and lightweight CryptoNote-based cryptocurrency.\n\nBuilt with Flutter, powered by wallet_capi.'**
+  String get aboutDescription;
+
+  /// No description provided for @github.
+  ///
+  /// In en, this message translates to:
+  /// **'GitHub'**
+  String get github;
+
+  /// No description provided for @githubSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'View source code and releases'**
+  String get githubSubtitle;
+
+  /// No description provided for @discord.
+  ///
+  /// In en, this message translates to:
+  /// **'Discord'**
+  String get discord;
+
+  /// No description provided for @discordSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Join the community'**
+  String get discordSubtitle;
+
+  /// No description provided for @twitterX.
+  ///
+  /// In en, this message translates to:
+  /// **'Twitter / X'**
+  String get twitterX;
+
+  /// No description provided for @twitterXSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow @wrkzcoin'**
+  String get twitterXSubtitle;
+
+  /// No description provided for @website.
+  ///
+  /// In en, this message translates to:
+  /// **'Website'**
+  String get website;
+
+  /// No description provided for @websiteSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'wrkz.work'**
+  String get websiteSubtitle;
+
+  /// No description provided for @license.
+  ///
+  /// In en, this message translates to:
+  /// **'License'**
+  String get license;
+
+  /// No description provided for @licenseText.
+  ///
+  /// In en, this message translates to:
+  /// **'Released under the MIT License.\nUse at your own risk. Always back up your seed phrase.'**
+  String get licenseText;
+
+  /// No description provided for @addButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get addButton;
+
+  /// No description provided for @noSavedAddresses.
+  ///
+  /// In en, this message translates to:
+  /// **'No saved addresses'**
+  String get noSavedAddresses;
+
+  /// No description provided for @tapAddToSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap Add to save a frequently used address.'**
+  String get tapAddToSave;
+
+  /// No description provided for @addAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Address'**
+  String get addAddress;
+
+  /// No description provided for @nameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Name / label'**
+  String get nameLabel;
+
+  /// No description provided for @addressLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Address'**
+  String get addressLabel;
+
+  /// No description provided for @noteOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Note (optional)'**
+  String get noteOptional;
+
+  /// No description provided for @nameAndAddressRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Name and address are required'**
+  String get nameAndAddressRequired;
+
+  /// No description provided for @invalidWrkzAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid DeroGold address. Must be 98 (standard), 120 (short integrated), or 186 (long integrated) characters starting with \"Wrkz\".'**
+  String get invalidWrkzAddress;
+
+  /// No description provided for @save.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get save;
+
+  /// No description provided for @editEntry.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Entry'**
+  String get editEntry;
+
+  /// No description provided for @deleteEntry.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Entry'**
+  String get deleteEntry;
+
+  /// No description provided for @removeFromAddressBook.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove \"{name}\" from your address book?'**
+  String removeFromAddressBook(String name);
+
+  /// No description provided for @delete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get delete;
+
+  /// No description provided for @edit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get edit;
+
+  /// No description provided for @wrkzReceived.
+  ///
+  /// In en, this message translates to:
+  /// **'DEGO Received'**
+  String get wrkzReceived;
+
+  /// No description provided for @youReceivedAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'You received {amount}'**
+  String youReceivedAmount(String amount);
+
+  /// No description provided for @show.
+  ///
+  /// In en, this message translates to:
+  /// **'Show'**
+  String get show;
+
+  /// No description provided for @exit.
+  ///
+  /// In en, this message translates to:
+  /// **'Exit'**
+  String get exit;
+
+  /// No description provided for @derogoldWallet.
+  ///
+  /// In en, this message translates to:
+  /// **'DeroGold Wallet'**
+  String get derogoldWallet;
+
+  /// No description provided for @language.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get language;
+
+  /// No description provided for @selectLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Language'**
+  String get selectLanguage;
+
+  /// No description provided for @chooseLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose your preferred language'**
+  String get chooseLanguage;
+
+  /// No description provided for @languageEn.
+  ///
+  /// In en, this message translates to:
+  /// **'English'**
+  String get languageEn;
+
+  /// No description provided for @languageFr.
+  ///
+  /// In en, this message translates to:
+  /// **'Français'**
+  String get languageFr;
+
+  /// No description provided for @languageDe.
+  ///
+  /// In en, this message translates to:
+  /// **'Deutsch'**
+  String get languageDe;
+
+  /// No description provided for @languageZh.
+  ///
+  /// In en, this message translates to:
+  /// **'中文'**
+  String get languageZh;
+
+  /// No description provided for @languageVi.
+  ///
+  /// In en, this message translates to:
+  /// **'Tiếng Việt'**
+  String get languageVi;
+
+  /// No description provided for @languageJa.
+  ///
+  /// In en, this message translates to:
+  /// **'日本語'**
+  String get languageJa;
+
+  /// No description provided for @languageEs.
+  ///
+  /// In en, this message translates to:
+  /// **'Español'**
+  String get languageEs;
+
+  /// No description provided for @languagePt.
+  ///
+  /// In en, this message translates to:
+  /// **'Português'**
+  String get languagePt;
+
+  /// No description provided for @languageRu.
+  ///
+  /// In en, this message translates to:
+  /// **'Русский'**
+  String get languageRu;
+
+  /// Added by the wallet review fixes
+  ///
+  /// In en, this message translates to:
+  /// **'This transaction is no longer valid. Go back and create it again.'**
+  String get preparedTransactionExpired;
+
+  /// Added by the wallet review fixes
+  ///
+  /// In en, this message translates to:
+  /// **'Type DELETE exactly to confirm.'**
+  String get deleteConfirmMismatch;
+
+  /// Added by the wallet review fixes
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot verify the password on this device. Use “Close wallet instead” and open the wallet again.'**
+  String get unlockNeedsReopen;
+
+  /// Added by the wallet review fixes
+  ///
+  /// In en, this message translates to:
+  /// **'Export unencrypted wallet?'**
+  String get exportJsonWarningTitle;
+
+  /// Added by the wallet review fixes
+  ///
+  /// In en, this message translates to:
+  /// **'The exported file contains your private view key and private spend keys in plain text. Anyone who reads it can spend your funds.\n\nSave it only to storage you control, and delete it as soon as you are done.'**
+  String get exportJsonWarningBody;
+
+  /// Shown when a chosen wallet password is below the minimum length
+  ///
+  /// In en, this message translates to:
+  /// **'Password must be at least {count} characters'**
+  String passwordTooShort(int count);
+
+  /// Label for the ring size a transaction was built with
+  ///
+  /// In en, this message translates to:
+  /// **'Ring size'**
+  String get ringSize;
+
+  /// Warning shown before confirming a send whose ring came out below the network default
+  ///
+  /// In en, this message translates to:
+  /// **'Ring size reduced to {actual} (normally {normal}). The amounts being sent do not have enough outputs on the chain to form a full ring, so this transaction is less private than usual.'**
+  String ringSizeReduced(int actual, int normal);
+
+  /// No description provided for @liteNodeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Lite node'**
+  String get liteNodeTitle;
+
+  /// No description provided for @liteNodeServesFrom.
+  ///
+  /// In en, this message translates to:
+  /// **'This node only holds blocks from {height} onward. Transactions before that block cannot be found through it.'**
+  String liteNodeServesFrom(int height);
+
+  /// No description provided for @liteNodeMissesHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'This node starts at block {nodeHeight}, but this wallet starts at block {walletHeight}. Anything received in between is invisible here, so the balance shown may be too low. Connect a node holding the whole chain to see it.'**
+  String liteNodeMissesHistory(int nodeHeight, int walletHeight);
+
+  /// No description provided for @liteNodeSyncStalled.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync stopped at block {wallet}. This node holds nothing below block {node}, so the blocks in between cannot be downloaded from it. The balance is incomplete until you connect a node holding the whole chain.'**
+  String liteNodeSyncStalled(int wallet, int node);
+
+  /// No description provided for @liteNodeRescanRefusedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This node cannot rescan that far back'**
+  String get liteNodeRescanRefusedTitle;
+
+  /// No description provided for @liteNodeRescanRefused.
+  ///
+  /// In en, this message translates to:
+  /// **'The connected node is a lite node holding no block data below {height}. Rescanning from lower than that would drop transactions this wallet has already found, with no way to find them again here. Nothing has been changed.'**
+  String liteNodeRescanRefused(int height);
+
+  /// No description provided for @liteNodeRescanFromInstead.
+  ///
+  /// In en, this message translates to:
+  /// **'Rescan from {height} instead'**
+  String liteNodeRescanFromInstead(int height);
+
+  /// No description provided for @liteNodeRescanHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The connected node can only rescan from block {height} or above.'**
+  String liteNodeRescanHint(int height);
+
+  /// No description provided for @nodeServesFromLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Serves blocks from'**
+  String get nodeServesFromLabel;
+
+  /// No description provided for @nodeFullChain.
+  ///
+  /// In en, this message translates to:
+  /// **'Full chain'**
+  String get nodeFullChain;
+
+  /// No description provided for @sectionLocalNode.
+  ///
+  /// In en, this message translates to:
+  /// **'Local Lite Node'**
+  String get sectionLocalNode;
+
+  /// No description provided for @localNodeDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Run a node on this computer and sync against it instead of a remote server. A lite node stores only what a wallet needs, but it still downloads the whole chain once.'**
+  String get localNodeDescription;
+
+  /// No description provided for @localNodeSetUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Set up local node'**
+  String get localNodeSetUp;
+
+  /// No description provided for @localNodeStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get localNodeStart;
+
+  /// No description provided for @localNodeStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get localNodeStop;
+
+  /// No description provided for @localNodeUse.
+  ///
+  /// In en, this message translates to:
+  /// **'Use this node'**
+  String get localNodeUse;
+
+  /// No description provided for @localNodeDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete node data'**
+  String get localNodeDelete;
+
+  /// No description provided for @localNodeStateStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped'**
+  String get localNodeStateStopped;
+
+  /// No description provided for @localNodeStateStarting.
+  ///
+  /// In en, this message translates to:
+  /// **'Starting'**
+  String get localNodeStateStarting;
+
+  /// No description provided for @localNodeStateSyncing.
+  ///
+  /// In en, this message translates to:
+  /// **'Syncing'**
+  String get localNodeStateSyncing;
+
+  /// No description provided for @localNodeStateReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Synced'**
+  String get localNodeStateReady;
+
+  /// No description provided for @localNodeStateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed'**
+  String get localNodeStateFailed;
+
+  /// No description provided for @localNodeProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Block {height} of {network}'**
+  String localNodeProgress(int height, int network);
+
+  /// No description provided for @localNodePeers.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} peers'**
+  String localNodePeers(int count);
+
+  /// No description provided for @localNodeNotReadyYet.
+  ///
+  /// In en, this message translates to:
+  /// **'The local node is still catching up and cannot serve the wallet yet. It keeps syncing in the background — stay on a remote node until it is ready, then switch over.'**
+  String get localNodeNotReadyYet;
+
+  /// No description provided for @localNodeInUse.
+  ///
+  /// In en, this message translates to:
+  /// **'The wallet is connected to this node.'**
+  String get localNodeInUse;
+
+  /// No description provided for @localNodeBinaryMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} was not found. Place the daemon binary next to the wallet executable, or in a \'sidecar\' folder beside it, and try again.'**
+  String localNodeBinaryMissing(String name);
+
+  /// No description provided for @localNodeSetupTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Set up a local lite node'**
+  String get localNodeSetupTitle;
+
+  /// No description provided for @localNodeSetupCost.
+  ///
+  /// In en, this message translates to:
+  /// **'Before you start:\n• Around 6 GB of disk space, and the whole chain is downloaded once.\n• The first sync takes hours. It continues in the background and you can keep using a remote node meanwhile.\n• The start height below is permanent. Changing it later means deleting the node and syncing again from nothing.'**
+  String get localNodeSetupCost;
+
+  /// No description provided for @localNodeStartHeightLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Start height'**
+  String get localNodeStartHeightLabel;
+
+  /// No description provided for @localNodeStartHeightHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Blocks below this height are downloaded and checked, then only the index later blocks need is kept. Keep it at or below this wallet\'s own start height ({height}).'**
+  String localNodeStartHeightHelp(int height);
+
+  /// No description provided for @localNodeStartHeightTooHigh.
+  ///
+  /// In en, this message translates to:
+  /// **'Higher than this wallet\'s start height ({height}). The node would never be able to show this wallet\'s older transactions.'**
+  String localNodeStartHeightTooHigh(int height);
+
+  /// No description provided for @localNodeCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'Create node'**
+  String get localNodeCreate;
+
+  /// No description provided for @localNodeDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete local node data?'**
+  String get localNodeDeleteTitle;
+
+  /// No description provided for @localNodeDeleteWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'This stops the node and permanently deletes its blockchain database from disk. Your wallet, its seed and its funds are not touched — but a new local node starts syncing again from nothing, which takes hours.'**
+  String get localNodeDeleteWarning;
+
+  /// No description provided for @localNodeDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Local node deleted.'**
+  String get localNodeDeleted;
+
+  /// No description provided for @localNodeDiskUsage.
+  ///
+  /// In en, this message translates to:
+  /// **'{size} on disk'**
+  String localNodeDiskUsage(String size);
+
+  /// No description provided for @nodePresetRemote.
+  ///
+  /// In en, this message translates to:
+  /// **'Remote node'**
+  String get nodePresetRemote;
+
+  /// No description provided for @nodePresetLocal.
+  ///
+  /// In en, this message translates to:
+  /// **'Local lite node'**
+  String get nodePresetLocal;
+
+  /// Shutdown overlay and minimise-to-tray notice
+  ///
+  /// In en, this message translates to:
+  /// **'Saving your wallet…'**
+  String get savingWallet;
+
+  /// Shutdown overlay and minimise-to-tray notice
+  ///
+  /// In en, this message translates to:
+  /// **'DeroGold is writing your wallet to disk. This can take a moment on a large wallet.'**
+  String get savingWalletBody;
+
+  /// Shutdown overlay and minimise-to-tray notice
+  ///
+  /// In en, this message translates to:
+  /// **'This is taking longer than expected. Quitting now loses this save — the wallet on disk stays as it was, so nothing is damaged, but anything since the last save is gone.'**
+  String get shutdownTakingLong;
+
+  /// Shutdown overlay and minimise-to-tray notice
+  ///
+  /// In en, this message translates to:
+  /// **'Quit anyway'**
+  String get quitAnyway;
+
+  /// Shutdown overlay and minimise-to-tray notice
+  ///
+  /// In en, this message translates to:
+  /// **'DeroGold is still running in the system tray. Click the tray icon to bring it back, or right-click it and choose Exit to quit.'**
+  String get stillRunningInTray;
+
+  /// Local node data folder picker and start-height hint
+  ///
+  /// In en, this message translates to:
+  /// **'Data folder'**
+  String get localNodeDataFolder;
+
+  /// Local node data folder picker and start-height hint
+  ///
+  /// In en, this message translates to:
+  /// **'Around 6 GB is written here. Pick a drive with room for it.'**
+  String get localNodeDataFolderHelp;
+
+  /// Local node data folder picker and start-height hint
+  ///
+  /// In en, this message translates to:
+  /// **'That folder already holds other files. Choose an empty folder, or a new one.'**
+  String get localNodeDataFolderInUse;
+
+  /// Local node data folder picker and start-height hint
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the height to keep full blocks from. It has to be above zero — a lite node cannot start at the genesis block.'**
+  String get localNodeStartHeightRequired;
+
+  /// Local node exit question and policy
+  ///
+  /// In en, this message translates to:
+  /// **'The local node is still running'**
+  String get nodeExitTitle;
+
+  /// Local node exit question and policy
+  ///
+  /// In en, this message translates to:
+  /// **'Its first sync has not finished. That takes hours, and it only makes progress while the node is running — but a node left running keeps using the disk and the network after DeroGold has closed.'**
+  String get nodeExitBodySyncing;
+
+  /// Local node exit question and policy
+  ///
+  /// In en, this message translates to:
+  /// **'It is level with the network. Leaving it running keeps it that way and keeps using CPU, bandwidth and the disk while DeroGold is closed; stopping it costs a short catch-up next time.'**
+  String get nodeExitBodySynced;
+
+  /// Local node exit question and policy
+  ///
+  /// In en, this message translates to:
+  /// **'Leave it running'**
+  String get nodeExitKeep;
+
+  /// Local node exit question and policy
+  ///
+  /// In en, this message translates to:
+  /// **'Stop it'**
+  String get nodeExitStop;
+
+  /// Local node exit question and policy
+  ///
+  /// In en, this message translates to:
+  /// **'Changeable later in Settings, under Local Lite Node.'**
+  String get nodeExitChangeLater;
+
+  /// Local node exit question and policy
+  ///
+  /// In en, this message translates to:
+  /// **'Remember my choice'**
+  String get rememberMyChoice;
+
+  /// Local node exit question and policy
+  ///
+  /// In en, this message translates to:
+  /// **'Stopping the local node…'**
+  String get shutdownStoppingNode;
+
+  /// Local node exit question and policy
+  ///
+  /// In en, this message translates to:
+  /// **'Letting it flush its database, so the next start does not have to replay the write-ahead log.'**
+  String get shutdownStoppingNodeBody;
+
+  /// Local node exit question and policy
+  ///
+  /// In en, this message translates to:
+  /// **'When the wallet closes'**
+  String get nodeExitPolicyLabel;
+
+  /// Local node exit question and policy
+  ///
+  /// In en, this message translates to:
+  /// **'Ask me'**
+  String get nodeExitPolicyAsk;
+
+  /// Local node exit question and policy
+  ///
+  /// In en, this message translates to:
+  /// **'Leave the node running'**
+  String get nodeExitPolicyKeep;
+
+  /// Local node exit question and policy
+  ///
+  /// In en, this message translates to:
+  /// **'Stop the node'**
+  String get nodeExitPolicyStop;
+
+  /// Local node exit question and policy
+  ///
+  /// In en, this message translates to:
+  /// **'The local lite node is still running in the background. Open DeroGold to stop it.'**
+  String get localNodeStillRunningBody;
+
+  /// Banner label when sync has stopped over a range no daemon served
+  ///
+  /// In en, this message translates to:
+  /// **'Sync stopped'**
+  String get syncStoppedTitle;
+
+  /// No description provided for @syncGapStalled.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync stopped at block {covered}. The node it was talking to answers only from block {servesFrom} upward, so the blocks in between cannot be downloaded from it. The balance is incomplete until you connect a node holding the whole chain.'**
+  String syncGapStalled(int covered, int servesFrom);
+
+  /// No description provided for @localNodeNotReadyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This node is not ready'**
+  String get localNodeNotReadyTitle;
+
+  /// No description provided for @localNodeNotReadyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The local node is still {behind} blocks behind the network. Point the wallet at it now and the sync will park until it catches up, showing a balance that is missing anything it has not reached — with nothing on screen to say why. Staying on the remote node costs nothing; the node keeps syncing either way.'**
+  String localNodeNotReadyBody(int behind);
+
+  /// No description provided for @switchAnyway.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch anyway'**
+  String get switchAnyway;
+
+  /// No description provided for @switchToRemoteNode.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to the remote node'**
+  String get switchToRemoteNode;
+
+  /// No description provided for @nodeWillServeFromLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Will serve blocks from'**
+  String get nodeWillServeFromLabel;
+
+  /// No description provided for @txPowServerSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Transaction PoW Server'**
+  String get txPowServerSection;
+
+  /// No description provided for @txPowServerUse.
+  ///
+  /// In en, this message translates to:
+  /// **'Use an external PoW server'**
+  String get txPowServerUse;
+
+  /// No description provided for @txPowServerSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Send the transaction proof of work to a server instead of computing it on this device. If the server does not respond, this device\'s CPU is used.'**
+  String get txPowServerSubtitle;
+
+  /// No description provided for @txPowServerSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'PoW server settings saved'**
+  String get txPowServerSaved;
+
+  /// No description provided for @txPowServerInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid host and port'**
+  String get txPowServerInvalid;
+
+  /// No description provided for @txPowServerTest.
+  ///
+  /// In en, this message translates to:
+  /// **'Test'**
+  String get txPowServerTest;
+
+  /// No description provided for @txPowServerTestOk.
+  ///
+  /// In en, this message translates to:
+  /// **'Server reachable in {ms} ms: {threads} threads, {queue} of {capacity} queue slots in use'**
+  String txPowServerTestOk(int ms, int threads, int queue, int capacity);
+
+  /// No description provided for @txPowServerTestFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Server not reachable: {error}'**
+  String txPowServerTestFailed(String error);
+
+  /// No description provided for @nodeTest.
+  ///
+  /// In en, this message translates to:
+  /// **'Test'**
+  String get nodeTest;
+
+  /// No description provided for @nodeInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid host and port'**
+  String get nodeInvalid;
+
+  /// No description provided for @nodeTestOk.
+  ///
+  /// In en, this message translates to:
+  /// **'Reachable in {ms} ms: height {height}, {peers} peers'**
+  String nodeTestOk(int ms, int height, int peers);
+
+  /// No description provided for @nodeTestSyncing.
+  ///
+  /// In en, this message translates to:
+  /// **'Reachable in {ms} ms, but the node is still syncing: height {height} of {networkHeight}'**
+  String nodeTestSyncing(int ms, int height, int networkHeight);
+
+  /// No description provided for @nodeTestFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Node not reachable: {error}'**
+  String nodeTestFailed(String error);
+}
+
+class _SDelegate extends LocalizationsDelegate<S> {
+  const _SDelegate();
+
+  @override
+  Future<S> load(Locale locale) {
+    return SynchronousFuture<S>(lookupS(locale));
+  }
+
+  @override
+  bool isSupported(Locale locale) => <String>[
+    'de',
+    'en',
+    'es',
+    'fr',
+    'ja',
+    'pt',
+    'ru',
+    'vi',
+    'zh',
+  ].contains(locale.languageCode);
+
+  @override
+  bool shouldReload(_SDelegate old) => false;
+}
+
+S lookupS(Locale locale) {
+  // Lookup logic when only language code is specified.
+  switch (locale.languageCode) {
+    case 'de':
+      return SDe();
+    case 'en':
+      return SEn();
+    case 'es':
+      return SEs();
+    case 'fr':
+      return SFr();
+    case 'ja':
+      return SJa();
+    case 'pt':
+      return SPt();
+    case 'ru':
+      return SRu();
+    case 'vi':
+      return SVi();
+    case 'zh':
+      return SZh();
+  }
+
+  throw FlutterError(
+    'S.delegate failed to load unsupported locale "$locale". This is likely '
+    'an issue with the localizations generation tool. Please file an issue '
+    'on GitHub with a reproducible sample app and the gen-l10n configuration '
+    'that was used.',
+  );
+}

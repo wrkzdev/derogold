@@ -1,0 +1,546 @@
+{
+  "@@locale": "zh",
+  "appTitle": "DeroGold Wallet",
+  "tabOverview": "概览",
+  "tabReceive": "接收",
+  "tabTransfer": "转账",
+  "tabHistory": "历史",
+  "tabAddressBook": "地址簿",
+  "tabSettings": "设置",
+  "tabAbout": "关于",
+  "lockWallet": "锁定钱包",
+  "send": "发送",
+  "receive": "接收",
+  "transfer": "转账",
+  "available": "可用",
+  "locked": "锁定",
+  "total": "总计",
+  "availableBalance": "可用余额",
+  "lockedUnconfirmed": "锁定（未确认）：{amount} {ticker}",
+  "@lockedUnconfirmed": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "ticker": {
+        "type": "String"
+      }
+    }
+  },
+  "totalBalance": "总计：{amount} {ticker}",
+  "@totalBalance": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "ticker": {
+        "type": "String"
+      }
+    }
+  },
+  "balanceIncompleteWhileSyncing": "同步期间余额可能不完整",
+  "errorPrefix": "错误：{message}",
+  "@errorPrefix": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "network": "网络",
+  "syncStatus": "同步状态",
+  "synced": "已同步",
+  "syncing": "同步中…",
+  "walletBlock": "钱包区块",
+  "networkBlock": "网络区块",
+  "peers": "节点",
+  "walletType": "钱包类型",
+  "viewOnly": "仅查看",
+  "full": "完整",
+  "nodeConnectionIssue": "节点连接问题",
+  "switchNodeInSettings": "在设置中切换节点 →",
+  "recentTransactions": "最近交易",
+  "viewAll": "查看全部 →",
+  "noTransactionsYet": "暂无交易",
+  "received": "已接收",
+  "sent": "已发送",
+  "syncingProgress": "同步中 {pct}%（区块 {wallet} / {network}）",
+  "@syncingProgress": {
+    "placeholders": {
+      "pct": {
+        "type": "String"
+      },
+      "wallet": {
+        "type": "int"
+      },
+      "network": {
+        "type": "int"
+      }
+    }
+  },
+  "shareAddressSubtitle": "分享您的地址以接收 DEGO",
+  "yourAddress": "您的地址",
+  "generateIntegratedAddress": "生成集成地址",
+  "integratedAddressDescription": "将您的地址与付款 ID 组合。使用随机按钮生成新 ID，或在下方输入您自己的 ID。",
+  "randomShort16": "随机短码 (16)",
+  "randomLong64": "随机长码 (64)",
+  "customPaymentIdLabel": "自定义付款 ID（16 或 64 个十六进制字符）",
+  "generate": "生成",
+  "integratedAddress": "集成地址",
+  "paymentIdShort": "短码 (16)",
+  "paymentIdLong": "长码 (64)",
+  "paymentIdLabel": "付款 ID · {label}",
+  "@paymentIdLabel": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "enterPaymentIdError": "请输入付款 ID（16 或 64 个十六进制字符）",
+  "paymentIdInvalidError": "付款 ID 必须为 16 或 64 个十六进制字符",
+  "copyAddress": "复制地址",
+  "copyPaymentId": "复制付款 ID",
+  "copy": "复制",
+  "copied": "已复制！",
+  "sendWrkzToAny": "发送 DEGO 到任意地址",
+  "sweepAllDescription": "将所有资金发送到一个地址（合并 UTXO）",
+  "sweepAll": "全部清扫",
+  "sweepWarning": "清扫会将所有 UTXO 合并为一个输出。当交易因输入过多而失败时使用此功能。",
+  "sweepAvailableBalance": "可用：{amount} {ticker}（将发送全部余额减去手续费）",
+  "@sweepAvailableBalance": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "ticker": {
+        "type": "String"
+      }
+    }
+  },
+  "destinationAddress": "目标地址",
+  "addressBook": "地址簿",
+  "sweepAllFunds": "清扫所有资金",
+  "recipientAddress": "收款地址",
+  "amount": "金额",
+  "paymentIdOptional": "付款 ID（可选）",
+  "hexCharacters": "16 或 64 个十六进制字符",
+  "reviewTransaction": "审核交易",
+  "reviewAndConfirm": "审核并确认",
+  "to": "收款方",
+  "fee": "手续费",
+  "totalDeducted": "总扣除额",
+  "paymentId": "付款 ID",
+  "transactionsIrreversible": "交易不可逆。请在确认前核实地址。",
+  "back": "返回",
+  "confirmAndSend": "确认并发送",
+  "transactionSent": "交易已发送！",
+  "transactionBroadcast": "您的交易已广播到网络。",
+  "transactionHash": "交易哈希",
+  "sendAnother": "再发一笔",
+  "enterDestinationAddress": "请输入目标地址",
+  "enterValidAmount": "请输入有效金额",
+  "computingPow": "正在计算 PoW... {seconds}秒",
+  "@computingPow": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "stepFillDetails": "填写详情",
+  "stepReview": "审核",
+  "stepDone": "完成",
+  "sweepFailed": "清扫失败",
+  "addressBookTitle": "地址簿",
+  "transactionHistory": "交易历史",
+  "searchByHash": "按哈希、地址或付款 ID 搜索…",
+  "all": "全部",
+  "filterReceived": "已接收",
+  "filterSent": "已发送",
+  "refresh": "刷新",
+  "noTransactionsFound": "未找到交易",
+  "confirmed": "已确认",
+  "pending": "待确认",
+  "hash": "哈希",
+  "address": "地址",
+  "block": "区块",
+  "showingRange": "显示 {start}–{end}，共 {total}",
+  "@showingRange": {
+    "placeholders": {
+      "start": {
+        "type": "int"
+      },
+      "end": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "previous": "上一页",
+  "next": "下一页",
+  "walletLocked": "钱包已锁定",
+  "enterPasswordToContinue": "输入钱包密码以继续",
+  "password": "密码",
+  "incorrectPassword": "密码错误",
+  "unlock": "解锁",
+  "closeWalletInstead": "改为关闭钱包",
+  "closeWallet": "关闭钱包",
+  "closeWalletDescription": "这将保存并关闭钱包。\n\n您将返回到登录页面。",
+  "cancel": "取消",
+  "welcomeToDeroGold": "欢迎使用 DeroGold Wallet",
+  "selectOptionToStart": "选择一个选项以开始",
+  "createNewWallet": "创建新钱包",
+  "openExistingWallet": "打开现有钱包",
+  "importFromSeed": "通过助记词导入",
+  "importFromKeys": "通过私钥导入",
+  "openWallet": "打开钱包",
+  "importFromSeedTitle": "从助记词导入",
+  "importFromKeysTitle": "从私钥导入",
+  "saveWalletTo": "钱包保存到",
+  "walletFile": "钱包文件",
+  "walletPassword": "钱包密码",
+  "mnemonicSeedPhrase": "助记词",
+  "scanFromHeight": "从高度扫描（0 = 完整扫描）",
+  "daemonHost": "守护进程主机",
+  "port": "端口",
+  "continueButton": "继续",
+  "browse": "浏览",
+  "backupWarning": "继续前请备份您的钱包。\n这些密钥丢失后无法恢复。",
+  "yourWalletAddress": "您的钱包地址",
+  "seedPhrase25Words": "助记词（25 个单词）",
+  "privateViewKey": "私有查看密钥",
+  "privateSpendKey": "私有消费密钥",
+  "seedBackupConfirm": "我已将助记词和私钥抄写在安全的地方。",
+  "backedUpContinue": "我已备份钱包 — 继续",
+  "settings": "设置",
+  "sectionDaemonNode": "守护进程节点",
+  "nodeDescription": "连接到本地或远程守护进程节点。更改立即生效。",
+  "hostIpAddress": "主机 / IP 地址",
+  "ssl": "SSL",
+  "apply": "应用",
+  "nodeUpdatedSuccess": "节点更新成功",
+  "nodeUnreachable": "无法连接当前节点。请在下方输入新的节点地址并点击应用。",
+  "sectionWallet": "钱包",
+  "saveWallet": "保存钱包",
+  "saveWalletSubtitle": "将当前状态写入磁盘",
+  "walletSaved": "钱包已保存",
+  "exportToJson": "导出为 JSON",
+  "exportToJsonSubtitle": "将钱包数据保存为 JSON 文件",
+  "exportJsonTitle": "导出钱包 JSON",
+  "exportedTo": "已导出到 {path}",
+  "@exportedTo": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFailed": "导出失败：{error}",
+  "@exportFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "resetScanHeight": "重置扫描高度",
+  "resetScanHeightSubtitle": "从指定高度重新扫描区块链",
+  "resetScanHeightDescription": "输入要从哪个区块高度开始重新扫描。输入 0 进行完整重新扫描。",
+  "scanHeight": "扫描高度",
+  "reset": "重置",
+  "autosave": "自动保存",
+  "autosaveSubtitle": "在同步后和每 5 分钟将钱包保存到磁盘",
+  "scanCoinbaseTx": "扫描 Coinbase 交易",
+  "scanCoinbaseSubtitle": "同步时包含矿工奖励（默认关闭）",
+  "sectionAppearance": "外观",
+  "theme": "主题",
+  "themeSubtitle": "选择应用配色方案",
+  "themeSystem": "跟随系统",
+  "themeLight": "浅色",
+  "themeDark": "深色",
+  "sectionNotifications": "通知",
+  "incomingTxAlerts": "收款提醒",
+  "incomingTxAlertsSubtitle": "收到 DEGO 时显示桌面通知",
+  "sectionDebugLogs": "调试与日志",
+  "logLevel": "日志级别",
+  "logLevelSubtitle": "控制钱包库的详细程度",
+  "viewLogs": "查看日志",
+  "viewLogsSubtitle": "实时钱包库日志输出",
+  "walletLogs": "钱包日志",
+  "logEntries": "{count} 条记录",
+  "@logEntries": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "autoScroll": "自动滚动",
+  "copyAll": "全部复制",
+  "clear": "清除",
+  "close": "关闭",
+  "noLogsYet": "暂无日志。将日志级别设置为“禁用”以上即可查看输出。",
+  "logsCopied": "日志已复制到剪贴板",
+  "sectionDangerZone": "危险操作",
+  "deleteWalletData": "删除钱包数据",
+  "deleteWalletDataSubtitle": "从磁盘永久删除钱包文件",
+  "deleteWalletWarning": "这将从磁盘永久删除您的钱包文件。\n\n请确保在继续之前已备份助记词和私钥。此操作无法撤销。",
+  "iUnderstandContinue": "我已了解，继续",
+  "finalConfirmation": "最终确认",
+  "typeDeleteToConfirm": "输入 DELETE 以确认：",
+  "deleteHint": "DELETE",
+  "deletePermanently": "永久删除",
+  "aboutTitle": "关于",
+  "versionInfo": "版本 {version} — DEGO 桌面钱包",
+  "@versionInfo": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "aboutDescription": "DeroGold Wallet 是 DeroGold (DEGO) 的官方桌面钱包，DeroGold 是一种基于 CryptoNote 的快速轻量加密货币。\n\n使用 Flutter 构建，由 wallet_capi 驱动。",
+  "github": "GitHub",
+  "githubSubtitle": "查看源代码和发行版",
+  "discord": "Discord",
+  "discordSubtitle": "加入社区",
+  "twitterX": "Twitter / X",
+  "twitterXSubtitle": "关注 @wrkzcoin",
+  "website": "网站",
+  "websiteSubtitle": "wrkz.work",
+  "license": "许可证",
+  "licenseText": "基于 MIT 许可证发布。\n使用风险自负。请务必备份您的助记词。",
+  "addButton": "添加",
+  "noSavedAddresses": "没有已保存的地址",
+  "tapAddToSave": "点击“添加”以保存常用地址。",
+  "addAddress": "添加地址",
+  "nameLabel": "名称 / 标签",
+  "addressLabel": "地址",
+  "noteOptional": "备注（可选）",
+  "nameAndAddressRequired": "名称和地址为必填项",
+  "invalidWrkzAddress": "无效的 DEGO 地址。必须以 \"Wrkz\" 开头，长度为 98（标准）、120（短集成）或 186（长集成）个字符。",
+  "save": "保存",
+  "editEntry": "编辑条目",
+  "deleteEntry": "删除条目",
+  "removeFromAddressBook": "从地址簿中移除 \"{name}\"？",
+  "@removeFromAddressBook": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "delete": "删除",
+  "edit": "编辑",
+  "wrkzReceived": "收到 DEGO",
+  "youReceivedAmount": "您收到了 {amount}",
+  "@youReceivedAmount": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "show": "显示",
+  "exit": "退出",
+  "derogoldWallet": "DeroGold 钱包",
+  "language": "语言",
+  "selectLanguage": "选择语言",
+  "chooseLanguage": "选择您偏好的语言",
+  "languageEn": "English",
+  "languageFr": "Français",
+  "languageDe": "Deutsch",
+  "languageZh": "中文",
+  "languageVi": "Tiếng Việt",
+  "languageJa": "日本語",
+  "languageEs": "Español",
+  "languagePt": "Português",
+  "languageRu": "Русский",
+  "preparedTransactionExpired": "该交易已失效，请返回重新创建。",
+  "deleteConfirmMismatch": "请准确输入 DELETE 以确认。",
+  "unlockNeedsReopen": "无法在此设备上验证密码。请使用“改为关闭钱包”，然后重新打开钱包。",
+  "exportJsonWarningTitle": "导出未加密的钱包？",
+  "exportJsonWarningBody": "导出的文件以明文包含您的私有查看密钥和私有花费密钥。任何读取该文件的人都能动用您的资金。\n\n请仅保存到您掌控的存储中，并在使用完毕后立即删除。",
+  "passwordTooShort": "密码至少需要{count}个字符",
+  "ringSize": "环签名大小",
+  "ringSizeReduced": "环签名大小已降至 {actual}（通常为 {normal}）。链上没有足够的输出来为所发送的金额构成完整的环，因此此交易的隐私性低于平常。",
+  "liteNodeTitle": "轻节点",
+  "liteNodeServesFrom": "此节点仅保存从 {height} 起的区块。该区块之前的交易无法通过它找到。",
+  "@liteNodeServesFrom": {
+    "placeholders": {
+      "height": {
+        "type": "int"
+      }
+    }
+  },
+  "liteNodeMissesHistory": "此节点从区块 {nodeHeight} 开始，而此钱包从区块 {walletHeight} 开始。两者之间收到的款项在这里不可见，因此显示的余额可能偏低。请连接保存完整链的节点以查看。",
+  "@liteNodeMissesHistory": {
+    "placeholders": {
+      "nodeHeight": {
+        "type": "int"
+      },
+      "walletHeight": {
+        "type": "int"
+      }
+    }
+  },
+  "liteNodeSyncStalled": "同步已在区块 {wallet} 停止。此节点不保存区块 {node} 以下的任何数据，因此无法从它下载中间的区块。在连接保存完整链的节点之前，余额并不完整。",
+  "@liteNodeSyncStalled": {
+    "placeholders": {
+      "wallet": {
+        "type": "int"
+      },
+      "node": {
+        "type": "int"
+      }
+    }
+  },
+  "liteNodeRescanRefusedTitle": "此节点无法回溯到那么早重新扫描",
+  "liteNodeRescanRefused": "当前连接的是轻节点，不保存 {height} 以下的区块数据。从更低处重新扫描会丢弃钱包已找到的交易，且在此无法再次找回。未做任何更改。",
+  "@liteNodeRescanRefused": {
+    "placeholders": {
+      "height": {
+        "type": "int"
+      }
+    }
+  },
+  "liteNodeRescanFromInstead": "改为从 {height} 重新扫描",
+  "@liteNodeRescanFromInstead": {
+    "placeholders": {
+      "height": {
+        "type": "int"
+      }
+    }
+  },
+  "liteNodeRescanHint": "当前连接的节点只能从区块 {height} 或更高处重新扫描。",
+  "@liteNodeRescanHint": {
+    "placeholders": {
+      "height": {
+        "type": "int"
+      }
+    }
+  },
+  "nodeServesFromLabel": "提供区块起始于",
+  "nodeFullChain": "完整链",
+  "sectionLocalNode": "本地轻节点",
+  "localNodeDescription": "在这台电脑上运行节点并与它同步，而不是使用远程服务器。轻节点只保存钱包需要的数据，但仍需完整下载一次全链。",
+  "localNodeSetUp": "设置本地节点",
+  "localNodeStart": "启动",
+  "localNodeStop": "停止",
+  "localNodeUse": "使用此节点",
+  "localNodeDelete": "删除节点数据",
+  "localNodeStateStopped": "已停止",
+  "localNodeStateStarting": "启动中",
+  "localNodeStateSyncing": "同步中",
+  "localNodeStateReady": "已同步",
+  "localNodeStateFailed": "失败",
+  "localNodeProgress": "区块 {height} / {network}",
+  "@localNodeProgress": {
+    "placeholders": {
+      "height": {
+        "type": "int"
+      },
+      "network": {
+        "type": "int"
+      }
+    }
+  },
+  "localNodePeers": "{count} 个节点连接",
+  "@localNodePeers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "localNodeNotReadyYet": "本地节点仍在追赶进度，尚不能为钱包提供服务。它会在后台继续同步——请先使用远程节点，就绪后再切换。",
+  "localNodeInUse": "钱包已连接到此节点。",
+  "localNodeBinaryMissing": "未找到 {name}。请将守护进程可执行文件放在钱包程序旁边，或放入旁边的“sidecar”文件夹，然后重试。",
+  "@localNodeBinaryMissing": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "localNodeSetupTitle": "设置本地轻节点",
+  "localNodeSetupCost": "开始之前请注意：\n• 需要约 6 GB 磁盘空间，并会完整下载一次全链。\n• 首次同步需要数小时，会在后台继续，其间你仍可使用远程节点。\n• 下方的起始高度不可更改。以后要改，只能删除节点并从头重新同步。",
+  "localNodeStartHeightLabel": "起始高度",
+  "localNodeStartHeightHelp": "低于此高度的区块仍会下载并校验，但只保留后续区块所需的索引。请设为不高于此钱包自身的起始高度（{height}）。",
+  "@localNodeStartHeightHelp": {
+    "placeholders": {
+      "height": {
+        "type": "int"
+      }
+    }
+  },
+  "localNodeStartHeightTooHigh": "高于此钱包的起始高度（{height}）。该节点将永远无法显示此钱包更早的交易。",
+  "@localNodeStartHeightTooHigh": {
+    "placeholders": {
+      "height": {
+        "type": "int"
+      }
+    }
+  },
+  "localNodeCreate": "创建节点",
+  "localNodeDeleteTitle": "删除本地节点数据？",
+  "localNodeDeleteWarning": "这会停止节点并从磁盘上永久删除其区块链数据库。你的钱包、助记词和资金不受影响，但新的本地节点需要从零重新同步，耗时数小时。",
+  "localNodeDeleted": "已删除本地节点。",
+  "localNodeDiskUsage": "占用磁盘 {size}",
+  "@localNodeDiskUsage": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "nodePresetRemote": "远程节点",
+  "nodePresetLocal": "本地轻节点",
+  "savingWallet": "正在保存钱包…",
+  "savingWalletBody": "DeroGold 正在将钱包写入磁盘。钱包较大时可能需要一点时间。",
+  "shutdownTakingLong": "耗时超出预期。此时退出会丢失本次保存——磁盘上的钱包文件保持原样，不会损坏，但上次保存之后的改动会丢失。",
+  "quitAnyway": "仍要退出",
+  "stillRunningInTray": "DeroGold 仍在系统托盘中运行。点击托盘图标可重新打开，或右键点击并选择“退出”。",
+  "browse": "浏览…",
+  "localNodeDataFolder": "数据文件夹",
+  "localNodeDataFolderHelp": "这里将写入约 6 GB。请选择空间充足的磁盘。",
+  "localNodeDataFolderInUse": "该文件夹已有其他文件。请选择空文件夹或新建一个。",
+  "localNodeStartHeightRequired": "请输入从哪个高度开始保留完整区块。必须大于零——轻节点无法从创世区块开始。",
+  "nodeExitTitle": "本地节点仍在运行",
+  "nodeExitBodySyncing": "它的首次同步尚未完成。这需要数小时，且只有节点运行时才会推进——但保持运行的节点在 DeroGold 关闭后仍会占用磁盘和网络。",
+  "nodeExitBodySynced": "它已与网络同步。保持运行可以维持这一状态，但在 DeroGold 关闭期间仍会占用 CPU、带宽和磁盘；停止它则下次需要短暂追赶。",
+  "nodeExitKeep": "保持运行",
+  "nodeExitStop": "停止",
+  "nodeExitChangeLater": "以后可在设置的“本地轻节点”中更改。",
+  "rememberMyChoice": "记住我的选择",
+  "shutdownStoppingNode": "正在停止本地节点…",
+  "shutdownStoppingNodeBody": "让它写完数据库，下次启动就不用重放预写日志。",
+  "nodeExitPolicyLabel": "关闭钱包时",
+  "nodeExitPolicyAsk": "询问我",
+  "nodeExitPolicyKeep": "保持节点运行",
+  "nodeExitPolicyStop": "停止节点",
+  "localNodeStillRunningBody": "本地轻节点仍在后台运行。打开 DeroGold 可以停止它。",
+  "syncStoppedTitle": "同步已停止",
+  "syncGapStalled": "同步在区块 {covered} 停止。所连接的节点只从区块 {servesFrom} 开始响应，因此无法从它下载中间的区块。在您连接一个保存完整链的节点之前，余额都是不完整的。",
+  "localNodeNotReadyTitle": "该节点尚未就绪",
+  "localNodeNotReadyBody": "本地节点仍落后网络 {behind} 个区块。现在将钱包指向它，同步会停止直到它追上，余额会缺少它尚未到达的部分——而且屏幕上没有任何说明。继续使用远程节点没有任何损失；无论如何节点都在继续同步。",
+  "switchAnyway": "仍要切换",
+  "switchToRemoteNode": "切换到远程节点",
+  "nodeWillServeFromLabel": "将从此高度提供区块",
+  "txPowServerSection": "交易 PoW 服务器",
+  "txPowServerUse": "使用外部 PoW 服务器",
+  "txPowServerSubtitle": "将交易的工作量证明交由服务器计算，而不是在本设备上计算。如果服务器无响应，将使用本设备的 CPU。",
+  "txPowServerSaved": "PoW 服务器设置已保存",
+  "txPowServerInvalid": "请输入有效的主机和端口",
+  "txPowServerTest": "测试",
+  "txPowServerTestOk": "服务器可达，耗时 {ms} ms：{threads} 个线程，队列已用 {queue}/{capacity}",
+  "txPowServerTestFailed": "无法连接服务器：{error}",
+  "nodeTest": "测试",
+  "nodeInvalid": "请输入有效的主机和端口",
+  "nodeTestOk": "可达，耗时 {ms} ms：高度 {height}，{peers} 个节点连接",
+  "nodeTestSyncing": "可达，耗时 {ms} ms，但节点仍在同步：高度 {height}/{networkHeight}",
+  "nodeTestFailed": "无法连接节点：{error}"
+}
