@@ -225,10 +225,17 @@ class Nigel
        m_nodeClient directly, because a WebAssembly build has no sockets to
        give httplib and reaches the daemon over XMLHttpRequest instead. The
        result either way is an httplib::Result, so the tryParseJSONResponse
-       callers above do not know the difference. */
-    httplib::Result nodeGet(const std::string &path);
+       callers above do not know the difference.
 
-    httplib::Result nodePost(const std::string &path, const std::string &body);
+       const because most of the callers are: getTransactionsStatus,
+       getRandomOutsByAmounts and sendTransaction are all const members. The
+       code these replaced reached through m_nodeClient, and a const
+       shared_ptr still hands out a non-const pointer to what it owns, so it
+       compiled there and would not here without this. Neither function
+       modifies the Nigel; httplib's own client is what changes underneath. */
+    httplib::Result nodeGet(const std::string &path) const;
+
+    httplib::Result nodePost(const std::string &path, const std::string &body) const;
 
     //////////////////////////////
     /* Private member variables */

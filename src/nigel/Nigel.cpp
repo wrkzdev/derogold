@@ -201,7 +201,7 @@ void Nigel::swapNode(const std::string daemonHost, const uint16_t daemonPort, co
 
 /* The daemon transport. A native build posts through the shared httplib
    client; a WebAssembly build has no sockets and goes out over XHR. */
-httplib::Result Nigel::nodeGet(const std::string &path)
+httplib::Result Nigel::nodeGet(const std::string &path) const
 {
 #ifdef __EMSCRIPTEN__
     return emscriptenRequestJson(m_daemonHost, m_daemonPort, m_daemonSSL, path, "GET", "");
@@ -210,7 +210,7 @@ httplib::Result Nigel::nodeGet(const std::string &path)
 #endif
 }
 
-httplib::Result Nigel::nodePost(const std::string &path, const std::string &body)
+httplib::Result Nigel::nodePost(const std::string &path, const std::string &body) const
 {
 #ifdef __EMSCRIPTEN__
     return emscriptenRequestJson(m_daemonHost, m_daemonPort, m_daemonSSL, path, "POST", body);
