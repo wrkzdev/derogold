@@ -118,6 +118,25 @@ which wraps them):
 Artefacts land in `build/app/outputs/flutter-apk/` and
 `build/app/outputs/bundle/<variant>/`.
 
+### Toolchain versions
+
+Flutter enforces a minimum for each of these and refuses to apply its Gradle
+plugin below it, so they move as a set when Flutter does:
+
+| Where | Version | Set by |
+|---|---|---|
+| `android/gradle/wrapper/gradle-wrapper.properties` | Gradle 8.14 | Flutter's floor |
+| `android/settings.gradle` | AGP 8.11.1 | Flutter's floor |
+| `android/settings.gradle` | Kotlin 2.2.20 | Flutter's floor |
+
+The Flutter version itself is pinned elsewhere: `extras/desktop-wallet` and
+`extras/web-wallet` ask for Dart `^3.10.7`, which requires Flutter 3.47.4,
+which sets the three floors above. Raising any one of them alone is usually
+wrong - check the others first.
+
+AGP stays on 8.x deliberately. From AGP 9 only the new DSL is read, and the
+Flutter Gradle plugin this app applies fails against it.
+
 Running Gradle directly needs `android/local.properties` with `flutter.sdk`
 (and `sdk.dir` on a machine where `ANDROID_HOME` is not set). It is gitignored,
 so a container build must write it.
