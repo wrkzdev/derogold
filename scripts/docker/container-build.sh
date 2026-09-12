@@ -403,6 +403,44 @@ flutter_clean() {
   fi
 }
 
+# Drop a Linux build tree left behind by a configure that failed.
+#
+# Flutter's linux/CMakeLists.txt sends the install into the bundle directory,
+# but only when CMake initialised CMAKE_INSTALL_PREFIX to its default during
+# that run:
+#
+#   if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+#     set(CMAKE_INSTALL_PREFIX "${BUILD_BUNDLE_DIR}" ... FORCE)
+#
+# That block sits after include(flutter/generated_plugins.cmake), so a
+# configure that dies in a plugin - a missing libsecret, say - leaves a cache
+# holding the untouched default of /usr/local and never reaches the redirect.
+# The next configure succeeds, finds the prefix already set, skips the
+# redirect, and the build ends with
+#
+#   file INSTALL cannot copy file ... to "/usr/local/derogold_wallet":
+#   Permission denied
+#
+# which says nothing about the configure that actually caused it. Nothing in
+# the tree is wrong, so `flutter clean` on every build would be the wrong
+# trade; this only clears a tree whose prefix points outside the app.
+flutter_drop_stale_linux_cache() {
+  local app="$1"
+  local cache="$app/build/linux/x64/release/CMakeCache.txt"
+
+  [ -f "$cache" ] || return 0
+
+  local prefix
+  prefix="$(sed -n 's/^CMAKE_INSTALL_PREFIX:PATH=//p' "$cache" | head -1)"
+
+  case "$prefix" in
+    "$app"/build/*) return 0 ;;
+  esac
+
+  log "Flutter's Linux tree would install to '$prefix'; clearing it and configuring again"
+  rm -rf "$app/build/linux"
+}
+
 build_gui() {
   local app="$REPO_ROOT/extras/desktop-wallet"
   local bd="$BUILD_ROOT/gui-linux-x86_64"
@@ -422,6 +460,8 @@ build_gui() {
 
   local lib="$bd/src/libwallet_capi.so"
   [ -f "$lib" ] || die "libwallet_capi.so was not produced at $lib"
+
+  flutter_drop_stale_linux_cache "$app"
 
   log "Building the Flutter Linux bundle"
   (cd "$app" && flutter build linux --release)
