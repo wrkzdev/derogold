@@ -211,7 +211,7 @@ Everything the image downloads is pinned at the top of the
 |--------------------------|---------------------|-------------------------------------------------------|
 | `UBUNTU_VERSION`         | `24.04`             | base image: GCC 13 native, MinGW-w64 and aarch64 alike |
 | `OPENSSL_VERSION`        | `3.5.8`             | Windows- and ARM64-target OpenSSL (the Linux target uses `libssl-dev`) |
-| `FLUTTER_VERSION`        | `3.38.0`            | the `gui`, `web` and `android` targets                 |
+| `FLUTTER_VERSION`        | `3.47.4`            | the `gui`, `web` and `android` targets                 |
 | `ANDROID_CMDLINE_TOOLS`  | `11076708`          | the Android SDK command line tools bundle              |
 | `ANDROID_PLATFORM_VERSION` | `36`              | must cover the app's `compileSdk`                      |
 | `ANDROID_BUILD_TOOLS`    | `36.0.0`            | the Android build tools                                |
@@ -220,9 +220,17 @@ Everything the image downloads is pinned at the top of the
 | `LIBUCONTEXT_REF`        | `master`            | `getcontext`/`swapcontext` for bionic                  |
 | `EMSDK_VERSION`          | `3.1.64`            | the WebAssembly module                                 |
 
-`FLUTTER_VERSION` has a floor rather than a preference:
-`extras/mobile-wallet/pubspec.yaml` asks for Flutter 3.38.0 and a Dart SDK of
-`^3.10.7`.
+`FLUTTER_VERSION` is set by the Dart SDK the apps ask for rather than by
+Flutter's own version. `extras/desktop-wallet` and `extras/web-wallet` both
+want `sdk: ^3.10.7`; Flutter 3.38.0 ships Dart 3.10.0, which does not satisfy
+it, and `flutter pub get` fails with "version solving failed" naming the
+release that does. The mobile wallet's `flutter: '>=3.38.0'` is satisfied by
+anything from there up.
+
+Flutter is the last toolchain installed in the Dockerfile, because every layer
+after a changed one is rebuilt and Flutter moves far faster than the NDK or
+emsdk. Bumping it no longer rebuilds the Android SDK, libucontext and
+Emscripten with it.
 
 ```bash
 IMAGE_BUILD_ARGS="--build-arg UBUNTU_VERSION=24.04" \

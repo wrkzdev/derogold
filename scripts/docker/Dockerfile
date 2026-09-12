@@ -185,29 +185,6 @@ RUN apt-get update \
 RUN git config --system --add safe.directory '*'
 
 # ---------------------------------------------------------------------------
-# Flutter. Cloned at a tag rather than unpacked from a tarball, because that is
-# how Flutter expects to live - it runs git on its own directory to work out
-# its version, and a tarball-installed SDK trips over that.
-#
-# 3.38.0 is the floor: extras/mobile-wallet/pubspec.yaml asks for
-# flutter >= 3.38.0 and a Dart SDK of ^3.10.7.
-# ---------------------------------------------------------------------------
-ARG FLUTTER_VERSION=3.38.0
-ENV FLUTTER_HOME=/opt/flutter
-ENV PATH="${FLUTTER_HOME}/bin:${FLUTTER_HOME}/bin/cache/dart-sdk/bin:${PATH}"
-RUN set -eux; \
-    git clone --depth 1 --branch "${FLUTTER_VERSION}" \
-      https://github.com/flutter/flutter.git "${FLUTTER_HOME}"; \
-    flutter --version; \
-    flutter config --no-analytics --enable-linux-desktop --enable-web; \
-    # Pull the build artifacts now so no build has to download them, and so a
-    # container with no network can still produce a package.
-    flutter precache --universal --linux --web; \
-    # The SDK caches into its own directory, and the build runs as an
-    # arbitrary uid.
-    chmod -R a+rwX "${FLUTTER_HOME}"
-
-# ---------------------------------------------------------------------------
 # Android SDK and NDK.
 #
 # The NDK is what cross-compiles libwallet_capi.so for each ABI; the SDK and
@@ -297,6 +274,40 @@ RUN set -eux; \
     . "${EMSDK_ENV}"; \
     embuilder build libc libc++ libc++abi libemmalloc --pthreads || true; \
     chmod -R a+rwX "${EMSDK}"
+
+# ---------------------------------------------------------------------------
+# Flutter. Cloned at a tag rather than unpacked from a tarball, because that is
+# how Flutter expects to live - it runs git on its own directory to work out
+# its version, and a tarball-installed SDK trips over that.
+#
+# The version is set by the Dart SDK the apps ask for, not by Flutter's own
+# version: extras/desktop-wallet and extras/web-wallet both want `sdk: ^3.10.7`
+# and 3.38.0 ships Dart 3.10.0, which does not satisfy it. Flutter's own
+# resolver names 3.47.4 as the release that does. The mobile wallet's
+# `flutter: '>=3.38.0'` is satisfied by anything from here up.
+#
+# Deliberately the last toolchain in the file. Flutter moves far faster than
+# the NDK or emsdk, and every layer after a changed one is rebuilt - with this
+# first, as it was, bumping Flutter also rebuilt the Android SDK, libucontext
+# and Emscripten.
+# ---------------------------------------------------------------------------
+ARG FLUTTER_VERSION=3.47.4
+ENV FLUTTER_HOME=/opt/flutter
+ENV PATH="${FLUTTER_HOME}/bin:${FLUTTER_HOME}/bin/cache/dart-sdk/bin:${PATH}"
+RUN set -eux; \
+    git clone --depth 1 --branch "${FLUTTER_VERSION}" \
+      https://github.com/flutter/flutter.git "${FLUTTER_HOME}"; \
+    flutter --version; \
+    flutter config --no-analytics --enable-linux-desktop --enable-web; \
+    # Pull the build artifacts now so no build has to download them, and so a
+    # container with no network can still produce a package.
+    flutter precache --universal --linux --web; \
+    # Fail here rather than in a build if the Dart this Flutter carries is
+    # older than the apps ask for.
+    dart --version; \
+    # The SDK caches into its own directory, and the build runs as an
+    # arbitrary uid.
+    chmod -R a+rwX "${FLUTTER_HOME}"
 
 # ---------------------------------------------------------------------------
 # Run-time layout. build.sh mounts the repo at /work, the build tree at /build
