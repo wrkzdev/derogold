@@ -158,9 +158,34 @@ HEADER
   rm -rf "$work"
 
   echo "  -> $out/lib/libucontext.a"
-  "$TOOLCHAIN/bin/llvm-nm" "$out/lib/libucontext.a" 2>/dev/null \
-    | grep -qE '\b(T|t) _?(makecontext|swapcontext)' \
-    || die "$abi: libucontext.a does not define makecontext/swapcontext"
+
+  # The four functions bionic is missing have to be in there under their
+  # ordinary names, because that is what the fibre dispatcher calls.
+  #
+  # Any defined symbol type counts. libucontext compiles with
+  # -DEXPORT_UNPREFIXED, which publishes the unprefixed names as weak aliases
+  # of its own libucontext_* symbols, so nm reports them as 'W' and not 'T' -
+  # and an earlier version of this check accepted only T, so it threw away a
+  # perfectly good library. Only 'U' (undefined) is disqualifying.
+  local syms want
+  syms="$("$TOOLCHAIN/bin/llvm-nm" "$out/lib/libucontext.a" 2>/dev/null || true)"
+
+  [ -n "$syms" ] || die "$abi: llvm-nm produced no output for $out/lib/libucontext.a"
+
+  for want in getcontext setcontext makecontext swapcontext; do
+    if ! printf '%s\n' "$syms" \
+        | awk -v s="$want" '
+            $NF == s || $NF == "_" s {
+              if ($(NF-1) != "U" && $(NF-1) != "u") { found = 1 }
+            }
+            END { exit !found }'; then
+      echo "  symbols matching $want:" >&2
+      printf '%s\n' "$syms" | grep -E "$want" >&2 || echo "    (none at all)" >&2
+      die "$abi: libucontext.a does not define $want"
+    fi
+  done
+
+  echo "     defines getcontext, setcontext, makecontext, swapcontext"
 }
 
 main() {
