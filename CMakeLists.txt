@@ -373,17 +373,38 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake")
 
 include(DeroGoldDependencies)
 
-# The NDK ships no OpenSSL, so an Android wallet build goes without: cpp-httplib
-# then has no TLS and the wallet reaches its node over plain HTTP. Everywhere
-# else it is required.
+# Two builds go without OpenSSL, for different reasons.
+#
+# The NDK ships none, so an Android wallet build has no TLS in cpp-httplib and
+# reaches its node over plain HTTP.
+#
+# A WebAssembly build has no use for it: there are no sockets under Emscripten,
+# so the wallet never asks httplib to open a connection at all. Every request
+# goes out over XMLHttpRequest (see common/WasmHttp.h) and the browser does the
+# TLS, with a certificate store the wallet could not improve on. Emscripten
+# does have an OpenSSL port, but linking it would only add a megabyte of
+# unreachable code.
+#
+# Everywhere else it is required.
 if(ANDROID AND DEROGOLD_ANDROID_DISABLE_OPENSSL)
     message(STATUS "OpenSSL: skipped for this Android build")
+elseif(EMSCRIPTEN)
+    message(STATUS "OpenSSL: skipped for this WebAssembly build; the browser does TLS")
 else()
     derogold_require_openssl()
 endif()
 
+# Crypto++ is the wallet's, not the daemon's - it encrypts the wallet file -
+# so every build needs it.
 derogold_add_cryptopp()
-derogold_add_miniupnpc()
+
+# miniupnpc opens ports for the P2P stack, which a WebAssembly build does not
+# have: src/CMakeLists.txt does not even declare the P2P target there. Nothing
+# would link it, but there is no reason to configure a library about forwarding
+# ports for something that cannot open a socket.
+if(NOT EMSCRIPTEN)
+    derogold_add_miniupnpc()
+endif()
 
 # RocksDB is the daemon's database. Nothing in the wallet chain links it - see
 # the RocksDBWrapper filter in src/CMakeLists.txt - so a wallet-only build
