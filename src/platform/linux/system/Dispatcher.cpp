@@ -19,6 +19,15 @@
 #include <ucontext.h>
 #include <unistd.h>
 
+/* Dispatcher::mutex is a raw byte array that a pthread_mutex_t is constructed
+   into, sized by hand per platform in the header because pthread.h cannot be
+   included there. Getting that number wrong writes past the buffer - silently,
+   at run time, in a mutex - so check it here, where the real type is visible.
+   Add the platform to the block in Dispatcher.h if this fires. */
+static_assert(
+    sizeof(pthread_mutex_t) <= System::Dispatcher::SIZEOF_PTHREAD_MUTEX_T,
+    "SIZEOF_PTHREAD_MUTEX_T in Dispatcher.h is smaller than this platform's pthread_mutex_t");
+
 #if defined(__ANDROID__) || defined(__BIONIC__)
 /* bionic declares ucontext_t but implements none of the ucontext API; these
    come from libucontext, which an Android build links (see LIBUCONTEXT_ROOT in

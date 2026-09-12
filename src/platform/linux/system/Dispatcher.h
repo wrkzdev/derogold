@@ -12,7 +12,11 @@
 #include <queue>
 #include <stack>
 
-#ifndef __GLIBC__
+/* __WORDSIZE: glibc defines it via <bits/wordsize.h>, musl provides it in
+   <bits/reg.h>, bionic has neither - it defines __WORDSIZE in <sys/cdefs.h>,
+   which the standard headers above have already pulled in. Asking bionic for
+   <bits/reg.h> is a fatal error, and this guard used to catch only glibc. */
+#if !defined(__GLIBC__) && !defined(__BIONIC__)
 
 #include <bits/reg.h>
 
@@ -104,7 +108,15 @@ namespace System
         static const int SIZEOF_PTHREAD_MUTEX_T = 32;
 #endif
 #elif __aarch64__
+        /* This sizes the raw byte buffer a real pthread_mutex_t is
+           constructed into, so it has to match the C library rather than the
+           architecture: bionic's is 40 bytes on LP64, glibc's aarch64 one is
+           48. Too small corrupts memory rather than failing to build. */
+#if defined(__BIONIC__)
+        static const int SIZEOF_PTHREAD_MUTEX_T = 40;
+#else
         static const int SIZEOF_PTHREAD_MUTEX_T = 48;
+#endif
 #else
 
         static const int SIZEOF_PTHREAD_MUTEX_T = 24;
