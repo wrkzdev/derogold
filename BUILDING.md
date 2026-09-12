@@ -249,21 +249,29 @@ time, and note that `COPY . .` means any change to the tree causes one.
 
 #### The whole release set, for several operating systems
 
-`Dockerfile.portable` produces one Linux package. To build the release set for
-every supported platform in one command — Linux and Windows today — use
-`scripts/docker`:
+`Dockerfile.portable` produces one Linux package. To build the entire release
+set in one command — the command line tools for Linux x86_64, Linux ARM64 and
+Windows, plus the GUI, web and Android wallets — use `scripts/docker`:
 
 ```sh
-bash scripts/docker/build.sh            # both targets
-bash scripts/docker/build.sh windows    # just one
+bash scripts/docker/dist.sh             # everything, into dist/
+bash scripts/docker/dist.sh cli         # just the command line packages
+bash scripts/docker/dist.sh apps        # just the three wallets
+bash scripts/docker/dist.sh windows     # just one target
 ```
 
-That image carries the MinGW-w64 cross-toolchain and an OpenSSL built for the
-Windows target, bind-mounts the repository rather than copying it, and keeps
-its build trees and ccache between runs, so a second build is quick. Packages
-and a `SHA256SUMS` file land in `builds/`. See
-[scripts/docker/README.md](scripts/docker/README.md), which also explains what
-Android and macOS would still need.
+That image carries the MinGW-w64 and aarch64 cross-toolchains with an OpenSSL
+built for each, and — for the wallets — Flutter, the Android SDK and NDK, and
+Emscripten. It bind-mounts the repository rather than copying it and keeps its
+build trees and ccache between runs, so a second build is quick. Packages and a
+`SHA256SUMS` file land in `dist/` (or `builds/` if you call `build.sh`
+directly).
+
+It is a large image once the app toolchains are in it — budget 25-30 GB — so a
+build host is a better home for it than a laptop. `dist.sh cli` needs none of
+that and stays small. See
+[scripts/docker/README.md](scripts/docker/README.md), which covers each target,
+the pinned versions, and why macOS is the one platform it cannot build.
 
 ### Building one
 

@@ -1,19 +1,36 @@
 # Docker release builds
 
-One command builds the portable DeroGold CLI set for each supported platform
-and packs it for release, with the root `LICENSE` inside:
+One command builds the whole DeroGold release set - the command line tools for
+each platform, and all three wallets - and packs it for release with the root
+`LICENSE` inside:
 
-| Target        | Package                                         | How it is built                            |
-|---------------|-------------------------------------------------|--------------------------------------------|
-| `linux`       | `derogold-cli-linux-x86_64-<version>.tar.gz`    | native GCC, fully static binaries          |
-| `linux-arm64` | `derogold-cli-linux-arm64-<version>.tar.gz`     | aarch64 cross toolchain + static OpenSSL   |
-| `windows`     | `derogold-cli-windows-x86_64-<version>.zip`     | MinGW-w64 (posix threads) + static OpenSSL |
+| Target        | Package                                        | How it is built                            |
+|---------------|------------------------------------------------|--------------------------------------------|
+| `linux`       | `derogold-cli-linux-x86_64-<version>.tar.gz`   | native GCC, fully static binaries          |
+| `linux-arm64` | `derogold-cli-linux-arm64-<version>.tar.gz`    | aarch64 cross toolchain + static OpenSSL   |
+| `windows`     | `derogold-cli-windows-x86_64-<version>.zip`    | MinGW-w64 (posix threads) + static OpenSSL |
+| `gui`         | `derogold-gui-linux-x86_64-<version>.tar.gz`   | `libwallet_capi.so` + Flutter Linux bundle |
+| `web`         | `derogold-web-wallet-<version>.tar.gz`         | Emscripten WASM module + Flutter web build |
+| `android`     | `derogold-android-<version>.tar.gz`            | NDK library per ABI + Gradle APK and AAB   |
 
-`all` builds all three. To put them in `dist/` instead of `builds/`, which is
-what a release wants:
+Three groups select several at once:
+
+| Group  | Targets                                 |
+|--------|-----------------------------------------|
+| `cli`  | `linux` `linux-arm64` `windows`         |
+| `apps` | `gui` `web` `android`                   |
+| `all`  | everything above (the default)          |
+
+The CLI packages are built first, so a problem in the C++ fails the run in a
+couple of minutes rather than after Gradle and Emscripten have had their turn.
+
+To put the packages in `dist/` instead of `builds/`, which is what a release
+wants:
 
 ```bash
-bash scripts/docker/dist.sh
+bash scripts/docker/dist.sh          # everything
+bash scripts/docker/dist.sh cli      # just the command line packages
+bash scripts/docker/dist.sh apps     # just the wallets
 ```
 
 `<version>` is `MAJOR.MINOR.REV.BUILD` from the
@@ -43,7 +60,10 @@ and ccache between runs.
 
 - Docker 20.10 or newer (or Podman: `DOCKER=podman`). Any Linux host works;
   Docker Desktop on macOS/Windows works too, the image is always `linux/amd64`.
-- About 3 GB of free disk for the image and another 4-6 GB for the build trees.
+- Disk: about 3 GB for the image if you only ever build the `cli` targets, but
+  roughly 25-30 GB once Flutter, the Android SDK/NDK and Emscripten are in it,
+  plus another 10-15 GB for the build trees and Gradle's caches. A remote
+  build host is the comfortable place for this.
 - RAM: the RocksDB and C++20 sources need roughly 1.5 GB per compile job. A
   4 GB machine should use `JOBS=2`.
 - Network access the first time, to fetch the base image, CMake and OpenSSL.
@@ -150,15 +170,59 @@ links MinGW builds with `-static`, so the expected result is that no
 changes, the missing DLLs are copied in and a DLL that cannot be found fails
 the build rather than producing a zip that will not start.
 
+Each of the three app targets is two builds: the wallet library with CMake,
+then the Flutter app that loads it.
+
+**GUI** builds `libwallet_capi.so` with `-D DEROGOLD_BUILD_EXECUTABLES=OFF
+-D DEROGOLD_BUILD_WALLET_CAPI=ON`, then `flutter build linux --release`, then
+copies the library into the bundle's `lib/`. That location is not arbitrary:
+`wallet_ffi.dart` calls `DynamicLibrary.open('libwallet_capi.so')` with no
+path, and a Flutter bundle is linked with an RPATH of `$ORIGIN/lib`, so that
+is where the loader looks.
+
+**Web** configures through `emcmake` with `-D DEROGOLD_BUILD_WALLET_WASM=ON
+-D DEROGOLD_WASM_PTHREADS=ON`, builds the `wallet_wasm` target, stages
+`wallet_wasm.js`, `wallet_wasm.wasm` and the three bridge scripts into the
+app's `web/`, then runs `flutter build web --release`. The module is built
+with threads, so the page only runs when it is served cross-origin isolated -
+see `SERVING.txt` in the package, which carries the two headers and an nginx
+block. The names matter: the glue script asks for the `.wasm` by the name it
+was linked under, so the pair cannot be renamed after the fact.
+
+**Android** builds `libwallet_capi.so` once per ABI with the NDK toolchain
+file, `-D DEROGOLD_ANDROID_PROFILE=ON` and a `LIBUCONTEXT_ROOT` pointing at
+the `libucontext` the image built, drops each into
+`android/app/src/main/jniLibs/<abi>/`, then asks Flutter for four artifacts:
+release and debug, APK and AAB. `ANDROID_ABIS` is checked against `abiFilters`
+in the app's `build.gradle` before anything is compiled — an ABI Gradle
+packages with no library behind it yields an app that installs and then fails
+on its first wallet call, which is not something to discover on a device.
+
+Release signing comes from `android/key.properties` or the `DEROGOLD_KEYSTORE`
+environment variables. With neither, a release build falls back to the debug
+keystore and says so: installable for testing, not publishable.
+
 ## Toolchain versions
 
 Everything the image downloads is pinned at the top of the
 [Dockerfile](Dockerfile) and can be changed with `--build-arg`:
 
-| Build argument    | Default | Used for                                              |
-|-------------------|---------|-------------------------------------------------------|
-| `UBUNTU_VERSION`  | `22.04` | base image: GCC 11, MinGW-w64 GCC, and the build tools |
-| `OPENSSL_VERSION` | `3.5.8` | Windows-target OpenSSL (the Linux target uses `libssl-dev`) |
+| Build argument           | Default             | Used for                                              |
+|--------------------------|---------------------|-------------------------------------------------------|
+| `UBUNTU_VERSION`         | `22.04`             | base image: GCC 11, MinGW-w64 GCC, and the build tools |
+| `OPENSSL_VERSION`        | `3.5.8`             | Windows- and ARM64-target OpenSSL (the Linux target uses `libssl-dev`) |
+| `FLUTTER_VERSION`        | `3.38.0`            | the `gui`, `web` and `android` targets                 |
+| `ANDROID_CMDLINE_TOOLS`  | `11076708`          | the Android SDK command line tools bundle              |
+| `ANDROID_PLATFORM_VERSION` | `35`              | the Android platform Gradle compiles against           |
+| `ANDROID_BUILD_TOOLS`    | `35.0.0`            | the Android build tools                                |
+| `ANDROID_NDK_VERSION`    | `26.3.11579264`     | cross-compiling the wallet library for each ABI        |
+| `ANDROID_API`            | `21`                | the minimum Android API the library targets            |
+| `LIBUCONTEXT_VERSION`    | `1.2`               | `getcontext`/`swapcontext` for bionic                  |
+| `EMSDK_VERSION`          | `3.1.64`            | the WebAssembly module                                 |
+
+`FLUTTER_VERSION` has a floor rather than a preference:
+`extras/mobile-wallet/pubspec.yaml` asks for Flutter 3.38.0 and a Dart SDK of
+`^3.10.7`.
 
 ```bash
 IMAGE_BUILD_ARGS="--build-arg UBUNTU_VERSION=24.04" \
@@ -170,19 +234,27 @@ the floor the bundled RocksDB needs (C++20 `using enum`, GCC 11+).
 
 ## Other platforms
 
-WrkzCoin's equivalent image also builds Android and macOS packages. Neither is
-possible from this tree yet, and the blockers are in the source rather than in
-the image:
+- **macOS** is the one platform this image cannot build. Cross-building needs
+  an osxcross toolchain and an Apple SDK the operator supplies, plus a
+  `CMake/` toolchain file for it; the SDK cannot be redistributed inside an
+  image. There is an `osx-x64-clang` preset for building *on* a Mac, which is
+  unaffected, and the GUI wallet has a `macos/` runner for `flutter build
+  macos` there.
+- **iOS** would need the same Mac, plus signing. The mobile wallet is Android
+  only for now.
+- **Windows and ARM64 GUI/web/Android builds** are not separate targets: the
+  GUI bundle here is Linux x86_64. A Windows GUI build needs `flutter build
+  windows` on Windows, since Flutter does not cross-compile its desktop
+  embedders.
 
-- **Android.** bionic has no `getcontext`/`swapcontext`/`makecontext`, which
-  the fibre dispatcher in `src/platform/linux/system/` needs, so an Android
-  build needs a `libucontext` built per ABI and linked in. It also needs a
-  build option to compile without OpenSSL, since the NDK ships none. Both
-  exist in WrkzCoin (`WRKZ_ANDROID_DISABLE_OPENSSL`, `LIBUCONTEXT_ROOT`) and
-  neither exists here.
-- **macOS.** Cross-building needs an osxcross toolchain and an Apple SDK the
-  operator supplies, plus a `CMake/` toolchain file for it. There is an
-  `osx-x64-clang` preset for building *on* a Mac, which is unaffected.
+Android *is* built, which it was not in earlier revisions of this image. The
+two things that blocked it are both handled now: `libucontext` is compiled per
+ABI during the image build, because bionic has no `getcontext`/`swapcontext`
+for the fibre dispatcher in `src/platform/linux/system/`; and
+`DEROGOLD_ANDROID_DISABLE_OPENSSL` defaults on, because the NDK ships no
+OpenSSL. That second one has a consequence worth knowing: cpp-httplib then
+builds with no TLS at all, so the mobile wallet reaches its node over plain
+HTTP and an `https://` address is refused rather than silently downgraded.
 
 ## Cleaning up
 
@@ -201,7 +273,23 @@ docker rmi derogold-builder     # the image
 - **`is not statically linked`** from the Linux target: something pulled in a
   library with no static half. `ldd` the binary in `build-docker/linux-x86_64/src`
   to see which.
-- **Stale configuration after switching branches**: `CLEAN=1`.
+- **Stale configuration after switching branches**: `CLEAN=1`. This clears the
+  Flutter build directories under `extras/` as well as the CMake trees.
+- **`... is not in this checkout`** from `gui`, `web` or `android`: that app is
+  not in the branch you are building. The three live in `extras/desktop-wallet`,
+  `extras/web-wallet` and `extras/mobile-wallet`.
+- **`build.gradle packages ABI '<abi>' but ANDROID_ABIS does not build it`**:
+  the two lists disagree. Either add the ABI to `ANDROID_ABIS` or remove it
+  from `abiFilters`; shipping an app whose `abiFilters` promises an ABI with
+  no library behind it installs cleanly and fails on the first wallet call.
+- **The web wallet loads but reports it needs a cross-origin isolated page**:
+  the server is not sending `Cross-Origin-Opener-Policy: same-origin` and
+  `Cross-Origin-Embedder-Policy: require-corp`. The module is built with
+  threads, which need `SharedArrayBuffer`, which the browser only grants an
+  isolated page. `SERVING.txt` in the package has an nginx block.
+- **Gradle cannot reach the network**: unlike the C++ targets, the first
+  Android build resolves dependencies from Maven. It is not offline-capable
+  the way the pinned toolchains are.
 - **Windows host, Git Bash**: `build.sh` converts paths for Docker Desktop
   itself. Check the repository out with LF line endings for the scripts under
   `scripts/docker/`.
