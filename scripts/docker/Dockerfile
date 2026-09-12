@@ -166,7 +166,11 @@ RUN apt-get update \
       lib32z1 \
       python3-pip \
       wget \
- && rm -rf /var/lib/apt/lists/*
+ && rm -rf /var/lib/apt/lists/* \
+ # libucontext is a meson project. Ubuntu 22.04 ships meson 0.61, which is
+ # older than it wants, so take it from pip instead.
+ && pip3 install --no-cache-dir 'meson>=1.3' \
+ && meson --version
 
 # Flutter and the Android SDK both run git inside directories this image owns
 # but the build does not: build.sh runs the container as the calling host user,
@@ -203,10 +207,14 @@ RUN set -eux; \
 # The NDK is what cross-compiles libwallet_capi.so for each ABI; the SDK and
 # build-tools are what Gradle assembles the APK and AAB with.
 # ---------------------------------------------------------------------------
+#
+# The platform has to cover the app's compileSdk (36) or Gradle refuses to
+# configure; targetSdk is only a manifest value and needs nothing installed.
+# The NDK is r27 because that is the pair this has actually been built with.
 ARG ANDROID_CMDLINE_TOOLS=11076708
-ARG ANDROID_PLATFORM_VERSION=35
-ARG ANDROID_BUILD_TOOLS=35.0.0
-ARG ANDROID_NDK_VERSION=26.3.11579264
+ARG ANDROID_PLATFORM_VERSION=36
+ARG ANDROID_BUILD_TOOLS=36.0.0
+ARG ANDROID_NDK_VERSION=27.2.12479018
 ENV ANDROID_SDK_ROOT=/opt/android-sdk \
     ANDROID_HOME=/opt/android-sdk
 ENV ANDROID_NDK_HOME=${ANDROID_SDK_ROOT}/ndk/${ANDROID_NDK_VERSION}
@@ -235,17 +243,25 @@ RUN set -eux; \
 # dispatcher needs. Built once here, per ABI, rather than on every build; see
 # scripts/build-libucontext-android.sh, which this runs.
 # ---------------------------------------------------------------------------
-ARG LIBUCONTEXT_VERSION=1.2
-ARG ANDROID_API=21
+# master rather than a tag: current libucontext is a meson project and builds
+# against bionic with the two narrow x86_64 patches the script applies. The
+# last released tarball still wants the old make build and does not.
+#
+# API 24 matches the app's minSdk. Only the two ABIs abiFilters ships are
+# built; a 32-bit arm library would be compiled and then discarded.
+ARG LIBUCONTEXT_REF=master
+ARG ANDROID_API=24
 ENV DEROGOLD_LIBUCONTEXT_DIR=/opt/toolchain/android/libucontext
 COPY build-libucontext-android.sh /tmp/build-libucontext-android.sh
 RUN set -eux; \
     PREFIX="${DEROGOLD_LIBUCONTEXT_DIR}" \
-    LIBUCONTEXT_VERSION="${LIBUCONTEXT_VERSION}" \
+    LIBUCONTEXT_REF="${LIBUCONTEXT_REF}" \
     API="${ANDROID_API}" \
-    bash /tmp/build-libucontext-android.sh arm64-v8a armeabi-v7a x86_64; \
+    bash /tmp/build-libucontext-android.sh arm64-v8a x86_64; \
     rm -f /tmp/build-libucontext-android.sh; \
     test -f "${DEROGOLD_LIBUCONTEXT_DIR}/arm64-v8a/lib/libucontext.a"; \
+    test -f "${DEROGOLD_LIBUCONTEXT_DIR}/x86_64/lib/libucontext.a"; \
+    rm -rf "${DEROGOLD_LIBUCONTEXT_DIR}/work"; \
     chmod -R a+rwX "${DEROGOLD_LIBUCONTEXT_DIR}"
 
 # ---------------------------------------------------------------------------

@@ -511,7 +511,8 @@ SERVING
 ANDROID_ABIS="${ANDROID_ABIS:-arm64-v8a x86_64}"
 MOBILE_MODES="${MOBILE_MODES:-release debug}"
 MOBILE_FORMATS="${MOBILE_FORMATS:-apk aab}"
-ANDROID_API="${ANDROID_API:-21}"
+# Must match minSdk in extras/mobile-wallet/android/app/build.gradle.
+ANDROID_API="${ANDROID_API:-24}"
 
 build_android() {
   local app="$REPO_ROOT/extras/mobile-wallet"

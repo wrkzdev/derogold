@@ -213,11 +213,11 @@ Everything the image downloads is pinned at the top of the
 | `OPENSSL_VERSION`        | `3.5.8`             | Windows- and ARM64-target OpenSSL (the Linux target uses `libssl-dev`) |
 | `FLUTTER_VERSION`        | `3.38.0`            | the `gui`, `web` and `android` targets                 |
 | `ANDROID_CMDLINE_TOOLS`  | `11076708`          | the Android SDK command line tools bundle              |
-| `ANDROID_PLATFORM_VERSION` | `35`              | the Android platform Gradle compiles against           |
-| `ANDROID_BUILD_TOOLS`    | `35.0.0`            | the Android build tools                                |
-| `ANDROID_NDK_VERSION`    | `26.3.11579264`     | cross-compiling the wallet library for each ABI        |
-| `ANDROID_API`            | `21`                | the minimum Android API the library targets            |
-| `LIBUCONTEXT_VERSION`    | `1.2`               | `getcontext`/`swapcontext` for bionic                  |
+| `ANDROID_PLATFORM_VERSION` | `36`              | must cover the app's `compileSdk`                      |
+| `ANDROID_BUILD_TOOLS`    | `36.0.0`            | the Android build tools                                |
+| `ANDROID_NDK_VERSION`    | `27.2.12479018`     | cross-compiling the wallet library for each ABI        |
+| `ANDROID_API`            | `24`                | must match the app's `minSdk`                          |
+| `LIBUCONTEXT_REF`        | `master`            | `getcontext`/`swapcontext` for bionic                  |
 | `EMSDK_VERSION`          | `3.1.64`            | the WebAssembly module                                 |
 
 `FLUTTER_VERSION` has a floor rather than a preference:
