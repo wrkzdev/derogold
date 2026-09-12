@@ -85,4 +85,10 @@ namespace WalletConfig
      * The amount of memory to use storing downloaded blocks - 50MB
      */
     const size_t blockStoreMemoryLimit = 1024 * 1024 * 50;
+
+    /**
+     * A rescan that starts below this height walks most of the chain, which
+     * takes hours or days, so the wallet asks again before starting one.
+     */
+    const uint64_t slowRescanHeight = 2'900'000;
 } // namespace WalletConfig

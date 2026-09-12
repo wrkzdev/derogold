@@ -282,7 +282,31 @@ void reset(const std::shared_ptr<WalletBackend> walletBackend)
               << std::endl
               << std::endl;
 
-    if (!Utilities::confirm("Are you sure?"))
+    /* Hitting enter at the height prompt answers zero, so this is the path an
+       unsuspecting user takes. Say what it costs, and make no the default. */
+    if (scanHeight < WalletConfig::slowRescanHeight)
+    {
+        const uint64_t chainHeight = walletBackend->getStatus().networkBlockCount;
+
+        std::cout << WarningMsg("Rescanning from height ") << WarningMsg(scanHeight)
+                  << WarningMsg(" means fetching and checking every block from there to the top of the chain");
+
+        if (chainHeight > scanHeight)
+        {
+            std::cout << WarningMsg(" (") << WarningMsg(chainHeight - scanHeight) << WarningMsg(" blocks)");
+        }
+
+        std::cout << WarningMsg(".") << std::endl
+                  << WarningMsg("This can take a very long time - many hours, or days on a slow node.") << std::endl
+                  << "If you know roughly when this wallet was first used, reset from that height instead." << std::endl
+                  << std::endl;
+
+        if (!Utilities::confirm("Rescan from height " + std::to_string(scanHeight) + " anyway?", false))
+        {
+            return;
+        }
+    }
+    else if (!Utilities::confirm("Are you sure?"))
     {
         return;
     }
