@@ -250,9 +250,10 @@ namespace CryptoNote
 
         virtual std::vector<Crypto::Hash> getTransactionHashesByPaymentId(const Crypto::Hash &paymentId) const override;
 
-        static WalletTypes::RawCoinbaseTransaction getRawCoinbaseTransaction(const CryptoNote::Transaction &t);
-
-        static WalletTypes::RawTransaction getRawTransaction(const std::vector<uint8_t> &rawTX);
+        /* getRawCoinbaseTransaction and getRawTransaction were static members
+           here. They never read Core's state, and having them here meant a
+           wallet had to include this whole header to parse a transaction, so
+           they now live in RawBlockTools.h as free functions. */
 
         virtual std::string exportBlockchain(
             const std::string filePath,

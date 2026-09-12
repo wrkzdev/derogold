@@ -11,7 +11,7 @@
 #include <common/IpcSocket.h>
 #include <config/CryptoNoteConfig.h>
 #include <cryptonotecore/CachedBlock.h>
-#include <cryptonotecore/Core.h>
+#include <cryptonotecore/RawBlockTools.h>
 #include <CryptoNote.h>
 #include <errors/ValidateParameters.h>
 #include <utilities/Utilities.h>
@@ -19,9 +19,69 @@
 
 using json = nlohmann::json;
 
+#ifdef __EMSCRIPTEN__
+
+#include <common/WasmHttp.h>
+
+////////////////////////////////
+/*     Browser transport      */
+////////////////////////////////
+
+/* There are no sockets in a browser, so httplib cannot reach the daemon and
+   the request goes out over XMLHttpRequest instead - see common/WasmHttp.h.
+   Wrapped in the httplib::Result the rest of Nigel is written against, so no
+   caller has to know which transport answered. */
+static httplib::Result emscriptenRequestJson(
+    const std::string &daemonHost,
+    const uint16_t daemonPort,
+    const bool daemonSSL,
+    const std::string &path,
+    const char *method,
+    const std::string &body)
+{
+    std::string url = daemonSSL ? "https://" : "http://";
+
+    url += daemonHost;
+
+    /* Leave the default port off the URL, so a page served from the same
+       origin as the daemon is not pushed cross-origin by an explicit :443. */
+    if (daemonPort != 0 && !(daemonSSL && daemonPort == 443) && !(!daemonSSL && daemonPort == 80))
+    {
+        url += ":" + std::to_string(daemonPort);
+    }
+
+    url += path;
+
+    int status = 0;
+
+    std::string responseBody =
+        Common::Wasm::syncRequest(url, method, body.empty() ? nullptr : &body, status);
+
+    /* No status at all is a failure to reach the daemon, which is the same
+       thing a refused socket means to every caller above. */
+    if (status == 0)
+    {
+        return httplib::Result(nullptr, httplib::Error::Connection);
+    }
+
+    auto response = std::make_unique<httplib::Response>();
+
+    response->status = status;
+    response->body = std::move(responseBody);
+    response->set_header("Content-Type", "application/json");
+
+    return httplib::Result(std::move(response), httplib::Error::Success);
+}
+
+#endif /* __EMSCRIPTEN__ */
+
 ////////////////////////////////
 /*   Inline helper methods    */
 ////////////////////////////////
+
+/* Native only. A browser build has no sockets for httplib and no local socket
+   to fall back on, so it never builds a client at all. */
+#ifndef __EMSCRIPTEN__
 
 inline std::shared_ptr<httplib::Client> getClient(
     const std::string daemonHost,
@@ -74,6 +134,8 @@ inline std::shared_ptr<httplib::Client> getClient(
     return client;
 }
 
+#endif /* !__EMSCRIPTEN__ */
+
 ////////////////////////////////
 /* Constructors / Destructors */
 ////////////////////////////////
@@ -97,7 +159,10 @@ Nigel::Nigel(
     userAgent << "Nigel/" << PROJECT_VERSION_LONG;
 
     m_requestHeaders = {{"User-Agent", userAgent.str()}};
+
+#ifndef __EMSCRIPTEN__
     m_nodeClient = getClient(m_daemonHost, m_daemonPort, m_daemonSSL, m_timeout);
+#endif
 }
 
 Nigel::~Nigel()
@@ -127,9 +192,31 @@ void Nigel::swapNode(const std::string daemonHost, const uint16_t daemonPort, co
     m_daemonPort = daemonPort;
     m_daemonSSL = daemonSSL;
 
+#ifndef __EMSCRIPTEN__
     m_nodeClient = getClient(m_daemonHost, m_daemonPort, m_daemonSSL, m_timeout);
+#endif
 
     init();
+}
+
+/* The daemon transport. A native build posts through the shared httplib
+   client; a WebAssembly build has no sockets and goes out over XHR. */
+httplib::Result Nigel::nodeGet(const std::string &path)
+{
+#ifdef __EMSCRIPTEN__
+    return emscriptenRequestJson(m_daemonHost, m_daemonPort, m_daemonSSL, path, "GET", "");
+#else
+    return m_nodeClient->Get(path, m_requestHeaders);
+#endif
+}
+
+httplib::Result Nigel::nodePost(const std::string &path, const std::string &body)
+{
+#ifdef __EMSCRIPTEN__
+    return emscriptenRequestJson(m_daemonHost, m_daemonPort, m_daemonSSL, path, "POST", body);
+#else
+    return m_nodeClient->Post(path, m_requestHeaders, body, "application/json");
+#endif
 }
 
 void Nigel::decreaseRequestedBlockCount()
@@ -168,7 +255,7 @@ std::tuple<bool, std::vector<WalletTypes::WalletBlockInfo>, std::optional<Wallet
         { Logger::SYNC, Logger::DAEMON }
     );
 
-    const auto res = m_nodeClient->Post(endpoint, m_requestHeaders, j.dump(), "application/json");
+    const auto res = nodePost(endpoint, j.dump());
 
     /* A 400 here is the daemon answering this request rather than failing at
        it - it has looked at our block hashes and will not serve us. Retrying
@@ -223,12 +310,12 @@ std::tuple<bool, std::vector<WalletTypes::WalletBlockInfo>, std::optional<Wallet
 
                 if (!skipCoinbaseTransactions)
                 {
-                    walletBlock.coinbaseTransaction = CryptoNote::Core::getRawCoinbaseTransaction(block.baseTransaction);
+                    walletBlock.coinbaseTransaction = CryptoNote::getRawCoinbaseTransaction(block.baseTransaction);
                 }
 
                 for (const auto &transaction : rawBlock.transactions)
                 {
-                    walletBlock.transactions.push_back(CryptoNote::Core::getRawTransaction(transaction));
+                    walletBlock.transactions.push_back(CryptoNote::getRawTransaction(transaction));
                 }
 
                 items.push_back(walletBlock);
@@ -335,7 +422,7 @@ bool Nigel::getDaemonInfo()
         { Logger::SYNC, Logger::DAEMON }
     );
 
-    auto res = m_nodeClient->Get("/info", m_requestHeaders);
+    auto res = nodeGet("/info");
 
     const auto parsedResponse = tryParseJSONResponse(res, "Failed to update daemon info", [this](const nlohmann::json j) {
         m_localDaemonBlockCount = j.at("height").get<uint64_t>();
@@ -405,7 +492,7 @@ bool Nigel::getFeeInfo()
         { Logger::SYNC, Logger::DAEMON }
     );
 
-    auto res = m_nodeClient->Get("/fee", m_requestHeaders);
+    auto res = nodeGet("/fee");
 
     const auto parsedResponse = tryParseJSONResponse(res, "Failed to update fee info", [this](const nlohmann::json j) {
         std::string tmpAddress = j.at("address").get<std::string>();
@@ -517,7 +604,7 @@ bool Nigel::getTransactionsStatus(
         { Logger::SYNC, Logger::DAEMON }
     );
 
-    auto res = m_nodeClient->Post("/get_transactions_status", m_requestHeaders, j.dump(), "application/json");
+    auto res = nodePost("/get_transactions_status", j.dump());
 
     const auto parsedResponse = tryParseJSONResponse(res, "Failed to get transactions status", [&](const nlohmann::json j) {
         transactionsInPool = j.at("transactionsInPool").get<std::unordered_set<Crypto::Hash>>();
@@ -550,7 +637,7 @@ std::tuple<bool, std::vector<CryptoNote::RandomOuts>>
 
         /* We also need to handle the request and response a bit
            differently so we'll do this here */
-        auto res = m_nodeClient->Post("/randomOutputs", m_requestHeaders, j.dump(), "application/json");
+        auto res = nodePost("/randomOutputs", j.dump());
 
         const auto parsedResponse = tryParseJSONResponse(res, "Failed to get random outs", [](const nlohmann::json j) {
             return j.get<std::vector<CryptoNote::RandomOuts>>();
@@ -569,7 +656,7 @@ std::tuple<bool, std::vector<CryptoNote::RandomOuts>>
             { Logger::SYNC, Logger::DAEMON }
         );
 
-        auto res = m_nodeClient->Post("/getrandom_outs", m_requestHeaders, j.dump(), "application/json");
+        auto res = nodePost("/getrandom_outs", j.dump());
 
         const auto parsedResponse = tryParseJSONResponse(res, "Failed to get random outs", [](const nlohmann::json j) {
             return j.at("outs").get<std::vector<CryptoNote::RandomOuts>>();
@@ -594,7 +681,7 @@ std::tuple<bool, bool, std::string> Nigel::sendTransaction(const CryptoNote::Tra
         { Logger::SYNC, Logger::DAEMON }
     );
 
-    auto res = m_nodeClient->Post("/sendrawtransaction", m_requestHeaders, j.dump(), "application/json");
+    auto res = nodePost("/sendrawtransaction", j.dump());
 
     bool success = false;
     bool connectionError = true;
@@ -644,9 +731,15 @@ std::tuple<bool, std::unordered_map<Crypto::Hash, std::vector<uint64_t>>>
        client opens a new connection per request anyway; this costs nothing it
        did not already. Safe to read the daemon address here: swapNode pauses
        the synchronizer before changing it. */
+#ifdef __EMSCRIPTEN__
+    /* The separate client is a native concern: XHR has no per-client request
+       lock to queue behind, and there is no client here to make anyway. */
+    auto res = nodePost("/get_global_indexes_for_range", j.dump());
+#else
     const auto client = getClient(m_daemonHost, m_daemonPort, m_daemonSSL, m_timeout);
 
     auto res = client->Post("/get_global_indexes_for_range", m_requestHeaders, j.dump(), "application/json");
+#endif
 
     std::unordered_map<Crypto::Hash, std::vector<uint64_t>> result;
 

@@ -10,6 +10,7 @@
 
 #include <common/PlatformCaCerts.h>
 #include <common/StringTools.h>
+#include <common/WasmHttp.h>
 #include <logger/Logger.h>
 
 #include <cctype>
@@ -73,6 +74,23 @@ namespace
     {
         HttpReply reply;
 
+#ifdef __EMSCRIPTEN__
+        /* No sockets in a browser, so this goes out over XHR instead. The
+           long poll below asks the server to hold a request open for twenty
+           seconds, so the read timeout has to be passed through - the
+           browser's own default would cut the poll short and the wallet would
+           re-ask for a job it already has. */
+        const std::string wasmBody = body ? *body : std::string();
+
+        reply.body = Common::Wasm::syncRequest(
+            originUrl(s) + s.basePath + path,
+            method,
+            body ? &wasmBody : nullptr,
+            reply.status,
+            readTimeoutSeconds + CONNECT_TIMEOUT_SECONDS);
+
+        return reply;
+#else
         httplib::Client client(originUrl(s));
 
         /* Android has no trust store where cpp-httplib looks, and the miss is
@@ -109,6 +127,7 @@ namespace
         }
 
         return reply;
+#endif
     }
 
     void logRemote(const std::string &message, const Logger::LogLevel level)

@@ -285,11 +285,29 @@ if(NOT MSVC)
         endif()
     endif()
 
-    # Emscripten takes -pthread per target instead, and only when the WASM
-    # module is built with threads; passing it globally here would apply it to
-    # every object whether or not that build wants shared memory.
     if(NOT APPLE AND NOT EMSCRIPTEN)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
+    endif()
+
+    if(EMSCRIPTEN)
+        # Both of these are whole-program properties under Emscripten rather
+        # than per-target ones, so they go on the global flags.
+        #
+        # -pthread makes the wasm memory shared, and objects built with and
+        # without it cannot be linked together: the feature has to match
+        # everywhere or the link fails on mismatched atomics.
+        #
+        # -fexceptions likewise. Without it a throw compiles to a trap that
+        # kills the module, and the wallet backend reports plenty of ordinary
+        # conditions - a wrong password, a rejected transaction - by throwing.
+        # It has to be on for the libraries, not only for the module that
+        # catches.
+        if(DEROGOLD_WASM_PTHREADS)
+            set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread")
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
+        endif()
+
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fexceptions")
     endif()
 
     # # Setting up DEBUG flags

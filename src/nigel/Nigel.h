@@ -217,12 +217,28 @@ class Nigel
         }
     }
 
+    ////////////////////////////
+    /* Private member methods */
+    ////////////////////////////
+
+    /* Every request to the daemon goes through these two rather than touching
+       m_nodeClient directly, because a WebAssembly build has no sockets to
+       give httplib and reaches the daemon over XMLHttpRequest instead. The
+       result either way is an httplib::Result, so the tryParseJSONResponse
+       callers above do not know the difference. */
+    httplib::Result nodeGet(const std::string &path);
+
+    httplib::Result nodePost(const std::string &path, const std::string &body);
+
     //////////////////////////////
     /* Private member variables */
     //////////////////////////////
 
     /* Stores our http client (Don't really care about it launching threads
-       and making our functions non const) */
+       and making our functions non const)
+
+       Null in a WebAssembly build: there is no socket layer under it, so the
+       client is never built and nodeGet/nodePost go to the browser instead. */
     std::shared_ptr<httplib::Client> m_nodeClient = nullptr;
 
     /* Stores the HTTP headers included in all Nigel requests */

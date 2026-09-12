@@ -18,7 +18,9 @@
 #include <config/CryptoNoteConfig.h>
 #include <crypto/crypto.h>
 #include <crypto/random.h>
+#ifndef __EMSCRIPTEN__
 #include <cryptonotecore/Currency.h>
+#endif
 #include <cryptopp/aes.h>
 #include <cryptopp/algparam.h>
 #include <cryptopp/filters.h>
@@ -31,13 +33,27 @@
 #include <future>
 #include <iomanip>
 #include <logger/Logger.h>
+#ifndef __EMSCRIPTEN__
 #include <logging/LoggerManager.h>
+#endif
 #include <mnemonics/Mnemonics.h>
+#ifndef __EMSCRIPTEN__
+/* Only the WalletGreen upgrade path below needs these, and that path is
+   compiled out in a browser build - see tryUpgradeWalletFormat. They pull in
+   the epoll-based dispatcher, which has no WebAssembly implementation. */
 #include <noderpcproxy/NodeRpcProxy.h>
+#endif
 #include <utilities/Addresses.h>
 #include <utilities/Utilities.h>
 #include <walletbackend/Constants.h>
 #include <walletbackend/Transfer.h>
+
+#ifdef __EMSCRIPTEN__
+/* A browser has no filesystem to write a wallet to, so the wallet file lives
+   in memory here and the page moves it in and out of IndexedDB. The bytes are
+   identical to what a desktop build writes. */
+#include "wasm_fs_bridge.h"
+#endif
 
 using namespace rapidjson;
 
@@ -77,6 +93,22 @@ namespace
     /* Check the wallet filename for the new wallet to be created is valid */
     Error checkNewWalletFilename(std::string filename)
     {
+#ifdef __EMSCRIPTEN__
+        /* The name is a key in the in-memory store rather than a path, so the
+           only thing that can make it invalid is being empty or already
+           taken - there is nothing to test-open. */
+        if (filename.empty())
+        {
+            return INVALID_WALLET_FILENAME;
+        }
+
+        if (WasmFs::exists(filename))
+        {
+            return WALLET_FILE_ALREADY_EXISTS;
+        }
+
+        return SUCCESS;
+#else
         /* Check the file doesn't exist */
         if (std::ifstream(filename))
         {
@@ -93,6 +125,7 @@ namespace
         fs::remove(filename);
 
         return SUCCESS;
+#endif
     }
 
 } // namespace
@@ -383,6 +416,24 @@ bool WalletBackend::tryUpgradeWalletFormat(
     const std::string daemonHost,
     const uint16_t daemonPort)
 {
+#ifdef __EMSCRIPTEN__
+    /* Upgrading a WalletGreen wallet needs WalletGreen, NodeRpcProxy and a
+       System::Dispatcher - the fibre dispatcher, which is built on epoll and
+       has no WebAssembly implementation. This is the only thing in the whole
+       wallet chain that reaches for it, so leaving it out is what lets the
+       browser build link at all.
+     *
+     * Nothing is lost: a WalletGreen file is a wallet from before this format
+     * existed, sitting in a directory on somebody's desktop. It cannot be in
+     * the browser's store unless it was uploaded, and the answer for one that
+     * was is to upgrade it with the desktop wallet first. */
+    (void)filename;
+    (void)password;
+    (void)daemonHost;
+    (void)daemonPort;
+
+    return false;
+#else
     try
     {
         const auto logManager = std::make_shared<Logging::LoggerManager>();
@@ -436,6 +487,7 @@ bool WalletBackend::tryUpgradeWalletFormat(
     {
         return false;
     }
+#endif /* __EMSCRIPTEN__ */
 }
 
 /* Opens a wallet already on disk with the given filename + password */
@@ -447,6 +499,16 @@ std::tuple<Error, std::shared_ptr<WalletBackend>> WalletBackend::openWallet(
     const bool daemonSSL,
     const unsigned int syncThreadCount)
 {
+#ifdef __EMSCRIPTEN__
+    /* The page must have pushed the wallet into the store before asking for it
+       to be opened - see importFileData in wallet_wasm_exports.cpp. */
+    std::vector<char> buffer = WasmFs::read(filename);
+
+    if (buffer.empty())
+    {
+        return {FILENAME_NON_EXISTENT, nullptr};
+    }
+#else
     /* Open in binary mode, since we have encrypted data */
     std::ifstream file(filename, std::ios_base::binary);
 
@@ -458,6 +520,7 @@ std::tuple<Error, std::shared_ptr<WalletBackend>> WalletBackend::openWallet(
 
     /* Read file into a buffer */
     std::vector<char> buffer((std::istreambuf_iterator<char>(file)), (std::istreambuf_iterator<char>()));
+#endif
 
     /* Check that the decrypted data has the 'isAWallet' identifier,
        and remove it it does. If it doesn't, return an error. */
@@ -631,6 +694,26 @@ Error WalletBackend::saveWalletJSONToDisk(std::string walletJSON, std::string fi
     /* Encrypt, and pad */
     StringSource(walletData, true, new StreamTransformationFilter(cbcEncryption, new StringSink(encryptedData)));
 
+#ifdef __EMSCRIPTEN__
+    /* The temporary-file dance below exists to stop a crash mid-write leaving
+       a half written wallet on disk. Here the destination is one entry in an
+       in-memory map, replaced under its mutex in a single assignment, so there
+       is no window to protect and nothing a temporary file would add.
+       Durability is the page's job: it reads these bytes back out with
+       exportFileData and puts them in IndexedDB. */
+    std::vector<char> fileData;
+
+    fileData.reserve(Constants::IS_A_WALLET_IDENTIFIER.size() + sizeof(salt) + encryptedData.size());
+
+    fileData.insert(
+        fileData.end(), Constants::IS_A_WALLET_IDENTIFIER.begin(), Constants::IS_A_WALLET_IDENTIFIER.end());
+
+    fileData.insert(fileData.end(), std::begin(salt), std::end(salt));
+
+    fileData.insert(fileData.end(), encryptedData.begin(), encryptedData.end());
+
+    WasmFs::write(filename, fileData);
+#else
     /* Write to a temporary file and rename it over the real one, so the wallet
        is replaced in a single step.
        Writing straight to the wallet truncated it first and only then wrote the
@@ -703,6 +786,7 @@ Error WalletBackend::saveWalletJSONToDisk(std::string walletJSON, std::string fi
 
         return INVALID_WALLET_FILENAME;
     }
+#endif /* __EMSCRIPTEN__ */
 
     return SUCCESS;
 }

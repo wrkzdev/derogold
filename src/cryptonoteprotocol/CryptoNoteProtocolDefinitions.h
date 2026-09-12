@@ -7,7 +7,16 @@
 
 #pragma once
 
+/* Only the RawBlockLegacy constructor below needs the complete Core type, and
+   that constructor is the daemon telling its peers about a new block. A
+   browser wallet has no peers - and cannot compile Core.h at all, which drags
+   in the epoll-based dispatcher - so both are left out there.
+
+   This header is not the daemon's alone: it reaches an ordinary wallet build
+   through Nigel.h and FormatTools.h, by way of the RPC command definitions. */
+#ifndef __EMSCRIPTEN__
 #include <cryptonotecore/Core.h>
+#endif
 
 #include <list>
 
@@ -40,6 +49,7 @@ namespace CryptoNote
         {
         }
 
+#ifndef __EMSCRIPTEN__
         RawBlockLegacy(
             const std::vector<uint8_t> &rawBlob,
             const BlockTemplate blockTmp,
@@ -56,6 +66,7 @@ namespace CryptoNote
                 core->getTransactions(blockTmp.transactionHashes, transactions, ignore);
             }
         }
+#endif
     };
 
     struct NOTIFY_NEW_BLOCK_request

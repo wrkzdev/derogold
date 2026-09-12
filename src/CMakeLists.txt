@@ -2,6 +2,14 @@
 include_directories(${CMAKE_SOURCE_DIR}/external/cpp-linenoise)
 include_directories(${CMAKE_SOURCE_DIR}/external/nlohmann-json)
 
+# The browser build has no filesystem, so WalletBackend and the C API write the
+# wallet through the in-memory store in wasm_fs_bridge.h instead. Both include
+# it directly, so it has to be on the include path for every target here, not
+# only the wasm module.
+if(EMSCRIPTEN)
+    include_directories(${CMAKE_SOURCE_DIR}/extras/web-wallet-wasm/wasm/include)
+endif()
+
 # wallet_capi is a shared library, and every static library that ends up inside
 # it has to be compiled as position independent code. Set before any target is
 # declared, so it reaches all of them.
@@ -27,6 +35,22 @@ file(GLOB_RECURSE CryptoNoteCore CONFIGURE_DEPENDS cryptonotecore/* CryptoNoteCo
 # this configuration never fetched.
 if(NOT DEROGOLD_BUILD_EXECUTABLES)
     list(FILTER CryptoNoteCore EXCLUDE REGEX "RocksDBWrapper\\.(h|cpp)$")
+endif()
+
+# Core and the transaction pool cleaner are the daemon's, and the only two
+# files left in this library that reach for the fibre dispatcher in system/ -
+# which is built on epoll and has no WebAssembly implementation. A wallet
+# needs neither: the two transaction helpers it used to take from Core now
+# live in RawBlockTools, which depends on nothing but the serializer.
+#
+# Android keeps them. bionic has epoll, so the dispatcher builds there.
+if(EMSCRIPTEN)
+    list(FILTER CryptoNoteCore EXCLUDE REGEX "(Core|TransactionPoolCleaner)\\.(h|cpp)$")
+
+    # Backed by a memory mapped file, so it needs system/MemoryMappedFile.h.
+    # Only WalletGreen's indices use it, and WalletGreen is not part of a
+    # browser build.
+    list(FILTER Common EXCLUDE REGEX "FileMappedVector\\.(h|cpp)$")
 endif()
 file(GLOB_RECURSE CryptoNoteProtocol CONFIGURE_DEPENDS cryptonoteprotocol/*)
 file(GLOB_RECURSE CryptoTest CONFIGURE_DEPENDS cryptotest/*)
@@ -76,24 +100,40 @@ add_library(Crypto STATIC ${Crypto})
 add_library(CryptoNoteCore STATIC ${CryptoNoteCore})
 add_library(Errors STATIC ${Errors})
 add_library(Http STATIC ${Http})
-add_library(JsonRpcServer STATIC ${JsonRpcServer})
 add_library(Logging STATIC ${Logging})
 add_library(Logger STATIC ${Logger})
 add_library(Mnemonics STATIC ${Mnemonics})
 add_library(Nigel STATIC ${Nigel})
-add_library(NodeRpcProxy STATIC ${NodeRpcProxy})
-add_library(P2P STATIC ${CryptoNoteProtocol} ${P2p})
-add_library(Rpc STATIC ${Rpc})
 add_library(Serialization STATIC ${Serialization})
 add_library(SubWallets STATIC ${SubWallets})
-add_library(System STATIC ${System})
-add_library(Transfers STATIC ${Transfers})
 add_library(Utilities STATIC ${Utilities})
-add_library(Wallet STATIC ${Wallet})
 add_library(WalletBackend STATIC ${WalletBackend})
 
+# The daemon's half of the tree: the P2P stack, the RPC servers, the fibre
+# dispatcher and the old WalletGreen wallet. None of it can be compiled for
+# WebAssembly - sockets, epoll and miniupnpc have no implementation there -
+# and the browser wallet calls into none of it, so it is not declared at all.
+# Declaring the targets would be enough to break the build, because "make
+# all" builds every target whether or not anything links it.
+if(NOT EMSCRIPTEN)
+    add_library(JsonRpcServer STATIC ${JsonRpcServer})
+    add_library(NodeRpcProxy STATIC ${NodeRpcProxy})
+    add_library(P2P STATIC ${CryptoNoteProtocol} ${P2p})
+    add_library(Rpc STATIC ${Rpc})
+    add_library(System STATIC ${System})
+    add_library(Transfers STATIC ${Transfers})
+    add_library(Wallet STATIC ${Wallet})
+endif()
+
 if(DEROGOLD_BUILD_WALLET_CAPI)
-    add_library(wallet_capi SHARED ${WalletCAPI})
+    if(EMSCRIPTEN)
+        # A SHARED library under Emscripten is a side module loaded at runtime,
+        # which is not what this is - the C API is linked straight into the
+        # wasm module beside the exports that call it.
+        add_library(wallet_capi STATIC ${WalletCAPI})
+    else()
+        add_library(wallet_capi SHARED ${WalletCAPI})
+    endif()
 endif()
 
 # Crypto requires -O2 optimization due to its sensitivity.
@@ -169,7 +209,16 @@ endif()
 # Add the dependencies we need
 target_link_libraries(Config rapidjson)
 target_link_libraries(Crypto rapidjson)
-target_link_libraries(CryptoNoteCore PUBLIC Common Crypto Http Logging P2P Rpc Serialization System Utilities WalletBackend rapidjson)
+if(EMSCRIPTEN)
+    # P2P, Rpc and System are the daemon's half of this library, and none of
+    # them can be built for WebAssembly: they want sockets, epoll and
+    # miniupnpc. Naming them here would have CMake build them as dependencies
+    # of the wallet even though no wallet object ever calls into them, so the
+    # browser build links the parsing and crypto half only.
+    target_link_libraries(CryptoNoteCore PUBLIC Common Crypto Http Logging Serialization Utilities WalletBackend rapidjson)
+else()
+    target_link_libraries(CryptoNoteCore PUBLIC Common Crypto Http Logging P2P Rpc Serialization System Utilities WalletBackend rapidjson)
+endif()
 
 # RocksDBWrapper.cpp lives in this library, so this is where its headers are
 # needed. Under vcpkg they happened to be on the global include path and no
@@ -200,15 +249,28 @@ target_link_libraries(Nigel CryptoNoteCore Errors httplib::httplib)
 if(TARGET OpenSSL::SSL)
     target_link_libraries(Nigel OpenSSL::Crypto OpenSSL::SSL)
 endif()
-target_link_libraries(NodeRpcProxy Rpc)
-target_link_libraries(P2P CryptoNoteCore Serialization System miniupnpc::miniupnpc)
-target_link_libraries(Rpc CryptoNoteCore P2P Utilities httplib::httplib rapidjson)
 target_link_libraries(Serialization Common Crypto)
 target_link_libraries(SubWallets Common Logger rapidjson)
-target_link_libraries(Transfers CryptoNoteCore)
 target_link_libraries(Utilities Common Errors rapidjson)
-target_link_libraries(Wallet Common CryptoNoteCore NodeRpcProxy Transfers WalletBackend)
-target_link_libraries(WalletBackend Config Logger Mnemonics Nigel Serialization SubWallets Utilities Wallet cryptopp::cryptopp rapidjson)
+
+# The daemon-only targets, which a browser build never declares.
+if(NOT EMSCRIPTEN)
+    target_link_libraries(NodeRpcProxy Rpc)
+    target_link_libraries(P2P CryptoNoteCore Serialization System miniupnpc::miniupnpc)
+    target_link_libraries(Rpc CryptoNoteCore P2P Utilities httplib::httplib rapidjson)
+    target_link_libraries(Transfers CryptoNoteCore)
+    target_link_libraries(Wallet Common CryptoNoteCore NodeRpcProxy Transfers WalletBackend)
+endif()
+if(EMSCRIPTEN)
+    # Wallet is WalletGreen, needed only to upgrade a wallet file written by a
+    # version that predates this format. That path is compiled out in a
+    # browser build (see WalletBackend::tryUpgradeWalletFormat), and keeping
+    # the library here would drag Core.h, NodeRpcProxy and the dispatcher back
+    # into the link through the back door.
+    target_link_libraries(WalletBackend Config Logger Mnemonics Nigel Serialization SubWallets Utilities cryptopp::cryptopp rapidjson)
+else()
+    target_link_libraries(WalletBackend Config Logger Mnemonics Nigel Serialization SubWallets Utilities Wallet cryptopp::cryptopp rapidjson)
+endif()
 
 if(DEROGOLD_BUILD_EXECUTABLES)
     target_link_libraries(cryptotest Common Crypto rapidjson cxxopts::cxxopts)
@@ -250,12 +312,75 @@ if(DEROGOLD_BUILD_WALLET_CAPI)
     target_compile_definitions(wallet_capi PRIVATE WALLET_CAPI_BUILDING)
 endif()
 
+if(EMSCRIPTEN AND DEROGOLD_BUILD_WALLET_WASM)
+    # The browser wallet. One exported entry point taking a JSON request and
+    # returning a JSON reply; see extras/web-wallet-wasm/.
+    add_executable(wallet_wasm
+        ${CMAKE_SOURCE_DIR}/extras/web-wallet-wasm/wasm/src/wallet_wasm_exports.cpp)
+
+    target_link_libraries(wallet_wasm PRIVATE wallet_capi WalletBackend rapidjson)
+
+    target_include_directories(wallet_wasm PRIVATE
+        ${CMAKE_SOURCE_DIR}/include
+        ${CMAKE_SOURCE_DIR}/extras/web-wallet-wasm/wasm/include)
+
+    set_target_properties(wallet_wasm PROPERTIES
+        OUTPUT_NAME "derogold_wallet"
+        SUFFIX ".js")
+
+    # MODULARIZE gives the page a factory to call rather than a module that
+    # starts itself on load, which is what lets the worker decide when to
+    # bring it up. ENVIRONMENT drops the Node and shell paths from the glue.
+    target_link_options(wallet_wasm PRIVATE
+        -fexceptions
+        "-sMODULARIZE=1"
+        "-sEXPORT_NAME=DeroGoldWallet"
+        "-sENVIRONMENT=web,worker"
+        "-sEXPORTED_FUNCTIONS=['_wallet_wasm_request','_malloc','_free']"
+        "-sEXPORTED_RUNTIME_METHODS=['ccall','cwrap','UTF8ToString','stringToUTF8','lengthBytesUTF8','HEAP32','HEAPU8']"
+        "-sALLOW_MEMORY_GROWTH=1"
+        "-sINITIAL_MEMORY=64MB"
+        # The fibre dispatcher in src/platform/linux/system/ runs coroutines on
+        # their own stacks and the block handlers recurse, so the default 64KB
+        # is nowhere near enough.
+        "-sSTACK_SIZE=4MB"
+        # wallet_wasm_request returns after the module is up and is called
+        # again and again; letting the runtime exit after main() would tear
+        # everything down on the first call.
+        "-sEXIT_RUNTIME=0"
+        "-sASSERTIONS=1")
+
+    if(DEROGOLD_WASM_PTHREADS)
+        # -pthread itself is on the global flags: shared memory has to match
+        # across every object in the link. Only the pool sizing is local.
+        #
+        # Every worker in the pool is built at startup, because building one
+        # later needs the page's main thread and the calls into this module
+        # block it. The pool therefore has to cover the peak: the synchroniser
+        # loop, the block downloader and its parallel download windows, Nigel's
+        # background refresh, and the block-processing threads, which
+        # resolve_sync_threads() in wallet_wasm_exports.cpp caps at six. Raise
+        # that cap and this together, or a thread will wait on one that cannot
+        # be created and simply hang.
+        target_link_options(wallet_wasm PRIVATE
+            -pthread
+            "-sPTHREAD_POOL_SIZE=20"
+            # Warn rather than abort if the peak is ever misjudged: a slow
+            # wallet beats a dead one.
+            "-sPTHREAD_POOL_SIZE_STRICT=1")
+    endif()
+
+    add_dependencies(wallet_wasm version)
+endif()
+
 # Add dependencies means we have to build the latter before we build the former
 # In this case it's because we need to have the current version name rather
 # than a cached one
-add_dependencies(JsonRpcServer version)
-add_dependencies(P2P version)
-add_dependencies(Rpc version)
+if(NOT EMSCRIPTEN)
+    add_dependencies(JsonRpcServer version)
+    add_dependencies(P2P version)
+    add_dependencies(Rpc version)
+endif()
 
 if(DEROGOLD_BUILD_EXECUTABLES)
     add_dependencies(cryptotest version)

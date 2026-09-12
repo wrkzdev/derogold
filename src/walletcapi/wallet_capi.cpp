@@ -22,6 +22,10 @@
 
 #include "json.hpp"
 
+#ifdef __EMSCRIPTEN__
+#include "wasm_fs_bridge.h"
+#endif
+
 #include <algorithm>
 #include <atomic>
 #include <cctype>
@@ -492,6 +496,17 @@ wallet_status_t wallet_delete_file(const char *filename)
         return static_cast<wallet_status_t>(UNKNOWN_ERROR);
     }
 
+#ifdef __EMSCRIPTEN__
+    /* The wallet lives in the in-memory store, not on a filesystem. Removing
+       it here only drops this session's copy - the page still has to delete
+       its own IndexedDB record. */
+    if (WasmFs::remove(std::string(filename)))
+    {
+        return static_cast<wallet_status_t>(SUCCESS);
+    }
+
+    return static_cast<wallet_status_t>(FILENAME_NON_EXISTENT);
+#else
     std::error_code ec;
 
     const bool removed = fs::remove(std::string(filename), ec);
@@ -507,6 +522,7 @@ wallet_status_t wallet_delete_file(const char *filename)
     }
 
     return static_cast<wallet_status_t>(FILENAME_NON_EXISTENT);
+#endif
 }
 
 void wallet_close(wallet_handle_t *wallet)
