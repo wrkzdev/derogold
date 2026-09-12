@@ -920,11 +920,37 @@ main() {
     fi
   done
 
-  if [ -s "$PACKAGE_LIST" ]; then
-    local sums="$OUT_DIR/SHA256SUMS-$VERSION.txt"
+  # Checksum every package for this version in OUT_DIR, not only the ones this
+  # run produced. The file describes what a release ships, and a release is
+  # usually assembled over several runs - `dist.sh cli`, then `dist.sh android`
+  # once that is fixed. Written per run, the last run's single package replaced
+  # the other five lines and left them unverifiable.
+  local sums="$OUT_DIR/SHA256SUMS-$VERSION.txt"
+  local packages=()
+  mapfile -t packages < <(
+    cd "$OUT_DIR" && find . -maxdepth 1 -type f \
+      \( -name "*-$VERSION.tar.gz" -o -name "*-$VERSION.zip" \) \
+      -printf '%f\n' | LC_ALL=C sort
+  )
+
+  if [ "${#packages[@]}" -gt 0 ]; then
     log "Checksums: $sums"
-    (cd "$OUT_DIR" && xargs -a "$PACKAGE_LIST" -n1 basename | xargs sha256sum) > "$sums"
+    (cd "$OUT_DIR" && sha256sum "${packages[@]}") > "$sums"
     cat "$sums"
+
+    # Say which lines this run did not produce, so a package left over from an
+    # earlier build of the same version is visible rather than silently signed
+    # off alongside fresh ones.
+    local p carried=()
+    for p in "${packages[@]}"; do
+      if ! grep -qxF "$OUT_DIR/$p" "$PACKAGE_LIST" 2>/dev/null; then
+        carried+=("$p")
+      fi
+    done
+    if [ "${#carried[@]}" -gt 0 ]; then
+      echo "note: not rebuilt by this run, included from an earlier one:"
+      printf '  %s\n' "${carried[@]}"
+    fi
   fi
 
   if [ "${#failed[@]}" -gt 0 ]; then
