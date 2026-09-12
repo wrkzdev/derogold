@@ -6,15 +6,18 @@
 
 #include "Ipv4Resolver.h"
 
+#include <arpa/inet.h>
 #include <cassert>
 #include <netdb.h>
+#include <netinet/in.h>
 #include <random>
 #include <stdexcept>
-#include <vector>
+#include <sys/socket.h>
 #include <system/Dispatcher.h>
 #include <system/ErrorMessage.h>
 #include <system/InterruptedException.h>
 #include <system/Ipv4Address.h>
+#include <vector>
 
 namespace System
 {

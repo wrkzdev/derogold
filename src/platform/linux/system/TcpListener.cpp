@@ -9,12 +9,15 @@
 #include "Dispatcher.h"
 #include "TcpConnection.h"
 
+#include <arpa/inet.h>
 #include <cassert>
 #include <fcntl.h>
 #include <netdb.h>
+#include <netinet/in.h>
 #include <stdexcept>
 #include <string.h>
 #include <sys/epoll.h>
+#include <sys/socket.h>
 #include <system/ErrorMessage.h>
 #include <system/InterruptedException.h>
 #include <system/Ipv4Address.h>

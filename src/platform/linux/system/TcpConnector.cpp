@@ -10,11 +10,14 @@
 #include "ErrorMessage.h"
 #include "TcpConnection.h"
 
+#include <arpa/inet.h>
 #include <cassert>
 #include <fcntl.h>
 #include <netdb.h>
+#include <netinet/in.h>
 #include <stdexcept>
 #include <sys/epoll.h>
+#include <sys/socket.h>
 #include <system/InterruptedException.h>
 #include <system/Ipv4Address.h>
 #include <unistd.h>

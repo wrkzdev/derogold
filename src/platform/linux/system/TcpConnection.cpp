@@ -9,8 +9,10 @@
 #include <arpa/inet.h>
 #include <cassert>
 #include <cstdint>
+#include <netinet/in.h>
 #include <stdexcept>
 #include <sys/epoll.h>
+#include <sys/socket.h>
 #include <system/ErrorMessage.h>
 #include <system/InterruptedException.h>
 #include <system/Ipv4Address.h>
