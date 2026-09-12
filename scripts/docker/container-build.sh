@@ -521,6 +521,7 @@ build_web() {
     -D CMAKE_BUILD_TYPE="$BUILD_TYPE" \
     -D DEROGOLD_BUILD_WALLET_WASM=ON \
     -D DEROGOLD_WASM_PTHREADS=ON \
+    -D ARCH=default \
     -D SET_COMMIT_ID_IN_VERSION=OFF
 
   log "Building the WebAssembly module with $JOBS jobs"
@@ -663,6 +664,7 @@ build_android() {
       -D DEROGOLD_ANDROID_PROFILE=ON \
       -D DEROGOLD_BUILD_WALLET_CAPI=ON \
       -D LIBUCONTEXT_ROOT="$libdir/$abi" \
+      -D ARCH=default \
       -D SET_COMMIT_ID_IN_VERSION=OFF
 
     lib="$bd/src/libwallet_capi.so"

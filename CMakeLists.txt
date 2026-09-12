@@ -143,6 +143,20 @@ set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build, options are
 # Set target architecture for optimizations
 set(ARCH native CACHE STRING "Set target architecture, options are: native, default")
 
+# `native` means "the machine doing the compiling", which is the wrong
+# question the moment that is not the machine running the result - and for
+# Android, WebAssembly and the other cross builds the compiler simply refuses:
+#
+#   clang++: error: unsupported argument 'native' to option '-march='
+#
+# Every cross target could pass -D ARCH=default instead, and they mostly do,
+# but forgetting it produces several hundred lines of that message rather than
+# anything pointing here.
+if(ARCH STREQUAL "native" AND CMAKE_CROSSCOMPILING)
+    message(STATUS "Cross-compiling: using ARCH=default, because -march=native describes the build machine")
+    set(ARCH default)
+endif()
+
 if(CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID STREQUAL "Clang")
     if(NOT ARCH STREQUAL "default")
         add_compile_options(-march=${ARCH})
