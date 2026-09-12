@@ -192,8 +192,12 @@ if(MSVC OR MINGW)
     target_link_libraries(P2P bcrypt)
 
     if(DEROGOLD_BUILD_EXECUTABLES)
-        target_link_libraries(DeroGoldd Rpcrt4 ws2_32 advapi32 crypt32 gdi32 user32)
-        target_link_libraries(WalletService Rpcrt4 ws2_32 advapi32 crypt32 gdi32 user32)
+        # rpcrt4 in lower case: MinGW-w64 ships librpcrt4.a and the linker
+        # looks for exactly that, so -lRpcrt4 fails when cross-compiling from
+        # Linux. MSVC does not care either way, its filesystem being
+        # case-insensitive, so one spelling serves both.
+        target_link_libraries(DeroGoldd rpcrt4 ws2_32 advapi32 crypt32 gdi32 user32)
+        target_link_libraries(WalletService rpcrt4 ws2_32 advapi32 crypt32 gdi32 user32)
         target_link_libraries(zedwallet++ ws2_32 advapi32 crypt32 gdi32 user32)
         target_link_libraries(WalletApi ws2_32 advapi32 crypt32 gdi32 user32)
         target_link_libraries(miner ws2_32 advapi32 crypt32 gdi32 user32)
