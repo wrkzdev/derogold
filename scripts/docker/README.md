@@ -180,6 +180,13 @@ copies the library into the bundle's `lib/`. That location is not arbitrary:
 path, and a Flutter bundle is linked with an RPATH of `$ORIGIN/lib`, so that
 is where the loader looks.
 
+Several of the app's plugins link against system libraries through
+`pkg_check_modules(... REQUIRED)` in their own `linux/CMakeLists.txt`, so a
+missing one stops `flutter build linux` at configure time: `libsecret-1` and
+`jsoncpp` for `flutter_secure_storage`, `ayatana-appindicator3-0.1` for
+`system_tray`, and `libnotify` for `local_notifier`. The image carries all of
+them.
+
 **Web** configures through `emcmake` with `-D DEROGOLD_BUILD_WALLET_WASM=ON
 -D DEROGOLD_WASM_PTHREADS=ON`, builds the `wallet_wasm` target, stages
 `wallet_wasm.js`, `wallet_wasm.wasm` and the three bridge scripts into the

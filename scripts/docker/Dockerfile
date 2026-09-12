@@ -276,6 +276,36 @@ RUN set -eux; \
     chmod -R a+rwX "${EMSDK}"
 
 # ---------------------------------------------------------------------------
+# System libraries the desktop wallet's Flutter plugins link against.
+#
+# Each of these is a pkg_check_modules(... REQUIRED) in a plugin's own
+# linux/CMakeLists.txt, so a missing one stops `flutter build linux` at
+# configure time rather than at link:
+#
+#   libsecret-1, jsoncpp        flutter_secure_storage
+#   ayatana-appindicator3-0.1   system_tray
+#   libnotify                   local_notifier
+#
+# file_picker, url_launcher, window_manager and path_provider need only GTK,
+# which is installed with the rest of the app toolchain packages above.
+#
+# Deliberately its own layer next to Flutter rather than part of that earlier
+# apt block: adding a package there would rebuild the Android SDK, the NDK,
+# libucontext and Emscripten behind it.
+# ---------------------------------------------------------------------------
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      libsecret-1-dev \
+      libjsoncpp-dev \
+      libayatana-appindicator3-dev \
+      libnotify-dev \
+ && rm -rf /var/lib/apt/lists/* \
+ && pkg-config --exists 'libsecret-1 >= 0.18.4' \
+ && pkg-config --exists jsoncpp \
+ && pkg-config --exists ayatana-appindicator3-0.1 \
+ && pkg-config --exists libnotify
+
+# ---------------------------------------------------------------------------
 # Flutter. Cloned at a tag rather than unpacked from a tarball, because that is
 # how Flutter expects to live - it runs git on its own directory to work out
 # its version, and a tarball-installed SDK trips over that.
