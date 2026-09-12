@@ -65,7 +65,7 @@ and ccache between runs.
   plus another 10-15 GB for the build trees and Gradle's caches. A remote
   build host is the comfortable place for this.
 - RAM: the RocksDB and C++20 sources need roughly 1.5 GB per compile job.
-  `JOBS` defaults to whichever is smaller of the CPU count and memory / 2 GB,
+  `JOBS` defaults to the smallest of the CPU count, 16 (`MAX_JOBS`) and memory / 2 GB,
   and the container runs under a memory limit with no swap, so a build that
   outgrows the machine fails inside the container rather than swapping the
   host until it stops answering. Before that default existed, `JOBS` was the
@@ -120,7 +120,8 @@ All options are environment variables. Targets are positional arguments.
 
 | Variable           | Default                        | Meaning                                                        |
 |--------------------|--------------------------------|----------------------------------------------------------------|
-| `JOBS`             | CPUs, or memory / 2 GB if less | parallel jobs, for the compilers, Gradle and Emscripten alike  |
+| `JOBS`             | smallest of CPUs, `MAX_JOBS`, memory / 2 GB | parallel jobs, for the compilers, Gradle and Emscripten alike |
+| `MAX_JOBS`         | `16`                           | ceiling on the default `JOBS`; fewer cores than this uses all  |
 | `VERSION`          | `project()` in `CMakeLists.txt`| version string in the package names                            |
 | `OUT_DIR`          | `builds/`                      | where packages and checksums go                                |
 | `BUILD_ROOT`       | `build-docker/`                | build trees, staging directories, ccache and logs              |

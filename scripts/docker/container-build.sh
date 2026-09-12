@@ -18,6 +18,9 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 BUILD_ROOT="${BUILD_ROOT:-$REPO_ROOT/build-docker}"
 OUT_DIR="${OUT_DIR:-$REPO_ROOT/builds}"
 JOBS="${JOBS:-}"
+# Ceiling on the default JOBS. A machine with fewer cores uses all of them;
+# JOBS=N set explicitly ignores this.
+MAX_JOBS="${MAX_JOBS:-16}"
 VERSION="${VERSION:-}"
 CLEAN="${CLEAN:-0}"
 KEEP_GOING="${KEEP_GOING:-0}"
@@ -132,6 +135,13 @@ default_jobs() {
   local cpus mem_kb limit per_job_kb by_mem f
   per_job_kb=$((2 * 1024 * 1024))
   cpus="$(nproc)"
+
+  # And never more than MAX_JOBS (16 by default), however many cores there
+  # are. A machine with fewer cores than that uses all of them.
+  case "$MAX_JOBS" in
+    '' | *[!0-9]* | 0) ;;
+    *) [ "$cpus" -le "$MAX_JOBS" ] || cpus="$MAX_JOBS" ;;
+  esac
 
   mem_kb="$(awk '/^MemTotal:/ { print $2 }' /proc/meminfo 2>/dev/null || true)"
   mem_kb="${mem_kb:-0}"

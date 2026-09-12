@@ -49,13 +49,15 @@ Targets (default: all):
   all          everything above
 
 Options:
+  -j, --jobs N   parallel jobs, the same as JOBS=N
   --shell        open an interactive shell in the builder image instead
   --image-only   build/refresh the builder image and stop
   -h, --help     this text
 
 Environment:
-  JOBS=N                 parallel jobs (default: CPUs or memory / 2 GB,
-                         whichever is smaller)
+  JOBS=N                 parallel jobs (default: the smallest of CPUs,
+                         MAX_JOBS and memory / 2 GB)
+  MAX_JOBS=N             ceiling on the default JOBS (default: 16)
   DOCKER_MEMORY=48g      container memory limit, with no swap (default: host
                          memory minus 10% or 2 GB; 0 turns the limit off)
   VERSION=x.y.z.b        package version (default: project() in CMakeLists.txt)
@@ -93,6 +95,13 @@ while [ $# -gt 0 ]; do
     -h|--help) usage; exit 0 ;;
     --shell) MODE=shell ;;
     --image-only) MODE=image ;;
+    -j|--jobs)
+      [ $# -ge 2 ] || { echo "$1 needs a number, e.g. $1 16" >&2; exit 2; }
+      JOBS="$2"
+      shift
+      ;;
+    -j[0-9]*) JOBS="${1#-j}" ;;
+    --jobs=*) JOBS="${1#--jobs=}" ;;
     linux|linux-arm64|windows|gui|web|android|cli|apps|all) TARGETS+=("$1") ;;
     macos)
       echo "The 'macos' target needs a macOS cross-toolchain this image does not carry; see 'Other platforms' in scripts/docker/README.md." >&2
@@ -109,6 +118,19 @@ done
 if [ "${#TARGETS[@]}" -eq 0 ]; then
   TARGETS=(all)
 fi
+
+# A typo here would otherwise reach ninja as `--parallel foo` deep inside the
+# container, after the image build.
+for var in JOBS MAX_JOBS; do
+  val="${!var:-}"
+  case "$val" in
+    '') ;;
+    *[!0-9]* | 0)
+      echo "$var must be a whole number of at least 1, not '$val'" >&2
+      exit 2
+      ;;
+  esac
+done
 
 if ! command -v "$DOCKER" >/dev/null 2>&1; then
   echo "'$DOCKER' is not on PATH. Install Docker (or set DOCKER=podman)." >&2
@@ -186,7 +208,7 @@ RUN_ARGS=(
 
 # Only forwarded when the caller set them, so the defaults stay where they are
 # documented - in container-build.sh - rather than being duplicated here.
-for var in ANDROID_ABIS MOBILE_MODES MOBILE_FORMATS ANDROID_API BUILD_TYPE GENERATOR PKG_PREFIX; do
+for var in MAX_JOBS ANDROID_ABIS MOBILE_MODES MOBILE_FORMATS ANDROID_API BUILD_TYPE GENERATOR PKG_PREFIX; do
   if [ -n "${!var:-}" ]; then
     RUN_ARGS+=(-e "$var=${!var}")
   fi
