@@ -46,16 +46,39 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   String? _powError;
   String? _powSuccess;
 
+  /// Set once the node form is edited, so a late answer from the wallet does
+  /// not overwrite what is being typed.
+  bool _nodeFormEdited = false;
+
   @override
   void initState() {
     super.initState();
-    // Pre-fill from the node the wallet is actually on.
+    // Filled at once, from what the wallet last reported or else the default
+    // node, then again from the wallet itself. Filled only from the wallet, it
+    // stayed empty for as long as the worker was busy, and for good when the
+    // call failed, since the failure is swallowed.
+    _fillNodeForm(ref.read(nodeInfoProvider).valueOrNull);
     ref.read(walletCApiProvider).getNodeInfoJson().then((info) {
-      if (!mounted) return;
-      _nodeHostCtrl.text = info['daemonHost'] as String? ?? '';
-      _nodePortCtrl.text = (info['daemonPort'] as num?)?.toString() ?? '';
-      setState(() => _nodeSSL = info['daemonSSL'] as bool? ?? false);
+      if (!mounted || _nodeFormEdited) return;
+      setState(() => _fillNodeForm(info));
     }).catchError((Object _) {});
+  }
+
+  /// The node the wallet reports being on, or the default node when it
+  /// reports none.
+  void _fillNodeForm(Map<String, dynamic>? info) {
+    final host = (info?['daemonHost'] as String? ?? '').trim();
+    if (info == null || host.isEmpty) {
+      final node = ref.read(defaultNodeProvider);
+      _nodeHostCtrl.text = node.host;
+      _nodePortCtrl.text = '${node.port}';
+      _nodeSSL = node.ssl;
+      return;
+    }
+    _nodeHostCtrl.text = host;
+    _nodePortCtrl.text =
+        '${(info['daemonPort'] as num?)?.toInt() ?? kDefaultDaemonPort}';
+    _nodeSSL = info['daemonSSL'] as bool? ?? false;
   }
 
   @override
@@ -708,6 +731,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             flex: 3,
                             child: TextField(
                               controller: _nodeHostCtrl,
+                              onChanged: (_) => _nodeFormEdited = true,
                               decoration: InputDecoration(
                                   labelText:
                                       tr?.hostIpAddress ?? 'Host / IP address'),
@@ -717,6 +741,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           Expanded(
                             child: TextField(
                               controller: _nodePortCtrl,
+                              onChanged: (_) => _nodeFormEdited = true,
                               decoration: InputDecoration(
                                   labelText: tr?.port ?? 'Port'),
                               keyboardType: TextInputType.number,
@@ -730,8 +755,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                       color: kTextSecondary, fontSize: 12)),
                               Switch(
                                   value: _nodeSSL,
-                                  onChanged: (v) =>
-                                      setState(() => _nodeSSL = v)),
+                                  onChanged: (v) => setState(() {
+                                        _nodeSSL = v;
+                                        _nodeFormEdited = true;
+                                      })),
                             ],
                           ),
                         ],
