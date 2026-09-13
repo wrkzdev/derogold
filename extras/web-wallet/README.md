@@ -159,9 +159,11 @@ the wallet at a node that serves HTTPS, or proxy one on this same origin:
 ```
 
 The default in [lib/core/config/app_config.dart](lib/core/config/app_config.dart)
-is `dego-node-rpc.0z.network:6969` without TLS, which works when the wallet
-itself is served over plain HTTP and needs one of the two arrangements above
-otherwise.
+is `https://dego-node-rpc.0z.network` (port 443, SSL on), which a page reaches
+whether it is served over HTTPS or plain HTTP. A node on another origin like
+this one is reached with CORS, so the daemon behind it has to send
+`Access-Control-Allow-Origin` (`--enable-cors "*"`); cross-origin isolation
+does not get in the way of a CORS request.
 
 ---
 
@@ -193,7 +195,8 @@ Defaults live in [lib/core/config/app_config.dart](lib/core/config/app_config.da
 | Constant | Default | |
 |----------|---------|---|
 | `kDefaultDaemonHost` | `dego-node-rpc.0z.network` | change it to your own node if you run one |
-| `kDefaultDaemonPort` | `6969` | `RPC_DEFAULT_PORT` |
+| `kDefaultDaemonPort` | `443` | the node's TLS port, not the daemon's own `RPC_DEFAULT_PORT` (6969) |
+| `kDefaultDaemonSSL` | `true` | an https:// page cannot reach an http:// node |
 | `kCoinTicker` | `DEGO` | |
 | `kCoinDecimalPlaces` | `2` | 100 atomic units = 1.00 DEGO |
 | `kAddressPrefix` | `dg` | addresses are 97 characters, 185 when integrated |

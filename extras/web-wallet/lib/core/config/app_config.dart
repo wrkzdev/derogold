@@ -12,15 +12,16 @@ const Set<int> kValidAddressLengths = {97, 185};
 /// Minimum wallet password length enforced on create / change.
 const int kMinPasswordLength = 8;
 
-/// Default daemon shown in Create/Open/Import forms. 6969 is
-/// `RPC_DEFAULT_PORT`; point it at your own node if you run one.
+/// Default daemon shown in Create/Open/Import forms: the project's public
+/// node over TLS on 443, rather than the daemon's own plain-HTTP port 6969
+/// (`RPC_DEFAULT_PORT`). Point it at your own node if you run one.
 ///
 /// A browser will refuse to reach an http:// node from an https:// page, so a
 /// wallet served over TLS needs either a TLS node or a same-origin reverse
 /// proxy in front of one. See README.md.
 const String kDefaultDaemonHost = 'dego-node-rpc.0z.network';
-const int kDefaultDaemonPort = 6969;
-const bool kDefaultDaemonSSL = false;
+const int kDefaultDaemonPort = 443;
+const bool kDefaultDaemonSSL = true;
 
 /// Transaction PoW server (see TXPOWSERVER.md), prefilled with the project's
 /// public one.
