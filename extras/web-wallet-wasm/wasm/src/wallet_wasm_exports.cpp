@@ -129,36 +129,35 @@ static bool bool_param(const json &p, const char *key, bool def = false)
     return def;
 }
 
+#if !defined(DEROGOLD_WASM_SYNC_THREADS_MAX)
+#error "DEROGOLD_WASM_SYNC_THREADS_MAX comes from src/CMakeLists.txt, which sizes the worker pool from the same number."
+#endif
+
 /* How many block-processing threads to ask for.
  *
- * A caller's explicit value wins. Otherwise this follows
- * navigator.hardwareConcurrency, which is what hardware_concurrency() reports
- * here, with a floor for browsers that refuse to say and a ceiling that is not
- * about diminishing returns: every thread has to come out of the pool fixed by
- * -sPTHREAD_POOL_SIZE at link time. Once that pool is empty a pthread_create
- * needs a fresh Worker built, and that work is done by the main thread's event
- * loop - which this module keeps leaving, because every call from JS is a
- * blocking ccall. A thread waiting on a thread that cannot be created does not
- * fail, it hangs.
+ * One per logical CPU: navigator.hardwareConcurrency, which is what
+ * hardware_concurrency() reports here, with a floor for browsers that refuse
+ * to say and a ceiling that is not about diminishing returns. Every thread has
+ * to come out of the worker pool, which is built when the module starts and
+ * sized from this same count plus a fixed headroom (PTHREAD_POOL_SIZE in
+ * src/CMakeLists.txt). Once that pool is empty a pthread_create needs a fresh
+ * Worker built, and that work is done by the main thread's event loop - which
+ * this module keeps leaving, because every call from JS is a blocking ccall. A
+ * thread waiting on a thread that cannot be created does not fail, it hangs.
  *
- * Count the peak, not the obvious part: the synchroniser's main loop, the
- * block downloader, Nigel's background refresh, N of these, the parallel
- * download windows the downloader then blocks on, and the short-lived event
- * handlers. Raise this and PTHREAD_POOL_SIZE together or not at all. */
+ * That is also why a caller's explicit value is held to the same limit rather
+ * than trusted: the pool was sized for this machine before the call arrived. */
 static uint32_t resolve_sync_threads(const json &p)
 {
-    const uint32_t requested = u32_param(p, "syncThreads", 0);
-
-    if (requested != 0)
-    {
-        return requested;
-    }
-
-    constexpr uint32_t SYNC_THREADS_MAX = 6;
+    constexpr uint32_t SYNC_THREADS_MAX = DEROGOLD_WASM_SYNC_THREADS_MAX;
 
     const uint32_t hw = static_cast<uint32_t>(std::thread::hardware_concurrency());
 
-    return std::max(1u, std::min(hw, SYNC_THREADS_MAX));
+    const uint32_t limit = std::max(1u, std::min(hw, SYNC_THREADS_MAX));
+
+    const uint32_t requested = u32_param(p, "syncThreads", 0);
+
+    return requested != 0 ? std::min(requested, limit) : limit;
 }
 
 /* A wallet_capi call that hands back a plain string. */

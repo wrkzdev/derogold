@@ -368,15 +368,29 @@ if(EMSCRIPTEN AND DEROGOLD_BUILD_WALLET_WASM)
         #
         # Every worker in the pool is built at startup, because building one
         # later needs the page's main thread and the calls into this module
-        # block it. The pool therefore has to cover the peak: the synchroniser
-        # loop, the block downloader and its parallel download windows, Nigel's
-        # background refresh, and the block-processing threads, which
-        # resolve_sync_threads() in wallet_wasm_exports.cpp caps at six. Raise
-        # that cap and this together, or a thread will wait on one that cannot
-        # be created and simply hang.
+        # block it. The pool therefore has to cover the peak, and the peak
+        # depends on the machine: resolve_sync_threads() in
+        # wallet_wasm_exports.cpp starts one block-processing thread per
+        # logical CPU the browser reports, up to SYNC_THREADS_MAX. The other
+        # threads do not scale with it - the synchroniser loop, the block
+        # downloader, Nigel's background refresh, the event handlers - and
+        # POOL_HEADROOM covers them with room to spare.
+        #
+        # So the pool size is a JavaScript expression, evaluated when the
+        # module starts, from navigator.hardwareConcurrency - the same number
+        # std::thread::hardware_concurrency() returns there - and the ceiling
+        # reaches the C++ as a define, so the two cannot drift apart. A pool
+        # smaller than the threads asked of it does not fail: a thread waits on
+        # one that cannot be created and simply hangs.
+        set(DEROGOLD_WASM_SYNC_THREADS_MAX 16)
+        set(DEROGOLD_WASM_POOL_HEADROOM 14)
+        target_compile_definitions(wallet_wasm PRIVATE
+            DEROGOLD_WASM_SYNC_THREADS_MAX=${DEROGOLD_WASM_SYNC_THREADS_MAX})
         target_link_options(wallet_wasm PRIVATE
             -pthread
-            "-sPTHREAD_POOL_SIZE=20"
+            # CMake shell-escapes link options, so the parentheses and || in
+            # the expression reach emcc intact.
+            "-sPTHREAD_POOL_SIZE=${DEROGOLD_WASM_POOL_HEADROOM}+Math.min(navigator.hardwareConcurrency||1,${DEROGOLD_WASM_SYNC_THREADS_MAX})"
             # Warn rather than abort if the peak is ever misjudged: a slow
             # wallet beats a dead one.
             "-sPTHREAD_POOL_SIZE_STRICT=1")
