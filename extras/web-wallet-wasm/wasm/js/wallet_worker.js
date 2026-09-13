@@ -207,6 +207,57 @@ function stopEvents() {
 
 const OPENING_METHODS = ['open', 'create', 'restoreFromSeed', 'restoreFromKeys', 'restoreViewWallet'];
 
+/* Calls that can run for a long time. The module runs each on a thread of its
+   own, and this worker polls for the reply.
+
+   This worker answers one message at a time, and a module call does not
+   return until it is done. A send computes the transaction proof of work -
+   minutes on this CPU when no PoW server answers - and the tests wait on a
+   server that may never reply. Called straight through, any of them held the
+   worker for all of that: the progress polls, the Test buttons and the
+   Settings form queued behind it, and the page looked hung. Worse, a thread
+   the pool has no worker left for can only be started from this worker's
+   event loop, so a proof of work wanting more threads than the pool had spare
+   waited on them forever. Polling hands the event loop back between checks. */
+const SEND_METHODS = ['sendBasic', 'sendAdvancedJson', 'sweepToAddress'];
+const JOB_METHODS = SEND_METHODS.concat(['testTxPowServer', 'testNode']);
+
+const JOB_POLL_MS = 250;
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/* Runs `method` as a module job. Resolves with the same reply envelope a
+   direct call would have returned. */
+async function runJob(method, params) {
+  const started = callMethod('startJob', { method: method, params: params });
+
+  if (!started || started.ok !== true) {
+    /* A module from before jobs: call it directly, as before. */
+    if (started && started.error === -2) {
+      return callMethod(method, params);
+    }
+    return started;
+  }
+
+  const jobId = started.result.jobId;
+
+  for (;;) {
+    await sleep(JOB_POLL_MS);
+
+    const reply = callMethod('jobResult', { jobId: jobId });
+
+    if (!reply || reply.ok !== true) {
+      return reply;
+    }
+
+    if (reply.result && reply.result.done === true) {
+      return reply.result.reply;
+    }
+  }
+}
+
 async function handle(msg) {
   if (msg.type === 'init') {
     const wasmUrl = msg.wasmUrl || './wallet_wasm.js';
@@ -333,6 +384,17 @@ async function handle(msg) {
 
         return reply;
       });
+    }
+
+    /* Sends queue with the lifecycle calls, so a close or open cannot land in
+       the middle of one. The tests touch no wallet and run alongside
+       anything. */
+    if (SEND_METHODS.indexOf(method) !== -1) {
+      return exclusive(() => runJob(method, params));
+    }
+
+    if (JOB_METHODS.indexOf(method) !== -1) {
+      return runJob(method, params);
     }
 
     if (method === 'deleteFile') {

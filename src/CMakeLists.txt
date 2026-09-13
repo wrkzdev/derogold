@@ -376,6 +376,12 @@ if(EMSCRIPTEN AND DEROGOLD_BUILD_WALLET_WASM)
         # downloader, Nigel's background refresh, the event handlers - and
         # POOL_HEADROOM covers them with room to spare.
         #
+        # A send's proof of work wants one more thread per CPU, which can be
+        # more than the pool has spare. It runs as a job (see Jobs in
+        # wallet_wasm_exports.cpp), which leaves the main thread's event loop
+        # free, so a worker it needs beyond the pool is built on the spot
+        # rather than waited on forever.
+        #
         # So the pool size is a JavaScript expression, evaluated when the
         # module starts, from navigator.hardwareConcurrency - the same number
         # std::thread::hardware_concurrency() returns there - and the ceiling

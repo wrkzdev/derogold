@@ -16,11 +16,23 @@
  * is narrower than WrkzCoin's: this backend has no prepared transactions, no
  * transaction-status query, no subwallet-by-index import, and no single-step
  * sync - see the note on threads below.
+ *
+ * Sends and the server and node tests can run for a long time, so the page
+ * runs them as jobs rather than calling them directly - see Jobs below:
+ *
+ *   { "method": "startJob",  "params": { "method": "<name>", "params": {...} } }
+ *       -> { "jobId": N }
+ *   { "method": "jobResult", "params": { "jobId": N } }
+ *       -> { "done": false }, or once { "done": true, "reply": <envelope> }
  */
 
 #include <algorithm>
+#include <atomic>
 #include <cstdlib>
 #include <cstring>
+#include <map>
+#include <memory>
+#include <mutex>
 #include <string>
 #include <thread>
 #include <vector>
@@ -210,6 +222,152 @@ static const char *log_level_name(uint32_t level)
 }
 
 /* ------------------------------------------------------------------ */
+/*  Jobs                                                               */
+/* ------------------------------------------------------------------ */
+
+/* A call that can run for a long time goes on a thread of its own, and the
+ * page polls for its reply.
+ *
+ * Every other call runs on the module's main thread, inside the worker's
+ * message handler, and holds the worker until it returns. A send holds it for
+ * the whole transaction proof of work - minutes, without a PoW server - and a
+ * server or node test for as long as the far end takes not to answer. Nothing
+ * else the page asks is answered in that time. Worse, a thread the pool has no
+ * worker left for is started from the main thread's event loop, so a proof of
+ * work wanting more threads than the pool had spare waited for them forever.
+ *
+ * A job's own thread comes out of the pool like any other, and the threads it
+ * starts are created while the main thread sits in its event loop between
+ * polls. */
+
+static char *dispatch(const std::string &method, const json &p);
+
+static char *dispatch_guarded(const std::string &method, const json &p);
+
+struct Job
+{
+    /* Written on the job's thread before done is set, and read only after. */
+    std::string reply;
+
+    std::atomic<bool> done{false};
+
+    /* A send uses the open wallet, which must not be closed under it. */
+    bool usesWallet = false;
+};
+
+static std::mutex g_jobs_mutex;
+
+static std::map<uint32_t, std::shared_ptr<Job>> g_jobs;
+
+static uint32_t g_next_job_id = 1;
+
+static bool is_send_method(const std::string &method)
+{
+    return method == "sendBasic" || method == "sendAdvancedJson" || method == "sweepToAddress";
+}
+
+static bool send_in_progress()
+{
+    std::lock_guard<std::mutex> lock(g_jobs_mutex);
+
+    for (const auto &entry : g_jobs)
+    {
+        if (entry.second->usesWallet && !entry.second->done.load())
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static char *start_job(const json &p)
+{
+    const auto method = str_param(p, "method");
+
+    if (!is_send_method(method) && method != "testTxPowServer" && method != "testNode")
+    {
+        return err_json(-3, "not a method that runs as a job: " + method);
+    }
+
+    const json params = has_key(p, "params") ? p["params"] : json::object();
+
+    const auto job = std::make_shared<Job>();
+
+    job->usesWallet = is_send_method(method);
+
+    try
+    {
+        std::thread([job, method, params]() {
+            char *raw = dispatch_guarded(method, params);
+
+            job->reply = raw ? raw : "";
+
+            free(raw);
+
+            job->done.store(true);
+        }).detach();
+    }
+    catch (const std::exception &e)
+    {
+        return err_json(-4, std::string("could not start a thread: ") + e.what());
+    }
+
+    std::lock_guard<std::mutex> lock(g_jobs_mutex);
+
+    const uint32_t id = g_next_job_id++;
+
+    g_jobs[id] = job;
+
+    json r;
+    r["jobId"] = id;
+    return ok_json(r);
+}
+
+/* {done: false} while the job runs; once it has finished, {done: true, reply}
+   exactly once, after which the job is forgotten. */
+static char *job_result(const json &p)
+{
+    const uint32_t id = u32_param(p, "jobId");
+
+    std::shared_ptr<Job> job;
+
+    {
+        std::lock_guard<std::mutex> lock(g_jobs_mutex);
+
+        const auto it = g_jobs.find(id);
+
+        if (it == g_jobs.end())
+        {
+            return err_json(-1, "no such job: " + std::to_string(id));
+        }
+
+        if (!it->second->done.load())
+        {
+            json r;
+            r["done"] = false;
+            return ok_json(r);
+        }
+
+        job = it->second;
+
+        g_jobs.erase(it);
+    }
+
+    const json reply = json::parse(job->reply.c_str(), nullptr, false);
+
+    if (reply.is_discarded())
+    {
+        return err_json(-4, "the job finished without a readable reply");
+    }
+
+    json r;
+    r["done"] = true;
+    r["reply"] = reply;
+    return ok_json(r);
+}
+
+/* ------------------------------------------------------------------ */
 /*  Dispatch                                                           */
 /* ------------------------------------------------------------------ */
 
@@ -233,6 +391,18 @@ static char *dispatch(const std::string &method, const json &p)
         /* Always true: the module refuses to build otherwise. Kept so the JS
            side can assert it rather than assume it. */
         return ok_json(true);
+    }
+
+    /* -------- jobs -------- */
+
+    if (method == "startJob")
+    {
+        return start_job(p);
+    }
+
+    if (method == "jobResult")
+    {
+        return job_result(p);
     }
 
     /* -------- logging -------- */
@@ -389,6 +559,12 @@ static char *dispatch(const std::string &method, const json &p)
         if (!g_wallet)
         {
             return err_json(-1, "no wallet open");
+        }
+        /* A send on a job's thread is still using the handle. The worker
+           queues a close behind a send, so this is the backstop. */
+        if (send_in_progress())
+        {
+            return err_json(-1, "a transaction is still being sent; close the wallet once it has finished");
         }
         /* This runs the wallet's final save, which lands in WasmFs - the JS
            side still has to call exportFileData afterwards to persist it. */
@@ -632,9 +808,9 @@ static char *dispatch(const std::string &method, const json &p)
 
     /* -------- send and sweep -------- */
 
-    /* Both of these compute the transaction proof of work, which in a browser
-       is seconds of CPU in this worker. getPowStatus reports progress while
-       they run. */
+    /* These compute the transaction proof of work, which in a browser can be
+       minutes of CPU, so the page runs them as jobs - see Jobs above - and
+       getPowStatus reports progress while they do. */
     if (method == "sendBasic")
     {
         if (!g_wallet)
@@ -1026,6 +1202,25 @@ static char *dispatch(const std::string &method, const json &p)
     return err_json(-2, "unknown method: " + method);
 }
 
+/* Nothing may escape into the JS side as a C++ exception: it would unwind
+   through the ccall and take the module with it. On a job's thread there is
+   nothing above this to catch one at all. */
+static char *dispatch_guarded(const std::string &method, const json &p)
+{
+    try
+    {
+        return dispatch(method, p);
+    }
+    catch (const std::exception &e)
+    {
+        return err_json(-4, std::string("exception: ") + e.what());
+    }
+    catch (...)
+    {
+        return err_json(-4, "unknown exception");
+    }
+}
+
 /* ------------------------------------------------------------------ */
 /*  Entry point                                                        */
 /* ------------------------------------------------------------------ */
@@ -1066,19 +1261,6 @@ extern "C"
         const std::string method = req["method"].get<std::string>();
         const json params = has_key(req, "params") ? req["params"] : json::object();
 
-        /* Nothing may escape into the JS side as a C++ exception: it would
-           unwind through the ccall and take the module with it. */
-        try
-        {
-            return dispatch(method, params);
-        }
-        catch (const std::exception &e)
-        {
-            return err_json(-4, std::string("exception: ") + e.what());
-        }
-        catch (...)
-        {
-            return err_json(-4, "unknown exception");
-        }
+        return dispatch_guarded(method, params);
     }
 }
