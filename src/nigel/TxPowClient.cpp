@@ -373,7 +373,9 @@ namespace TxPowClient
 
         j["url"] = baseUrl(s);
 
-#if !defined(CPPHTTPLIB_OPENSSL_SUPPORT)
+/* A browser build has no OpenSSL either, and does not need it: the request
+   goes out over XHR and the browser does the TLS. */
+#if !defined(CPPHTTPLIB_OPENSSL_SUPPORT) && !defined(__EMSCRIPTEN__)
         if (s.ssl)
         {
             j["error"] = "this wallet build has no SSL support; use http or a build with OpenSSL";
@@ -456,7 +458,8 @@ namespace TxPowClient
             return {};
         }
 
-#if !defined(CPPHTTPLIB_OPENSSL_SUPPORT)
+/* As in probe(): a browser build does the TLS without OpenSSL. */
+#if !defined(CPPHTTPLIB_OPENSSL_SUPPORT) && !defined(__EMSCRIPTEN__)
         if (s.ssl)
         {
             logRemote("SSL requested but this build has no SSL support, computing locally instead", Logger::WARNING);

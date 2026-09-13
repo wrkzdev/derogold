@@ -176,6 +176,12 @@ one switch. *Test* calls `/health` over the same client path a transaction
 would use and reports latency, thread count and queue occupancy without saving
 anything.
 
+The web wallet under `extras/web-wallet` has the same section, with the switch
+**on by default**, pointed at `dego-txpow-rpc.0z.network` on port 443 with
+SSL: a browser is the slowest place to compute the proof, and a page served
+over HTTPS cannot reach a plain-HTTP server. The server it points at needs TLS
+on 443 and CORS for the wallet's origin.
+
 The client half lives in `src/nigel/TxPowClient.h`.
 `TxPowClient::configure(host, port, ssl)` turns it on for the process — an
 empty host turns it off again — and `probe()` is what *Test* calls. For
@@ -185,5 +191,6 @@ embedders, the C API exposes `wallet_set_tx_pow_server(host, port, ssl)` and
 When a server is configured, the wallet asks it first and waits up to two
 minutes for an answer; if the server is unreachable, refuses the job, times
 out or returns a nonce that does not verify, the wallet computes the proof on
-its own CPU as before. A build without OpenSSL logs a warning and computes
-locally when SSL is requested.
+its own CPU as before. A native build without OpenSSL logs a warning and
+computes locally when SSL is requested; the web wallet needs no OpenSSL for
+it, since the browser does the TLS.

@@ -201,7 +201,7 @@ Defaults live in [lib/core/config/app_config.dart](lib/core/config/app_config.da
 | `kCoinDecimalPlaces` | `2` | 100 atomic units = 1.00 DEGO |
 | `kAddressPrefix` | `dg` | addresses are 97 characters, 185 when integrated |
 | `kSlowRescanHeight` | `2900000` | below this, a rescan or an import asks for confirmation first |
-| `kDefaultTxPowServerHost` | `dego-txpow-rpc.0z.network` | port 80, no SSL; the switch is still off by default |
+| `kDefaultTxPowServerHost` | `dego-txpow-rpc.0z.network` | port 443 with SSL, and the switch is on by default: a browser is the slowest place to compute the proof of work |
 | `kEventPollInterval` | 1 s | how often the module's event queue is drained |
 
 Node address, theme and log level can be changed from **Settings** at runtime,
@@ -235,11 +235,14 @@ on the success screen rather than guessed at on the review screen.
 Every DeroGold transaction carries a proof of work. In a browser that is the
 slowest place it could possibly be computed — a send can sit for a minute or
 more. Settings has a **Transaction PoW Server** section that hands the work to a
-`DeroGold-txpow-server` instead. The switch is **off by default**, with the
-fields prefilled with the project's public server, so enabling it is one switch.
-The wallet re-verifies every nonce a server returns and falls back to the worker
-if anything is wrong, so a bad server only ever costs time. See
-[TXPOWSERVER.md](../../TXPOWSERVER.md).
+`DeroGold-txpow-server` instead. The switch is **on by default**, pointed at the
+project's public server over TLS on 443. The wallet re-verifies every nonce a
+server returns and falls back to the worker if anything is wrong, so a bad
+server only ever costs time. See [TXPOWSERVER.md](../../TXPOWSERVER.md).
+
+A send, and the *Test* buttons, run on a thread of their own inside the module,
+and the worker polls for the result. The page keeps answering while they do —
+the PoW progress on the send button, the Settings form, the sync status.
 
 ### Rescanning
 

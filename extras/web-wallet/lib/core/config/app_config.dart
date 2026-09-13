@@ -23,16 +23,19 @@ const String kDefaultDaemonHost = 'dego-node-rpc.0z.network';
 const int kDefaultDaemonPort = 443;
 const bool kDefaultDaemonSSL = true;
 
-/// Transaction PoW server (see TXPOWSERVER.md), prefilled with the project's
-/// public one.
+/// Transaction PoW server (see TXPOWSERVER.md): the project's public one, over
+/// TLS on 443.
 ///
-/// The switch in Settings is **off** by default, so the wallet computes the
-/// proof of work in this browser until someone turns it on — enabling it is
-/// then one switch rather than three fields. Any other server can be entered
-/// instead, and the wallet re-verifies every nonce it is given.
+/// **On** by default. A browser is by far the slowest place to compute the
+/// proof of work — a send can sit for minutes on it — and using the server
+/// costs nothing when it is down: the wallet falls back to this browser's CPU
+/// whenever it does not answer, and re-verifies every nonce it is given. TLS
+/// for the same reason as the node: an https:// page cannot reach an http://
+/// server. Any other server can be entered in Settings instead.
+const bool kDefaultTxPowServerEnabled = true;
 const String kDefaultTxPowServerHost = 'dego-txpow-rpc.0z.network';
-const int kDefaultTxPowServerPort = 80;
-const bool kDefaultTxPowServerSSL = false;
+const int kDefaultTxPowServerPort = 443;
+const bool kDefaultTxPowServerSSL = true;
 
 /// A rescan starting below this height walks most of the chain and takes hours
 /// — worth a second question before it starts. The CLI wallet asks at the same

@@ -208,11 +208,11 @@ const _kTxPowServerKey = 'derogold_tx_pow_server';
 /// Where the wallet sends its transaction proof of work. When [active], the
 /// worker asks the server first and falls back to computing it in the browser
 /// if the server does not answer — and a browser is by far the slowest place
-/// to do it. Off by default, with the fields already pointing at the project's
-/// public server, so enabling it is one switch rather than three fields.
+/// to do it. On by default, pointing at the project's public server; see
+/// [kDefaultTxPowServerEnabled].
 class TxPowServerSettings {
   const TxPowServerSettings({
-    this.enabled = false,
+    this.enabled = kDefaultTxPowServerEnabled,
     this.host = kDefaultTxPowServerHost,
     this.port = kDefaultTxPowServerPort,
     this.ssl = kDefaultTxPowServerSSL,
@@ -250,7 +250,7 @@ class TxPowServerSettings {
   factory TxPowServerSettings.fromJson(Map<String, dynamic> j) {
     final host = (j['host'] as String? ?? '').trim();
     return TxPowServerSettings(
-      enabled: j['enabled'] as bool? ?? false,
+      enabled: j['enabled'] as bool? ?? kDefaultTxPowServerEnabled,
       host: host.isEmpty ? kDefaultTxPowServerHost : host,
       port: (j['port'] as num?)?.toInt() ?? kDefaultTxPowServerPort,
       ssl: j['ssl'] as bool? ?? kDefaultTxPowServerSSL,
@@ -265,10 +265,23 @@ class TxPowServerSettings {
 }
 
 class TxPowServerNotifier extends Notifier<TxPowServerSettings> {
+  late Future<void> _loading;
+
   @override
   TxPowServerSettings build() {
-    _load();
+    _loading = _load();
     return const TxPowServerSettings();
+  }
+
+  /// The setting once the stored value has been read. [state] is the default
+  /// until then.
+  Future<TxPowServerSettings> stored() async {
+    try {
+      await _loading;
+    } catch (_) {
+      // Unreadable storage leaves the default in place, which still works.
+    }
+    return state;
   }
 
   Future<void> _load() async {

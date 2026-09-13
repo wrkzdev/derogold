@@ -96,7 +96,10 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   /// and drop every cache belonging to the wallet that was open before.
   Future<void> _afterWalletOpened(WalletCApi ffi, String name) async {
     ffi.setScanCoinbase(ref.read(scanCoinbaseProvider));
-    ref.read(txPowServerProvider).applyTo(ffi);
+    // The stored setting, not the one the provider starts out with: on a fresh
+    // page nothing has read it yet, and applying the starting value here threw
+    // away whatever had been saved in Settings.
+    (await ref.read(txPowServerProvider.notifier).stored()).applyTo(ffi);
     await storePasswordVerifier(_passCtrl.text);
     await saveLastWalletPath(name);
     if (!mounted) return;
