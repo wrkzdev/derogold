@@ -69,8 +69,8 @@ enum WalletEvent {
 
 const String _kBridgeGlobal = 'DeroGoldWallet';
 
-/// What `init` is pointed at. The emscripten glue beside it works out where
-/// `wallet_wasm.wasm` and the pthread worker live, so this is the only path
+/// What `init` is pointed at. The worker resolves `wallet_wasm.wasm` and the
+/// script the pthread workers load against this URL, so it is the only path
 /// the page has to know. Both files are emitted by the CMake `wallet_wasm`
 /// target and copied into `web/`.
 const String _kWasmUrl = 'wallet_wasm.js';
@@ -155,18 +155,28 @@ class WalletCApi {
 
   /// Boots the worker and the module, once per page. Every call below waits on
   /// this, so nothing has to sequence it by hand.
-  Future<void> init() {
-    return _initFuture ??= _init().timeout(
-      _kStartupTimeout,
-      onTimeout: () => throw WalletCApiException(
-        -1,
-        'The wallet engine did not start within ${_kStartupTimeout.inSeconds}s. '
-        'Check the browser console: the usual causes are wallet_wasm.js or '
-        'wallet_wasm.wasm missing from the server, or the server not sending '
-        'the Cross-Origin-Opener-Policy and Cross-Origin-Embedder-Policy '
-        'headers.',
-      ),
-    );
+  ///
+  /// A failed start is not kept: the next call tries again, rather than
+  /// replaying the same error until the page is reloaded.
+  Future<void> init() => _initFuture ??= _start();
+
+  Future<void> _start() async {
+    try {
+      await _init().timeout(
+        _kStartupTimeout,
+        onTimeout: () => throw WalletCApiException(
+          -1,
+          'The wallet engine did not start within ${_kStartupTimeout.inSeconds}s. '
+          'Check the browser console: the usual causes are wallet_wasm.js or '
+          'wallet_wasm.wasm missing from the server, or the server not sending '
+          'the Cross-Origin-Opener-Policy and Cross-Origin-Embedder-Policy '
+          'headers.',
+        ),
+      );
+    } catch (_) {
+      _initFuture = null;
+      rethrow;
+    }
   }
 
   Future<void> _init() async {

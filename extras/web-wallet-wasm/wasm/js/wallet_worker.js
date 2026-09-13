@@ -218,9 +218,18 @@ async function handle(msg) {
       throw new Error('wallet module factory not found - is ' + wasmUrl + ' the MODULARIZE build?');
     }
 
+    const glueUrl = new URL(wasmUrl, self.location.href).href;
+
     Module = await self.DeroGoldWalletModule({
-      /* Resolve the .wasm and the pthread worker next to the glue script. */
-      locateFile: (path) => new URL(path, new URL(wasmUrl, self.location.href)).href,
+      /* Resolve the .wasm (and, on older Emscripten, wallet_wasm.worker.js)
+         next to the glue script. */
+      locateFile: (path) => new URL(path, glueUrl).href,
+      /* The script each pthread worker loads. Emscripten takes it from
+         document.currentScript, which a worker does not have, so left alone
+         every pool worker is started from the URL "undefined" - a server
+         falling back to index.html answers that with HTML, the browser refuses
+         to run it, and the module waits on "loading-workers" forever. */
+      mainScriptUrlOrBlob: glueUrl,
     });
 
     ready = true;
