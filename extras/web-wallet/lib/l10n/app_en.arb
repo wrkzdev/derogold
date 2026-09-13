@@ -81,24 +81,13 @@
   "shareAddressSubtitle": "Share your address to receive DEGO",
   "yourAddress": "Your Address",
   "generateIntegratedAddress": "Generate Integrated Address",
-  "integratedAddressDescription": "Combine your address with a payment ID. Use the random buttons for a new ID, or enter your own below.",
-  "randomShort16": "Random Short (16)",
-  "randomLong64": "Random Long (64)",
-  "customPaymentIdLabel": "Custom payment ID (16 or 64 hex chars)",
+  "integratedAddressDescription": "Combine your address with a payment ID. Use the random button for a new ID, or enter your own below.",
+  "randomPaymentId": "Random Payment ID",
+  "customPaymentIdLabel": "Custom payment ID (64 hex chars)",
   "generate": "Generate",
   "integratedAddress": "Integrated Address",
-  "paymentIdShort": "Short (16)",
-  "paymentIdLong": "Long (64)",
-  "paymentIdLabel": "Payment ID · {label}",
-  "@paymentIdLabel": {
-    "placeholders": {
-      "label": {
-        "type": "String"
-      }
-    }
-  },
-  "enterPaymentIdError": "Enter a payment ID (16 or 64 hex chars)",
-  "paymentIdInvalidError": "Payment ID must be 16 or 64 hex characters",
+  "enterPaymentIdError": "Enter a payment ID (64 hex chars)",
+  "paymentIdInvalidError": "Payment ID must be 64 hex characters",
   "copyAddress": "Copy address",
   "copyPaymentId": "Copy payment ID",
   "copy": "Copy",
@@ -124,7 +113,7 @@
   "recipientAddress": "Recipient address",
   "amount": "Amount",
   "paymentIdOptional": "Payment ID (optional)",
-  "hexCharacters": "16 or 64 hex characters",
+  "hexCharacters": "64 hex characters",
   "reviewTransaction": "Review Transaction",
   "reviewAndConfirm": "Review & Confirm",
   "to": "To",

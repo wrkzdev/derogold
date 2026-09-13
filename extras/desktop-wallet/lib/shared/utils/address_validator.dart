@@ -16,9 +16,10 @@ bool isValidDeroGoldAddress(String address) {
 }
 
 /// Validates an optional payment ID. Empty is allowed (means "none").
-/// A payment ID is 64 hex characters; 16 is accepted for short/integrated use.
+/// A payment ID is exactly 64 hex characters, the only length the wallet
+/// backend takes (validatePaymentID in src/errors/ValidateParameters.cpp).
 bool isValidPaymentId(String paymentId) {
   if (paymentId.isEmpty) return true;
-  if (paymentId.length != 16 && paymentId.length != 64) return false;
+  if (paymentId.length != 64) return false;
   return RegExp(r'^[0-9a-fA-F]+$').hasMatch(paymentId);
 }

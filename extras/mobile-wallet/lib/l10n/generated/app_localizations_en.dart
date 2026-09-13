@@ -154,26 +154,17 @@ class SEn extends S {
   String get embedPaymentId => 'Embed a payment ID into your address';
 
   @override
-  String get randomShort => 'Random Short (16)';
-
-  @override
-  String get randomLong => 'Random Long (64)';
+  String get randomPaymentId => 'Random Payment ID';
 
   @override
   String get enterCustomPaymentId =>
-      'Or enter custom payment ID (16 or 64 hex)';
+      'Or enter custom payment ID (64 hex)';
 
   @override
   String get enterPaymentId => 'Enter a payment ID';
 
   @override
-  String get paymentIdInvalid => 'Payment ID must be 16 or 64 hex characters';
-
-  @override
-  String get shortPid => 'Short PID';
-
-  @override
-  String get longPid => 'Long PID';
+  String get paymentIdInvalid => 'Payment ID must be 64 hex characters';
 
   @override
   String get share => 'Share';
@@ -213,10 +204,10 @@ class SEn extends S {
   String get paymentIdOptional => 'Payment ID (optional)';
 
   @override
-  String get hexCharacters => '16 or 64 hex characters';
+  String get hexCharacters => '64 hex characters';
 
   @override
-  String get mustBeHex => 'Must be 16 or 64 hex characters';
+  String get mustBeHex => 'Must be 64 hex characters';
 
   @override
   String get recipientRequired => 'Recipient address is required';

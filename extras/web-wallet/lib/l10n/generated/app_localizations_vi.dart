@@ -145,14 +145,11 @@ class SVi extends S {
       'Kết hợp địa chỉ của bạn với mã thanh toán. Nhấn nút ngẫu nhiên để tạo mã mới, hoặc nhập mã riêng bên dưới.';
 
   @override
-  String get randomShort16 => 'Ngẫu nhiên ngắn (16)';
-
-  @override
-  String get randomLong64 => 'Ngẫu nhiên dài (64)';
+  String get randomPaymentId => 'Mã thanh toán ngẫu nhiên';
 
   @override
   String get customPaymentIdLabel =>
-      'Mã thanh toán tùy chỉnh (16 hoặc 64 ký tự hex)';
+      'Mã thanh toán tùy chỉnh (64 ký tự hex)';
 
   @override
   String get generate => 'Tạo';
@@ -161,22 +158,11 @@ class SVi extends S {
   String get integratedAddress => 'Địa chỉ tích hợp';
 
   @override
-  String get paymentIdShort => 'Ngắn (16)';
-
-  @override
-  String get paymentIdLong => 'Dài (64)';
-
-  @override
-  String paymentIdLabel(String label) {
-    return 'Mã thanh toán · $label';
-  }
-
-  @override
-  String get enterPaymentIdError => 'Nhập mã thanh toán (16 hoặc 64 ký tự hex)';
+  String get enterPaymentIdError => 'Nhập mã thanh toán (64 ký tự hex)';
 
   @override
   String get paymentIdInvalidError =>
-      'Mã thanh toán phải có 16 hoặc 64 ký tự hex';
+      'Mã thanh toán phải có 64 ký tự hex';
 
   @override
   String get copyAddress => 'Sao chép địa chỉ';
@@ -228,7 +214,7 @@ class SVi extends S {
   String get paymentIdOptional => 'Mã thanh toán (tùy chọn)';
 
   @override
-  String get hexCharacters => '16 hoặc 64 ký tự hex';
+  String get hexCharacters => '64 ký tự hex';
 
   @override
   String get reviewTransaction => 'Xem lại giao dịch';

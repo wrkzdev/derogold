@@ -152,25 +152,16 @@ class SZh extends S {
   String get embedPaymentId => '在地址中嵌入支付ID';
 
   @override
-  String get randomShort => '随机短码（16位）';
+  String get randomPaymentId => '随机支付ID';
 
   @override
-  String get randomLong => '随机长码（64位）';
-
-  @override
-  String get enterCustomPaymentId => '或输入自定义支付ID（16或64位十六进制）';
+  String get enterCustomPaymentId => '或输入自定义支付ID（64位十六进制）';
 
   @override
   String get enterPaymentId => '输入支付ID';
 
   @override
-  String get paymentIdInvalid => '支付ID必须为16或64位十六进制字符';
-
-  @override
-  String get shortPid => '短支付ID';
-
-  @override
-  String get longPid => '长支付ID';
+  String get paymentIdInvalid => '支付ID必须为64位十六进制字符';
 
   @override
   String get share => '分享';
@@ -210,10 +201,10 @@ class SZh extends S {
   String get paymentIdOptional => '支付ID（可选）';
 
   @override
-  String get hexCharacters => '16或64位十六进制字符';
+  String get hexCharacters => '64位十六进制字符';
 
   @override
-  String get mustBeHex => '必须为16或64位十六进制字符';
+  String get mustBeHex => '必须为64位十六进制字符';
 
   @override
   String get recipientRequired => '收款地址不能为空';

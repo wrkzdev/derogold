@@ -6,6 +6,7 @@ import '../../core/ffi/wallet_web.dart';
 import '../../core/providers/providers.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../shared/theme/app_theme.dart';
+import '../../shared/utils/address_validator.dart';
 import '../../shared/widgets/copy_button.dart';
 
 // The address provider lives in core/providers so it can be keyed on the
@@ -51,13 +52,11 @@ class _ReceiveScreenState extends ConsumerState<ReceiveScreen> {
     } else {
       pid = _paymentIdCtrl.text.trim();
       if (pid.isEmpty) {
-        setState(() => _error = tr?.enterPaymentIdError ?? 'Enter a payment ID (16 or 64 hex chars)');
+        setState(() => _error = tr?.enterPaymentIdError ?? 'Enter a payment ID (64 hex chars)');
         return;
       }
-      final validLen = pid.length == 16 || pid.length == 64;
-      final validHex = RegExp(r'^[0-9a-fA-F]+$').hasMatch(pid);
-      if (!validLen || !validHex) {
-        setState(() => _error = tr?.paymentIdInvalidError ?? 'Payment ID must be 16 or 64 hex characters');
+      if (!isValidPaymentId(pid)) {
+        setState(() => _error = tr?.paymentIdInvalidError ?? 'Payment ID must be 64 hex characters');
         return;
       }
     }
@@ -132,30 +131,22 @@ class _ReceiveScreenState extends ConsumerState<ReceiveScreen> {
                     style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 4),
                 Text(
-                  tr?.integratedAddressDescription ?? 'Combine your address with a payment ID. Use the random buttons for a new ID, or enter your own below.',
+                  tr?.integratedAddressDescription ?? 'Combine your address with a payment ID. Use the random button for a new ID, or enter your own below.',
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 16),
 
-                // Random buttons
+                // DeroGold only takes the 64-character form, so there is no
+                // short payment ID to offer.
                 Row(
                   children: [
                     FilledButton.icon(
                       onPressed: _generating
                           ? null
                           : () => _generate(address,
-                              overridePid: _randomHex(16)),
-                      icon: const Icon(Icons.shuffle, size: 16),
-                      label: Text(tr?.randomShort16 ?? 'Random Short (16)'),
-                    ),
-                    const SizedBox(width: 12),
-                    FilledButton.icon(
-                      onPressed: _generating
-                          ? null
-                          : () => _generate(address,
                               overridePid: _randomHex(64)),
                       icon: const Icon(Icons.shuffle, size: 16),
-                      label: Text(tr?.randomLong64 ?? 'Random Long (64)'),
+                      label: Text(tr?.randomPaymentId ?? 'Random Payment ID'),
                     ),
                     if (_generating) ...[
                       const SizedBox(width: 16),
@@ -177,7 +168,7 @@ class _ReceiveScreenState extends ConsumerState<ReceiveScreen> {
                       child: TextField(
                         controller: _paymentIdCtrl,
                         decoration: InputDecoration(
-                          labelText: tr?.customPaymentIdLabel ?? 'Custom payment ID (16 or 64 hex chars)',
+                          labelText: tr?.customPaymentIdLabel ?? 'Custom payment ID (64 hex chars)',
                           errorText: _error,
                           suffixIcon: _paymentIdCtrl.text.isNotEmpty
                               ? IconButton(
@@ -309,9 +300,6 @@ class _PaymentIdBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tr = S.of(context);
-    final label = paymentId.length == 16
-        ? (tr?.paymentIdShort ?? 'Short (16)')
-        : (tr?.paymentIdLong ?? 'Long (64)');
     return Row(
       children: [
         Container(
@@ -322,7 +310,7 @@ class _PaymentIdBadge extends StatelessWidget {
             border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
           ),
           child: Text(
-            tr?.paymentIdLabel(label) ?? 'Payment ID \u00b7 $label',
+            tr?.paymentId ?? 'Payment ID',
             style: Theme.of(context)
                 .textTheme
                 .labelSmall

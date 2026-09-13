@@ -81,24 +81,13 @@
   "shareAddressSubtitle": "Partagez votre adresse pour recevoir des DEGO",
   "yourAddress": "Votre adresse",
   "generateIntegratedAddress": "Générer une adresse intégrée",
-  "integratedAddressDescription": "Combinez votre adresse avec un identifiant de paiement. Utilisez les boutons aléatoires pour un nouvel identifiant, ou entrez le vôtre ci-dessous.",
-  "randomShort16": "Aléatoire court (16)",
-  "randomLong64": "Aléatoire long (64)",
-  "customPaymentIdLabel": "Identifiant de paiement personnalisé (16 ou 64 caractères hex)",
+  "integratedAddressDescription": "Combinez votre adresse avec un identifiant de paiement. Utilisez le bouton aléatoire pour un nouvel identifiant, ou entrez le vôtre ci-dessous.",
+  "randomPaymentId": "Identifiant de paiement aléatoire",
+  "customPaymentIdLabel": "Identifiant de paiement personnalisé (64 caractères hex)",
   "generate": "Générer",
   "integratedAddress": "Adresse intégrée",
-  "paymentIdShort": "Court (16)",
-  "paymentIdLong": "Long (64)",
-  "paymentIdLabel": "Identifiant de paiement · {label}",
-  "@paymentIdLabel": {
-    "placeholders": {
-      "label": {
-        "type": "String"
-      }
-    }
-  },
-  "enterPaymentIdError": "Entrez un identifiant de paiement (16 ou 64 caractères hex)",
-  "paymentIdInvalidError": "L'identifiant de paiement doit contenir 16 ou 64 caractères hexadécimaux",
+  "enterPaymentIdError": "Entrez un identifiant de paiement (64 caractères hex)",
+  "paymentIdInvalidError": "L'identifiant de paiement doit contenir 64 caractères hexadécimaux",
   "copyAddress": "Copier l'adresse",
   "copyPaymentId": "Copier l'identifiant de paiement",
   "copy": "Copier",
@@ -124,7 +113,7 @@
   "recipientAddress": "Adresse du destinataire",
   "amount": "Montant",
   "paymentIdOptional": "Identifiant de paiement (optionnel)",
-  "hexCharacters": "16 ou 64 caractères hexadécimaux",
+  "hexCharacters": "64 caractères hexadécimaux",
   "reviewTransaction": "Vérifier la transaction",
   "reviewAndConfirm": "Vérifier et confirmer",
   "to": "À",

@@ -154,27 +154,18 @@ class SDe extends S {
   String get embedPaymentId => 'Eine Zahlungs-ID in Ihre Adresse einbetten';
 
   @override
-  String get randomShort => 'Zufällig Kurz (16)';
-
-  @override
-  String get randomLong => 'Zufällig Lang (64)';
+  String get randomPaymentId => 'Zufällige Zahlungs-ID';
 
   @override
   String get enterCustomPaymentId =>
-      'Oder benutzerdefinierte Zahlungs-ID eingeben (16 oder 64 Hex)';
+      'Oder benutzerdefinierte Zahlungs-ID eingeben (64 Hex)';
 
   @override
   String get enterPaymentId => 'Zahlungs-ID eingeben';
 
   @override
   String get paymentIdInvalid =>
-      'Die Zahlungs-ID muss 16 oder 64 Hex-Zeichen lang sein';
-
-  @override
-  String get shortPid => 'Kurze PID';
-
-  @override
-  String get longPid => 'Lange PID';
+      'Die Zahlungs-ID muss 64 Hex-Zeichen lang sein';
 
   @override
   String get share => 'Teilen';
@@ -214,10 +205,10 @@ class SDe extends S {
   String get paymentIdOptional => 'Zahlungs-ID (optional)';
 
   @override
-  String get hexCharacters => '16 oder 64 Hex-Zeichen';
+  String get hexCharacters => '64 Hex-Zeichen';
 
   @override
-  String get mustBeHex => 'Muss 16 oder 64 Hex-Zeichen sein';
+  String get mustBeHex => 'Muss 64 Hex-Zeichen sein';
 
   @override
   String get recipientRequired => 'Empfängeradresse ist erforderlich';

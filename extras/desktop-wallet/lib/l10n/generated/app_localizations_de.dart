@@ -143,17 +143,14 @@ class SDe extends S {
 
   @override
   String get integratedAddressDescription =>
-      'Kombiniere deine Adresse mit einer Zahlungs-ID. Verwende die Zufallstasten für eine neue ID oder gib unten deine eigene ein.';
+      'Kombiniere deine Adresse mit einer Zahlungs-ID. Verwende die Zufallstaste für eine neue ID oder gib unten deine eigene ein.';
 
   @override
-  String get randomShort16 => 'Zufällig kurz (16)';
-
-  @override
-  String get randomLong64 => 'Zufällig lang (64)';
+  String get randomPaymentId => 'Zufällige Zahlungs-ID';
 
   @override
   String get customPaymentIdLabel =>
-      'Benutzerdefinierte Zahlungs-ID (16 oder 64 Hex-Zeichen)';
+      'Benutzerdefinierte Zahlungs-ID (64 Hex-Zeichen)';
 
   @override
   String get generate => 'Generieren';
@@ -162,23 +159,12 @@ class SDe extends S {
   String get integratedAddress => 'Integrierte Adresse';
 
   @override
-  String get paymentIdShort => 'Kurz (16)';
-
-  @override
-  String get paymentIdLong => 'Lang (64)';
-
-  @override
-  String paymentIdLabel(String label) {
-    return 'Zahlungs-ID · $label';
-  }
-
-  @override
   String get enterPaymentIdError =>
-      'Zahlungs-ID eingeben (16 oder 64 Hex-Zeichen)';
+      'Zahlungs-ID eingeben (64 Hex-Zeichen)';
 
   @override
   String get paymentIdInvalidError =>
-      'Zahlungs-ID muss 16 oder 64 Hex-Zeichen lang sein';
+      'Zahlungs-ID muss 64 Hex-Zeichen lang sein';
 
   @override
   String get copyAddress => 'Adresse kopieren';
@@ -230,7 +216,7 @@ class SDe extends S {
   String get paymentIdOptional => 'Zahlungs-ID (optional)';
 
   @override
-  String get hexCharacters => '16 oder 64 Hex-Zeichen';
+  String get hexCharacters => '64 Hex-Zeichen';
 
   @override
   String get reviewTransaction => 'Transaktion überprüfen';

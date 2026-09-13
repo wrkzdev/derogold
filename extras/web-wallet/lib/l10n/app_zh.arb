@@ -82,23 +82,12 @@
   "yourAddress": "您的地址",
   "generateIntegratedAddress": "生成集成地址",
   "integratedAddressDescription": "将您的地址与付款 ID 组合。使用随机按钮生成新 ID，或在下方输入您自己的 ID。",
-  "randomShort16": "随机短码 (16)",
-  "randomLong64": "随机长码 (64)",
-  "customPaymentIdLabel": "自定义付款 ID（16 或 64 个十六进制字符）",
+  "randomPaymentId": "随机付款 ID",
+  "customPaymentIdLabel": "自定义付款 ID（64 个十六进制字符）",
   "generate": "生成",
   "integratedAddress": "集成地址",
-  "paymentIdShort": "短码 (16)",
-  "paymentIdLong": "长码 (64)",
-  "paymentIdLabel": "付款 ID · {label}",
-  "@paymentIdLabel": {
-    "placeholders": {
-      "label": {
-        "type": "String"
-      }
-    }
-  },
-  "enterPaymentIdError": "请输入付款 ID（16 或 64 个十六进制字符）",
-  "paymentIdInvalidError": "付款 ID 必须为 16 或 64 个十六进制字符",
+  "enterPaymentIdError": "请输入付款 ID（64 个十六进制字符）",
+  "paymentIdInvalidError": "付款 ID 必须为 64 个十六进制字符",
   "copyAddress": "复制地址",
   "copyPaymentId": "复制付款 ID",
   "copy": "复制",
@@ -124,7 +113,7 @@
   "recipientAddress": "收款地址",
   "amount": "金额",
   "paymentIdOptional": "付款 ID（可选）",
-  "hexCharacters": "16 或 64 个十六进制字符",
+  "hexCharacters": "64 个十六进制字符",
   "reviewTransaction": "审核交易",
   "reviewAndConfirm": "审核并确认",
   "to": "收款方",

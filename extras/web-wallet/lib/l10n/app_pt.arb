@@ -81,24 +81,13 @@
   "shareAddressSubtitle": "Compartilhe seu endereço para receber DEGO",
   "yourAddress": "Seu Endereço",
   "generateIntegratedAddress": "Gerar Endereço Integrado",
-  "integratedAddressDescription": "Combine seu endereço com um ID de pagamento. Use os botões aleatórios para um novo ID ou insira o seu abaixo.",
-  "randomShort16": "Aleatório Curto (16)",
-  "randomLong64": "Aleatório Longo (64)",
-  "customPaymentIdLabel": "ID de pagamento personalizado (16 ou 64 caracteres hex)",
+  "integratedAddressDescription": "Combine seu endereço com um ID de pagamento. Use o botão aleatório para um novo ID ou insira o seu abaixo.",
+  "randomPaymentId": "ID de Pagamento Aleatório",
+  "customPaymentIdLabel": "ID de pagamento personalizado (64 caracteres hex)",
   "generate": "Gerar",
   "integratedAddress": "Endereço Integrado",
-  "paymentIdShort": "Curto (16)",
-  "paymentIdLong": "Longo (64)",
-  "paymentIdLabel": "ID de Pagamento · {label}",
-  "@paymentIdLabel": {
-    "placeholders": {
-      "label": {
-        "type": "String"
-      }
-    }
-  },
-  "enterPaymentIdError": "Insira um ID de pagamento (16 ou 64 caracteres hex)",
-  "paymentIdInvalidError": "O ID de pagamento deve ter 16 ou 64 caracteres hexadecimais",
+  "enterPaymentIdError": "Insira um ID de pagamento (64 caracteres hex)",
+  "paymentIdInvalidError": "O ID de pagamento deve ter 64 caracteres hexadecimais",
   "copyAddress": "Copiar endereço",
   "copyPaymentId": "Copiar ID de pagamento",
   "copy": "Copiar",
@@ -124,7 +113,7 @@
   "recipientAddress": "Endereço do destinatário",
   "amount": "Quantia",
   "paymentIdOptional": "ID de pagamento (opcional)",
-  "hexCharacters": "16 ou 64 caracteres hexadecimais",
+  "hexCharacters": "64 caracteres hexadecimais",
   "reviewTransaction": "Revisar Transação",
   "reviewAndConfirm": "Revisar e Confirmar",
   "to": "Para",

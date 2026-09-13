@@ -82,23 +82,12 @@
   "yourAddress": "Địa chỉ của bạn",
   "generateIntegratedAddress": "Tạo địa chỉ tích hợp",
   "integratedAddressDescription": "Kết hợp địa chỉ của bạn với mã thanh toán. Nhấn nút ngẫu nhiên để tạo mã mới, hoặc nhập mã riêng bên dưới.",
-  "randomShort16": "Ngẫu nhiên ngắn (16)",
-  "randomLong64": "Ngẫu nhiên dài (64)",
-  "customPaymentIdLabel": "Mã thanh toán tùy chỉnh (16 hoặc 64 ký tự hex)",
+  "randomPaymentId": "Mã thanh toán ngẫu nhiên",
+  "customPaymentIdLabel": "Mã thanh toán tùy chỉnh (64 ký tự hex)",
   "generate": "Tạo",
   "integratedAddress": "Địa chỉ tích hợp",
-  "paymentIdShort": "Ngắn (16)",
-  "paymentIdLong": "Dài (64)",
-  "paymentIdLabel": "Mã thanh toán · {label}",
-  "@paymentIdLabel": {
-    "placeholders": {
-      "label": {
-        "type": "String"
-      }
-    }
-  },
-  "enterPaymentIdError": "Nhập mã thanh toán (16 hoặc 64 ký tự hex)",
-  "paymentIdInvalidError": "Mã thanh toán phải có 16 hoặc 64 ký tự hex",
+  "enterPaymentIdError": "Nhập mã thanh toán (64 ký tự hex)",
+  "paymentIdInvalidError": "Mã thanh toán phải có 64 ký tự hex",
   "copyAddress": "Sao chép địa chỉ",
   "copyPaymentId": "Sao chép mã thanh toán",
   "copy": "Sao chép",
@@ -124,7 +113,7 @@
   "recipientAddress": "Địa chỉ người nhận",
   "amount": "Số lượng",
   "paymentIdOptional": "Mã thanh toán (tùy chọn)",
-  "hexCharacters": "16 hoặc 64 ký tự hex",
+  "hexCharacters": "64 ký tự hex",
   "reviewTransaction": "Xem lại giao dịch",
   "reviewAndConfirm": "Xem lại & Xác nhận",
   "to": "Đến",

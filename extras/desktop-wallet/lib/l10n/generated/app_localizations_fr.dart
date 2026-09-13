@@ -143,17 +143,14 @@ class SFr extends S {
 
   @override
   String get integratedAddressDescription =>
-      'Combinez votre adresse avec un identifiant de paiement. Utilisez les boutons aléatoires pour un nouvel identifiant, ou entrez le vôtre ci-dessous.';
+      'Combinez votre adresse avec un identifiant de paiement. Utilisez le bouton aléatoire pour un nouvel identifiant, ou entrez le vôtre ci-dessous.';
 
   @override
-  String get randomShort16 => 'Aléatoire court (16)';
-
-  @override
-  String get randomLong64 => 'Aléatoire long (64)';
+  String get randomPaymentId => 'Identifiant de paiement aléatoire';
 
   @override
   String get customPaymentIdLabel =>
-      'Identifiant de paiement personnalisé (16 ou 64 caractères hex)';
+      'Identifiant de paiement personnalisé (64 caractères hex)';
 
   @override
   String get generate => 'Générer';
@@ -162,23 +159,12 @@ class SFr extends S {
   String get integratedAddress => 'Adresse intégrée';
 
   @override
-  String get paymentIdShort => 'Court (16)';
-
-  @override
-  String get paymentIdLong => 'Long (64)';
-
-  @override
-  String paymentIdLabel(String label) {
-    return 'Identifiant de paiement · $label';
-  }
-
-  @override
   String get enterPaymentIdError =>
-      'Entrez un identifiant de paiement (16 ou 64 caractères hex)';
+      'Entrez un identifiant de paiement (64 caractères hex)';
 
   @override
   String get paymentIdInvalidError =>
-      'L\'identifiant de paiement doit contenir 16 ou 64 caractères hexadécimaux';
+      'L\'identifiant de paiement doit contenir 64 caractères hexadécimaux';
 
   @override
   String get copyAddress => 'Copier l\'adresse';
@@ -230,7 +216,7 @@ class SFr extends S {
   String get paymentIdOptional => 'Identifiant de paiement (optionnel)';
 
   @override
-  String get hexCharacters => '16 ou 64 caractères hexadécimaux';
+  String get hexCharacters => '64 caractères hexadécimaux';
 
   @override
   String get reviewTransaction => 'Vérifier la transaction';

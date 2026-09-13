@@ -154,27 +154,18 @@ class SEs extends S {
   String get embedPaymentId => 'Incorporar un ID de pago en su dirección';
 
   @override
-  String get randomShort => 'Aleatorio corto (16)';
-
-  @override
-  String get randomLong => 'Aleatorio largo (64)';
+  String get randomPaymentId => 'ID de pago aleatorio';
 
   @override
   String get enterCustomPaymentId =>
-      'O ingrese un ID de pago personalizado (16 o 64 hex)';
+      'O ingrese un ID de pago personalizado (64 hex)';
 
   @override
   String get enterPaymentId => 'Ingrese un ID de pago';
 
   @override
   String get paymentIdInvalid =>
-      'El ID de pago debe tener 16 o 64 caracteres hexadecimales';
-
-  @override
-  String get shortPid => 'PID corto';
-
-  @override
-  String get longPid => 'PID largo';
+      'El ID de pago debe tener 64 caracteres hexadecimales';
 
   @override
   String get share => 'Compartir';
@@ -214,10 +205,10 @@ class SEs extends S {
   String get paymentIdOptional => 'ID de pago (opcional)';
 
   @override
-  String get hexCharacters => '16 o 64 caracteres hexadecimales';
+  String get hexCharacters => '64 caracteres hexadecimales';
 
   @override
-  String get mustBeHex => 'Debe tener 16 o 64 caracteres hexadecimales';
+  String get mustBeHex => 'Debe tener 64 caracteres hexadecimales';
 
   @override
   String get recipientRequired =>

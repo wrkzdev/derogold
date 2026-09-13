@@ -154,26 +154,17 @@ class SVi extends S {
   String get embedPaymentId => 'Nhúng mã thanh toán vào địa chỉ của bạn';
 
   @override
-  String get randomShort => 'Ngẫu nhiên ngắn (16)';
-
-  @override
-  String get randomLong => 'Ngẫu nhiên dài (64)';
+  String get randomPaymentId => 'Mã thanh toán ngẫu nhiên';
 
   @override
   String get enterCustomPaymentId =>
-      'Hoặc nhập mã thanh toán tùy chỉnh (16 hoặc 64 ký tự hex)';
+      'Hoặc nhập mã thanh toán tùy chỉnh (64 ký tự hex)';
 
   @override
   String get enterPaymentId => 'Nhập mã thanh toán';
 
   @override
-  String get paymentIdInvalid => 'Mã thanh toán phải có 16 hoặc 64 ký tự hex';
-
-  @override
-  String get shortPid => 'PID ngắn';
-
-  @override
-  String get longPid => 'PID dài';
+  String get paymentIdInvalid => 'Mã thanh toán phải có 64 ký tự hex';
 
   @override
   String get share => 'Chia sẻ';
@@ -213,10 +204,10 @@ class SVi extends S {
   String get paymentIdOptional => 'Mã thanh toán (tùy chọn)';
 
   @override
-  String get hexCharacters => '16 hoặc 64 ký tự hex';
+  String get hexCharacters => '64 ký tự hex';
 
   @override
-  String get mustBeHex => 'Phải có 16 hoặc 64 ký tự hex';
+  String get mustBeHex => 'Phải có 64 ký tự hex';
 
   @override
   String get recipientRequired => 'Địa chỉ người nhận là bắt buộc';

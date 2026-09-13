@@ -143,17 +143,14 @@ class SRu extends S {
 
   @override
   String get integratedAddressDescription =>
-      'Объедините ваш адрес с идентификатором платежа. Используйте кнопки случайной генерации для нового ID или введите свой ниже.';
+      'Объедините ваш адрес с идентификатором платежа. Используйте кнопку случайной генерации для нового ID или введите свой ниже.';
 
   @override
-  String get randomShort16 => 'Случайный короткий (16)';
-
-  @override
-  String get randomLong64 => 'Случайный длинный (64)';
+  String get randomPaymentId => 'Случайный идентификатор платежа';
 
   @override
   String get customPaymentIdLabel =>
-      'Произвольный идентификатор платежа (16 или 64 hex-символа)';
+      'Произвольный идентификатор платежа (64 hex-символа)';
 
   @override
   String get generate => 'Сгенерировать';
@@ -162,23 +159,12 @@ class SRu extends S {
   String get integratedAddress => 'Интегрированный адрес';
 
   @override
-  String get paymentIdShort => 'Короткий (16)';
-
-  @override
-  String get paymentIdLong => 'Длинный (64)';
-
-  @override
-  String paymentIdLabel(String label) {
-    return 'Идентификатор платежа · $label';
-  }
-
-  @override
   String get enterPaymentIdError =>
-      'Введите идентификатор платежа (16 или 64 hex-символа)';
+      'Введите идентификатор платежа (64 hex-символа)';
 
   @override
   String get paymentIdInvalidError =>
-      'Идентификатор платежа должен содержать 16 или 64 шестнадцатеричных символа';
+      'Идентификатор платежа должен содержать 64 шестнадцатеричных символа';
 
   @override
   String get copyAddress => 'Копировать адрес';
@@ -230,7 +216,7 @@ class SRu extends S {
   String get paymentIdOptional => 'Идентификатор платежа (необязательно)';
 
   @override
-  String get hexCharacters => '16 или 64 шестнадцатеричных символа';
+  String get hexCharacters => '64 шестнадцатеричных символа';
 
   @override
   String get reviewTransaction => 'Проверить транзакцию';

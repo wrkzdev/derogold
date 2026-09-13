@@ -85,7 +85,7 @@ class _TransferScreenState extends ConsumerState<TransferScreen> {
     final atomic = parseAmount(amountRaw);
     if (atomic == null || atomic <= 0) { setState(() => _error = tr?.enterValidAmount ?? 'Enter a valid amount'); return; }
     final paymentId = _paymentIdCtrl.text.trim();
-    if (!isValidPaymentId(paymentId)) { setState(() => _error = tr?.paymentIdInvalidError ?? 'Payment ID must be 16 or 64 hex characters'); return; }
+    if (!isValidPaymentId(paymentId)) { setState(() => _error = tr?.paymentIdInvalidError ?? 'Payment ID must be 64 hex characters'); return; }
 
     setState(() { _error = null; _step = _TransferStep.review; });
   }
@@ -365,7 +365,7 @@ class _TransferScreenState extends ConsumerState<TransferScreen> {
               controller: _paymentIdCtrl,
               decoration: InputDecoration(
                 labelText: tr?.paymentIdOptional ?? 'Payment ID (optional)',
-                hintText: tr?.hexCharacters ?? '16 or 64 hex characters',
+                hintText: tr?.hexCharacters ?? '64 hex characters',
               ),
             ),
             const SizedBox(height: 20),

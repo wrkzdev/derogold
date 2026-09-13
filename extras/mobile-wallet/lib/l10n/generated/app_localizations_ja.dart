@@ -152,25 +152,16 @@ class SJa extends S {
   String get embedPaymentId => 'アドレスに支払いIDを埋め込む';
 
   @override
-  String get randomShort => 'ランダム短 (16)';
+  String get randomPaymentId => 'ランダムな支払いID';
 
   @override
-  String get randomLong => 'ランダム長 (64)';
-
-  @override
-  String get enterCustomPaymentId => 'カスタム支払いID（16または64桁の16進数）を入力';
+  String get enterCustomPaymentId => 'カスタム支払いID（64桁の16進数）を入力';
 
   @override
   String get enterPaymentId => '支払いIDを入力';
 
   @override
-  String get paymentIdInvalid => '支払いIDは16または64桁の16進数でなければなりません';
-
-  @override
-  String get shortPid => '短PID';
-
-  @override
-  String get longPid => '長PID';
+  String get paymentIdInvalid => '支払いIDは64桁の16進数でなければなりません';
 
   @override
   String get share => '共有';
@@ -210,10 +201,10 @@ class SJa extends S {
   String get paymentIdOptional => '支払いID（任意）';
 
   @override
-  String get hexCharacters => '16または64桁の16進数';
+  String get hexCharacters => '64桁の16進数';
 
   @override
-  String get mustBeHex => '16または64桁の16進数でなければなりません';
+  String get mustBeHex => '64桁の16進数でなければなりません';
 
   @override
   String get recipientRequired => '受取人アドレスは必須です';

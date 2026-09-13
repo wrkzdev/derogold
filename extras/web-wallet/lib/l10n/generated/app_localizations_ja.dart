@@ -144,13 +144,10 @@ class SJa extends S {
       'アドレスとペイメントIDを組み合わせます。ランダムボタンで新しいIDを生成するか、下に入力してください。';
 
   @override
-  String get randomShort16 => 'ランダム短縮 (16)';
+  String get randomPaymentId => 'ランダムなペイメントID';
 
   @override
-  String get randomLong64 => 'ランダム長形 (64)';
-
-  @override
-  String get customPaymentIdLabel => 'カスタムペイメントID（16または64文字の16進数）';
+  String get customPaymentIdLabel => 'カスタムペイメントID（64文字の16進数）';
 
   @override
   String get generate => '生成';
@@ -159,21 +156,10 @@ class SJa extends S {
   String get integratedAddress => '統合アドレス';
 
   @override
-  String get paymentIdShort => '短縮 (16)';
+  String get enterPaymentIdError => 'ペイメントIDを入力してください（64文字の16進数）';
 
   @override
-  String get paymentIdLong => '長形 (64)';
-
-  @override
-  String paymentIdLabel(String label) {
-    return 'ペイメントID · $label';
-  }
-
-  @override
-  String get enterPaymentIdError => 'ペイメントIDを入力してください（16または64文字の16進数）';
-
-  @override
-  String get paymentIdInvalidError => 'ペイメントIDは16または64文字の16進数である必要があります';
+  String get paymentIdInvalidError => 'ペイメントIDは64文字の16進数である必要があります';
 
   @override
   String get copyAddress => 'アドレスをコピー';
@@ -224,7 +210,7 @@ class SJa extends S {
   String get paymentIdOptional => 'ペイメントID（任意）';
 
   @override
-  String get hexCharacters => '16または64文字の16進数';
+  String get hexCharacters => '64文字の16進数';
 
   @override
   String get reviewTransaction => 'トランザクションを確認';

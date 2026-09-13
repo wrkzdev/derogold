@@ -360,25 +360,19 @@ abstract class S {
   /// No description provided for @integratedAddressDescription.
   ///
   /// In en, this message translates to:
-  /// **'Combine your address with a payment ID. Use the random buttons for a new ID, or enter your own below.'**
+  /// **'Combine your address with a payment ID. Use the random button for a new ID, or enter your own below.'**
   String get integratedAddressDescription;
 
-  /// No description provided for @randomShort16.
+  /// No description provided for @randomPaymentId.
   ///
   /// In en, this message translates to:
-  /// **'Random Short (16)'**
-  String get randomShort16;
-
-  /// No description provided for @randomLong64.
-  ///
-  /// In en, this message translates to:
-  /// **'Random Long (64)'**
-  String get randomLong64;
+  /// **'Random Payment ID'**
+  String get randomPaymentId;
 
   /// No description provided for @customPaymentIdLabel.
   ///
   /// In en, this message translates to:
-  /// **'Custom payment ID (16 or 64 hex chars)'**
+  /// **'Custom payment ID (64 hex chars)'**
   String get customPaymentIdLabel;
 
   /// No description provided for @generate.
@@ -393,34 +387,16 @@ abstract class S {
   /// **'Integrated Address'**
   String get integratedAddress;
 
-  /// No description provided for @paymentIdShort.
-  ///
-  /// In en, this message translates to:
-  /// **'Short (16)'**
-  String get paymentIdShort;
-
-  /// No description provided for @paymentIdLong.
-  ///
-  /// In en, this message translates to:
-  /// **'Long (64)'**
-  String get paymentIdLong;
-
-  /// No description provided for @paymentIdLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Payment ID · {label}'**
-  String paymentIdLabel(String label);
-
   /// No description provided for @enterPaymentIdError.
   ///
   /// In en, this message translates to:
-  /// **'Enter a payment ID (16 or 64 hex chars)'**
+  /// **'Enter a payment ID (64 hex chars)'**
   String get enterPaymentIdError;
 
   /// No description provided for @paymentIdInvalidError.
   ///
   /// In en, this message translates to:
-  /// **'Payment ID must be 16 or 64 hex characters'**
+  /// **'Payment ID must be 64 hex characters'**
   String get paymentIdInvalidError;
 
   /// No description provided for @copyAddress.
@@ -516,7 +492,7 @@ abstract class S {
   /// No description provided for @hexCharacters.
   ///
   /// In en, this message translates to:
-  /// **'16 or 64 hex characters'**
+  /// **'64 hex characters'**
   String get hexCharacters;
 
   /// No description provided for @reviewTransaction.

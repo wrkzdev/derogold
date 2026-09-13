@@ -142,16 +142,13 @@ class SEn extends S {
 
   @override
   String get integratedAddressDescription =>
-      'Combine your address with a payment ID. Use the random buttons for a new ID, or enter your own below.';
+      'Combine your address with a payment ID. Use the random button for a new ID, or enter your own below.';
 
   @override
-  String get randomShort16 => 'Random Short (16)';
+  String get randomPaymentId => 'Random Payment ID';
 
   @override
-  String get randomLong64 => 'Random Long (64)';
-
-  @override
-  String get customPaymentIdLabel => 'Custom payment ID (16 or 64 hex chars)';
+  String get customPaymentIdLabel => 'Custom payment ID (64 hex chars)';
 
   @override
   String get generate => 'Generate';
@@ -160,22 +157,11 @@ class SEn extends S {
   String get integratedAddress => 'Integrated Address';
 
   @override
-  String get paymentIdShort => 'Short (16)';
-
-  @override
-  String get paymentIdLong => 'Long (64)';
-
-  @override
-  String paymentIdLabel(String label) {
-    return 'Payment ID · $label';
-  }
-
-  @override
-  String get enterPaymentIdError => 'Enter a payment ID (16 or 64 hex chars)';
+  String get enterPaymentIdError => 'Enter a payment ID (64 hex chars)';
 
   @override
   String get paymentIdInvalidError =>
-      'Payment ID must be 16 or 64 hex characters';
+      'Payment ID must be 64 hex characters';
 
   @override
   String get copyAddress => 'Copy address';
@@ -227,7 +213,7 @@ class SEn extends S {
   String get paymentIdOptional => 'Payment ID (optional)';
 
   @override
-  String get hexCharacters => '16 or 64 hex characters';
+  String get hexCharacters => '64 hex characters';
 
   @override
   String get reviewTransaction => 'Review Transaction';

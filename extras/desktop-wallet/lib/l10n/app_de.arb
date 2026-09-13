@@ -81,24 +81,13 @@
   "shareAddressSubtitle": "Teile deine Adresse, um DEGO zu empfangen",
   "yourAddress": "Deine Adresse",
   "generateIntegratedAddress": "Integrierte Adresse generieren",
-  "integratedAddressDescription": "Kombiniere deine Adresse mit einer Zahlungs-ID. Verwende die Zufallstasten für eine neue ID oder gib unten deine eigene ein.",
-  "randomShort16": "Zufällig kurz (16)",
-  "randomLong64": "Zufällig lang (64)",
-  "customPaymentIdLabel": "Benutzerdefinierte Zahlungs-ID (16 oder 64 Hex-Zeichen)",
+  "integratedAddressDescription": "Kombiniere deine Adresse mit einer Zahlungs-ID. Verwende die Zufallstaste für eine neue ID oder gib unten deine eigene ein.",
+  "randomPaymentId": "Zufällige Zahlungs-ID",
+  "customPaymentIdLabel": "Benutzerdefinierte Zahlungs-ID (64 Hex-Zeichen)",
   "generate": "Generieren",
   "integratedAddress": "Integrierte Adresse",
-  "paymentIdShort": "Kurz (16)",
-  "paymentIdLong": "Lang (64)",
-  "paymentIdLabel": "Zahlungs-ID · {label}",
-  "@paymentIdLabel": {
-    "placeholders": {
-      "label": {
-        "type": "String"
-      }
-    }
-  },
-  "enterPaymentIdError": "Zahlungs-ID eingeben (16 oder 64 Hex-Zeichen)",
-  "paymentIdInvalidError": "Zahlungs-ID muss 16 oder 64 Hex-Zeichen lang sein",
+  "enterPaymentIdError": "Zahlungs-ID eingeben (64 Hex-Zeichen)",
+  "paymentIdInvalidError": "Zahlungs-ID muss 64 Hex-Zeichen lang sein",
   "copyAddress": "Adresse kopieren",
   "copyPaymentId": "Zahlungs-ID kopieren",
   "copy": "Kopieren",
@@ -124,7 +113,7 @@
   "recipientAddress": "Empfängeradresse",
   "amount": "Betrag",
   "paymentIdOptional": "Zahlungs-ID (optional)",
-  "hexCharacters": "16 oder 64 Hex-Zeichen",
+  "hexCharacters": "64 Hex-Zeichen",
   "reviewTransaction": "Transaktion überprüfen",
   "reviewAndConfirm": "Überprüfen & Bestätigen",
   "to": "An",

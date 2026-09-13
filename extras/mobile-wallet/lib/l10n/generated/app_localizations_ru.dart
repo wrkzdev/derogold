@@ -154,27 +154,18 @@ class SRu extends S {
   String get embedPaymentId => 'Встроить идентификатор платежа в адрес';
 
   @override
-  String get randomShort => 'Случайный короткий (16)';
-
-  @override
-  String get randomLong => 'Случайный длинный (64)';
+  String get randomPaymentId => 'Случайный идентификатор платежа';
 
   @override
   String get enterCustomPaymentId =>
-      'Или введите свой идентификатор платежа (16 или 64 hex)';
+      'Или введите свой идентификатор платежа (64 hex)';
 
   @override
   String get enterPaymentId => 'Введите идентификатор платежа';
 
   @override
   String get paymentIdInvalid =>
-      'Идентификатор платежа должен содержать 16 или 64 hex-символа';
-
-  @override
-  String get shortPid => 'Короткий PID';
-
-  @override
-  String get longPid => 'Длинный PID';
+      'Идентификатор платежа должен содержать 64 hex-символа';
 
   @override
   String get share => 'Поделиться';
@@ -214,10 +205,10 @@ class SRu extends S {
   String get paymentIdOptional => 'Идентификатор платежа (необязательно)';
 
   @override
-  String get hexCharacters => '16 или 64 hex-символа';
+  String get hexCharacters => '64 hex-символа';
 
   @override
-  String get mustBeHex => 'Должно быть 16 или 64 hex-символа';
+  String get mustBeHex => 'Должно быть 64 hex-символа';
 
   @override
   String get recipientRequired => 'Адрес получателя обязателен';

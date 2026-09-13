@@ -143,17 +143,14 @@ class SPt extends S {
 
   @override
   String get integratedAddressDescription =>
-      'Combine seu endereço com um ID de pagamento. Use os botões aleatórios para um novo ID ou insira o seu abaixo.';
+      'Combine seu endereço com um ID de pagamento. Use o botão aleatório para um novo ID ou insira o seu abaixo.';
 
   @override
-  String get randomShort16 => 'Aleatório Curto (16)';
-
-  @override
-  String get randomLong64 => 'Aleatório Longo (64)';
+  String get randomPaymentId => 'ID de Pagamento Aleatório';
 
   @override
   String get customPaymentIdLabel =>
-      'ID de pagamento personalizado (16 ou 64 caracteres hex)';
+      'ID de pagamento personalizado (64 caracteres hex)';
 
   @override
   String get generate => 'Gerar';
@@ -162,23 +159,12 @@ class SPt extends S {
   String get integratedAddress => 'Endereço Integrado';
 
   @override
-  String get paymentIdShort => 'Curto (16)';
-
-  @override
-  String get paymentIdLong => 'Longo (64)';
-
-  @override
-  String paymentIdLabel(String label) {
-    return 'ID de Pagamento · $label';
-  }
-
-  @override
   String get enterPaymentIdError =>
-      'Insira um ID de pagamento (16 ou 64 caracteres hex)';
+      'Insira um ID de pagamento (64 caracteres hex)';
 
   @override
   String get paymentIdInvalidError =>
-      'O ID de pagamento deve ter 16 ou 64 caracteres hexadecimais';
+      'O ID de pagamento deve ter 64 caracteres hexadecimais';
 
   @override
   String get copyAddress => 'Copiar endereço';
@@ -230,7 +216,7 @@ class SPt extends S {
   String get paymentIdOptional => 'ID de pagamento (opcional)';
 
   @override
-  String get hexCharacters => '16 ou 64 caracteres hexadecimais';
+  String get hexCharacters => '64 caracteres hexadecimais';
 
   @override
   String get reviewTransaction => 'Revisar Transação';

@@ -82,23 +82,12 @@
   "yourAddress": "あなたのアドレス",
   "generateIntegratedAddress": "統合アドレスを生成",
   "integratedAddressDescription": "アドレスとペイメントIDを組み合わせます。ランダムボタンで新しいIDを生成するか、下に入力してください。",
-  "randomShort16": "ランダム短縮 (16)",
-  "randomLong64": "ランダム長形 (64)",
-  "customPaymentIdLabel": "カスタムペイメントID（16または64文字の16進数）",
+  "randomPaymentId": "ランダムなペイメントID",
+  "customPaymentIdLabel": "カスタムペイメントID（64文字の16進数）",
   "generate": "生成",
   "integratedAddress": "統合アドレス",
-  "paymentIdShort": "短縮 (16)",
-  "paymentIdLong": "長形 (64)",
-  "paymentIdLabel": "ペイメントID · {label}",
-  "@paymentIdLabel": {
-    "placeholders": {
-      "label": {
-        "type": "String"
-      }
-    }
-  },
-  "enterPaymentIdError": "ペイメントIDを入力してください（16または64文字の16進数）",
-  "paymentIdInvalidError": "ペイメントIDは16または64文字の16進数である必要があります",
+  "enterPaymentIdError": "ペイメントIDを入力してください（64文字の16進数）",
+  "paymentIdInvalidError": "ペイメントIDは64文字の16進数である必要があります",
   "copyAddress": "アドレスをコピー",
   "copyPaymentId": "ペイメントIDをコピー",
   "copy": "コピー",
@@ -124,7 +113,7 @@
   "recipientAddress": "受取人アドレス",
   "amount": "金額",
   "paymentIdOptional": "ペイメントID（任意）",
-  "hexCharacters": "16または64文字の16進数",
+  "hexCharacters": "64文字の16進数",
   "reviewTransaction": "トランザクションを確認",
   "reviewAndConfirm": "確認して送金",
   "to": "宛先",

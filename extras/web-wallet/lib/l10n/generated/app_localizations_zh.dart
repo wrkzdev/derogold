@@ -144,13 +144,10 @@ class SZh extends S {
       '将您的地址与付款 ID 组合。使用随机按钮生成新 ID，或在下方输入您自己的 ID。';
 
   @override
-  String get randomShort16 => '随机短码 (16)';
+  String get randomPaymentId => '随机付款 ID';
 
   @override
-  String get randomLong64 => '随机长码 (64)';
-
-  @override
-  String get customPaymentIdLabel => '自定义付款 ID（16 或 64 个十六进制字符）';
+  String get customPaymentIdLabel => '自定义付款 ID（64 个十六进制字符）';
 
   @override
   String get generate => '生成';
@@ -159,21 +156,10 @@ class SZh extends S {
   String get integratedAddress => '集成地址';
 
   @override
-  String get paymentIdShort => '短码 (16)';
+  String get enterPaymentIdError => '请输入付款 ID（64 个十六进制字符）';
 
   @override
-  String get paymentIdLong => '长码 (64)';
-
-  @override
-  String paymentIdLabel(String label) {
-    return '付款 ID · $label';
-  }
-
-  @override
-  String get enterPaymentIdError => '请输入付款 ID（16 或 64 个十六进制字符）';
-
-  @override
-  String get paymentIdInvalidError => '付款 ID 必须为 16 或 64 个十六进制字符';
+  String get paymentIdInvalidError => '付款 ID 必须为 64 个十六进制字符';
 
   @override
   String get copyAddress => '复制地址';
@@ -223,7 +209,7 @@ class SZh extends S {
   String get paymentIdOptional => '付款 ID（可选）';
 
   @override
-  String get hexCharacters => '16 或 64 个十六进制字符';
+  String get hexCharacters => '64 个十六进制字符';
 
   @override
   String get reviewTransaction => '审核交易';

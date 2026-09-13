@@ -81,24 +81,13 @@
   "shareAddressSubtitle": "Поделитесь своим адресом для получения DEGO",
   "yourAddress": "Ваш адрес",
   "generateIntegratedAddress": "Сгенерировать интегрированный адрес",
-  "integratedAddressDescription": "Объедините ваш адрес с идентификатором платежа. Используйте кнопки случайной генерации для нового ID или введите свой ниже.",
-  "randomShort16": "Случайный короткий (16)",
-  "randomLong64": "Случайный длинный (64)",
-  "customPaymentIdLabel": "Произвольный идентификатор платежа (16 или 64 hex-символа)",
+  "integratedAddressDescription": "Объедините ваш адрес с идентификатором платежа. Используйте кнопку случайной генерации для нового ID или введите свой ниже.",
+  "randomPaymentId": "Случайный идентификатор платежа",
+  "customPaymentIdLabel": "Произвольный идентификатор платежа (64 hex-символа)",
   "generate": "Сгенерировать",
   "integratedAddress": "Интегрированный адрес",
-  "paymentIdShort": "Короткий (16)",
-  "paymentIdLong": "Длинный (64)",
-  "paymentIdLabel": "Идентификатор платежа · {label}",
-  "@paymentIdLabel": {
-    "placeholders": {
-      "label": {
-        "type": "String"
-      }
-    }
-  },
-  "enterPaymentIdError": "Введите идентификатор платежа (16 или 64 hex-символа)",
-  "paymentIdInvalidError": "Идентификатор платежа должен содержать 16 или 64 шестнадцатеричных символа",
+  "enterPaymentIdError": "Введите идентификатор платежа (64 hex-символа)",
+  "paymentIdInvalidError": "Идентификатор платежа должен содержать 64 шестнадцатеричных символа",
   "copyAddress": "Копировать адрес",
   "copyPaymentId": "Копировать идентификатор платежа",
   "copy": "Копировать",
@@ -124,7 +113,7 @@
   "recipientAddress": "Адрес получателя",
   "amount": "Сумма",
   "paymentIdOptional": "Идентификатор платежа (необязательно)",
-  "hexCharacters": "16 или 64 шестнадцатеричных символа",
+  "hexCharacters": "64 шестнадцатеричных символа",
   "reviewTransaction": "Проверить транзакцию",
   "reviewAndConfirm": "Проверить и подтвердить",
   "to": "Кому",

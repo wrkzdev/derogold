@@ -154,27 +154,18 @@ class SPt extends S {
   String get embedPaymentId => 'Incorporar um ID de pagamento ao seu endereço';
 
   @override
-  String get randomShort => 'Curto Aleatório (16)';
-
-  @override
-  String get randomLong => 'Longo Aleatório (64)';
+  String get randomPaymentId => 'ID de Pagamento Aleatório';
 
   @override
   String get enterCustomPaymentId =>
-      'Ou insira um ID de pagamento personalizado (16 ou 64 hex)';
+      'Ou insira um ID de pagamento personalizado (64 hex)';
 
   @override
   String get enterPaymentId => 'Insira um ID de pagamento';
 
   @override
   String get paymentIdInvalid =>
-      'O ID de pagamento deve ter 16 ou 64 caracteres hexadecimais';
-
-  @override
-  String get shortPid => 'PID Curto';
-
-  @override
-  String get longPid => 'PID Longo';
+      'O ID de pagamento deve ter 64 caracteres hexadecimais';
 
   @override
   String get share => 'Compartilhar';
@@ -214,10 +205,10 @@ class SPt extends S {
   String get paymentIdOptional => 'ID de pagamento (opcional)';
 
   @override
-  String get hexCharacters => '16 ou 64 caracteres hexadecimais';
+  String get hexCharacters => '64 caracteres hexadecimais';
 
   @override
-  String get mustBeHex => 'Deve ter 16 ou 64 caracteres hexadecimais';
+  String get mustBeHex => 'Deve ter 64 caracteres hexadecimais';
 
   @override
   String get recipientRequired => 'O endereço do destinatário é obrigatório';

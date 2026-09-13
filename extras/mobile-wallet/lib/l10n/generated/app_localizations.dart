@@ -369,22 +369,16 @@ abstract class S {
   /// **'Embed a payment ID into your address'**
   String get embedPaymentId;
 
-  /// No description provided for @randomShort.
+  /// No description provided for @randomPaymentId.
   ///
   /// In en, this message translates to:
-  /// **'Random Short (16)'**
-  String get randomShort;
-
-  /// No description provided for @randomLong.
-  ///
-  /// In en, this message translates to:
-  /// **'Random Long (64)'**
-  String get randomLong;
+  /// **'Random Payment ID'**
+  String get randomPaymentId;
 
   /// No description provided for @enterCustomPaymentId.
   ///
   /// In en, this message translates to:
-  /// **'Or enter custom payment ID (16 or 64 hex)'**
+  /// **'Or enter custom payment ID (64 hex)'**
   String get enterCustomPaymentId;
 
   /// No description provided for @enterPaymentId.
@@ -396,20 +390,8 @@ abstract class S {
   /// No description provided for @paymentIdInvalid.
   ///
   /// In en, this message translates to:
-  /// **'Payment ID must be 16 or 64 hex characters'**
+  /// **'Payment ID must be 64 hex characters'**
   String get paymentIdInvalid;
-
-  /// No description provided for @shortPid.
-  ///
-  /// In en, this message translates to:
-  /// **'Short PID'**
-  String get shortPid;
-
-  /// No description provided for @longPid.
-  ///
-  /// In en, this message translates to:
-  /// **'Long PID'**
-  String get longPid;
 
   /// No description provided for @share.
   ///
@@ -480,13 +462,13 @@ abstract class S {
   /// No description provided for @hexCharacters.
   ///
   /// In en, this message translates to:
-  /// **'16 or 64 hex characters'**
+  /// **'64 hex characters'**
   String get hexCharacters;
 
   /// No description provided for @mustBeHex.
   ///
   /// In en, this message translates to:
-  /// **'Must be 16 or 64 hex characters'**
+  /// **'Must be 64 hex characters'**
   String get mustBeHex;
 
   /// No description provided for @recipientRequired.

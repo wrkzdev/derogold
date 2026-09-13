@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../core/providers/providers.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../shared/theme/app_theme.dart';
+import '../../shared/utils/amount_formatter.dart';
 import '../../shared/utils/haptics.dart';
 import '../../shared/widgets/copy_button.dart';
 
@@ -25,7 +26,6 @@ class _ReceiveScreenState extends ConsumerState<ReceiveScreen> {
   // integrated address
   final _pidCtrl = TextEditingController();
   String? _integratedAddress;
-  String? _integratedPid;
   String? _pidError;
 
   @override
@@ -78,7 +78,6 @@ class _ReceiveScreenState extends ConsumerState<ReceiveScreen> {
           await ffi.createIntegratedAddress(_address, paymentId);
       setState(() {
         _integratedAddress = integrated;
-        _integratedPid = paymentId;
         _pidError = null;
       });
       hapticLight();
@@ -94,9 +93,7 @@ class _ReceiveScreenState extends ConsumerState<ReceiveScreen> {
       setState(() => _pidError = tr.enterPaymentId);
       return;
     }
-    final validLen = pid.length == 16 || pid.length == 64;
-    final validHex = RegExp(r'^[0-9a-fA-F]+$').hasMatch(pid);
-    if (!validLen || !validHex) {
+    if (!isValidPaymentId(pid)) {
       setState(() => _pidError = tr.paymentIdInvalid);
       return;
     }
@@ -223,22 +220,14 @@ class _ReceiveScreenState extends ConsumerState<ReceiveScreen> {
             style: Theme.of(context).textTheme.bodySmall),
         const SizedBox(height: 12),
 
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () => _generateIntegrated(_randomHex(16)),
-                child: Text(tr.randomShort),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () => _generateIntegrated(_randomHex(64)),
-                child: Text(tr.randomLong),
-              ),
-            ),
-          ],
+        // DeroGold only takes the 64-character form, so there is no short
+        // payment ID to offer.
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton(
+            onPressed: () => _generateIntegrated(_randomHex(64)),
+            child: Text(tr.randomPaymentId),
+          ),
         ),
         const SizedBox(height: 12),
         TextField(
@@ -273,9 +262,7 @@ class _ReceiveScreenState extends ConsumerState<ReceiveScreen> {
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
-                          _integratedPid!.length == 16
-                              ? tr.shortPid
-                              : tr.longPid,
+                          tr.paymentId,
                           style: Theme.of(context)
                               .textTheme
                               .labelSmall
